@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .game-button {
+    @apply px-6 py-3 rounded-full text-white font-bold transition-all duration-300 transform hover:scale-110 shadow-lg;
+  }
+  
+  .avatar-button {
+    @apply flex flex-col items-center justify-center p-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg;
+  }
+}
+
+.bounce-animation {
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(-25%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
+  50% { transform: translateY(0); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+}
