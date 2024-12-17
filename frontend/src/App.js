@@ -2,9 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Star, Music, Volume2, X } from 'lucide-react';
 import Niveles from './Niveles'; 
 import Configuracion from './Configuracion'; 
+import EditarPerfil from './EditarPerfil';
 import Nivel1 from './Nivel1';
 import Numeros from './Numeros';
-
+import Vocales from './Vocales';
+import Figuras from './Figuras';
+import Animales from './Animales';
+import Colores from './Colores';
 
 const KidsGameUI = () => {
   const [currentScreen, setCurrentScreen] = useState('login');
@@ -29,6 +33,8 @@ const KidsGameUI = () => {
   const [currentLevel, setCurrentLevel] = useState(null);
 
   const [currentPhase, setCurrentPhase] = useState(null);
+
+  const [showEditProfile, setShowEditProfile] = useState(false); //Editar el perfil
 
   // Array de avatares simples
   const avatars = [
@@ -808,27 +814,92 @@ const ChangeAvatarScreen = () => {
           onSelectLevel={(level) => setCurrentLevel(level)}
         />
       )}
-      {currentLevel === 1 && !currentPhase && (
-        <Nivel1 
-          player={registeredPlayers[selectedPlayer]}
-          onBack={() => setCurrentLevel(null)}
-          onSelectPhase={(phase) => setCurrentPhase(phase)}
-        />
+      {currentLevel === 1 && !currentPhase && !showConfig && (
+      <Nivel1 
+        player={registeredPlayers[selectedPlayer]}
+        onBack={() => setCurrentLevel(null)}
+        onSelectPhase={(phase) => setCurrentPhase(phase)}
+        onConfigClick={() => {setShowConfig(true);}}
+      />
       )}
-      {currentPhase === 'numeros' && (
+      {currentPhase === 'numeros' && !showConfig && (
         <Numeros 
           player={registeredPlayers[selectedPlayer]}
           onBack={() => {
             setCurrentPhase(null);
           }}
+          onConfigClick={() => setShowConfig(true)}
         />
       )}
-      {showConfig && (
-        <Configuracion 
+      {currentPhase === 'vocales' && !showConfig && (
+        <Vocales 
           player={registeredPlayers[selectedPlayer]}
-          onBack={() => setShowConfig(false)}
+          onBack={() => {
+            setCurrentPhase(null);
+          }}
+          onConfigClick={() => setShowConfig(true)}
         />
       )}
+      {currentPhase === 'figuras' && !showConfig && (
+        <Figuras
+          player={registeredPlayers[selectedPlayer]}
+          onBack={() => {
+            setCurrentPhase(null);
+          }}
+          onConfigClick={() => setShowConfig(true)}
+        />
+      )}
+      {currentPhase === 'animales' && !showConfig && (
+        <Animales
+          player={registeredPlayers[selectedPlayer]}
+          onBack={() => {
+            setCurrentPhase(null);
+          }}
+          onConfigClick={() => setShowConfig(true)}
+        />
+      )}
+      {currentPhase === 'colores' && !showConfig && (
+        <Colores
+          player={registeredPlayers[selectedPlayer]}
+          onBack={() => {
+            setCurrentPhase(null);
+          }}
+          onConfigClick={() => setShowConfig(true)}
+        />
+      )}
+      {showConfig && !showEditProfile && (
+      <Configuracion 
+        player={registeredPlayers[selectedPlayer]}
+        onBack={() => setShowConfig(false)}
+        onEditProfile={() => setShowEditProfile(true)}
+        onLogout={() => {
+          setShowConfig(false);
+          setCurrentScreen('login');
+          setSelectedPlayer(null);
+        }}
+      />
+      )}
+
+      {showEditProfile && (
+        <EditarPerfil
+          player={registeredPlayers[selectedPlayer]}
+          onBack={() => setShowEditProfile(false)}
+          onUpdate={(updatedData) => {
+            // Actualizar los datos del jugador
+            const updatedPlayers = registeredPlayers.map((player, index) => 
+              index === selectedPlayer ? { ...player, ...updatedData } : player
+            );
+            setRegisteredPlayers(updatedPlayers);
+            setShowEditProfile(false);
+            setShowConfig(false);
+            setCurrentScreen('login')
+            // Mostrar mensaje de éxito
+            setShowUpdateSuccessModal(true);
+          }}
+        />
+      )}
+
+      
       {showSuccessModal && <SuccessModal />}
       {showUpdateSuccessModal && <UpdateSuccessModal />}
       {showErrorModal && <ErrorModal />} 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const Nivel1 = ({ player, onBack, onSelectPhase }) => {
+const Nivel1 = ({ player, onBack, onSelectPhase, onConfigClick }) => {
   const [currentPhase, setCurrentPhase] = useState('menu'); // menu, numeros, vocales, figuras, animales, colores
 
   // Datos para cada fase
@@ -83,14 +83,18 @@ const Nivel1 = ({ player, onBack, onSelectPhase }) => {
         <div className="flex items-center justify-between mb-8">
           <button
             className="bg-pink-500 hover:bg-pink-600 text-white text-xl font-bold py-2 px-4
-                     rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
+                    rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
             onClick={onBack}
           >
             ← Volver
           </button>
-          <div className="flex items-center space-x-3">
+          
+          <div 
+            className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-all duration-300"
+            onClick={onConfigClick}
+          >
             <span className="text-4xl">{player?.avatar}</span>
-            <span className="text-2xl font-bold text-purple-600">
+            <span className="text-2xl font-bold text-purple-600 hover:text-purple-700">
               {player?.name}
             </span>
           </div>
