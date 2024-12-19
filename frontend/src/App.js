@@ -60,6 +60,24 @@ const KidsGameUI = () => {
     'bg-peach-puff',         // #FFDAB9
   ];
 
+  // Obtener usuarios de Firebase al cargar la aplicación
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/users'); // Asegúrate de que la ruta coincida con tu backend
+        if (response.ok) {
+          const users = await response.json(); // Transformar los datos recibidos
+          setRegisteredPlayers(users); // Actualizar el estado con los usuarios registrados
+        } else {
+          console.error('Error al obtener usuarios');
+        }
+      } catch (error) {
+        console.error('Error de red al obtener usuarios:', error);
+      }
+    };
+
+    fetchUsers(); // Llama a la función al montar el componente
+  }, []);
 
   // Agregar este nuevo componente junto a los otros modales
   const ErrorModal = () => (
@@ -257,6 +275,7 @@ const KidsGameUI = () => {
 
   // Pantalla de Login
   const LoginScreen = () => (
+
     <div className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 p-6">
       <FloatingBalloons />
       
@@ -268,11 +287,11 @@ const KidsGameUI = () => {
         {registeredPlayers.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8">
           {registeredPlayers.map((player, index) => (
-            <div key={index} className="relative">
+            <div key={player.name} className="relative">
               <button
-                className={`${player.color} hover:scale-105 transform transition-all duration-300 
-                         rounded-2xl p-6 shadow-lg flex flex-col items-center w-full
-                         ${selectedPlayer === index ? 'ring-4 ring-yellow-400 ring-opacity-75' : ''}`}
+                className={`${player.color || 'bg-gray-100'} hover:scale-105 transform transition-all duration-300 
+                        rounded-2xl p-6 shadow-lg flex flex-col items-center w-full
+                        ${selectedPlayer === index ? 'ring-4 ring-yellow-400 ring-opacity-75' : ''}`}
                 onClick={() => {
                   setSelectedPlayer(index);
                   setCurrentScreen('niveles');
@@ -280,17 +299,6 @@ const KidsGameUI = () => {
               >
                 <span className="text-6xl mb-2">{player.avatar}</span>
                 <span className="text-xl font-bold text-black">{player.name}</span>
-              </button>
-              <button
-                className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-lg
-                         hover:bg-gray-100 transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedPlayerForOptions(player);
-                  setShowOptionsModal(true);
-                }}
-              >
-                ⚙️
               </button>
             </div>
           ))}
@@ -325,7 +333,7 @@ const KidsGameUI = () => {
       avatar: ''
     });
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
       e.preventDefault();
       
       // Verificar campos vacíos
@@ -352,7 +360,7 @@ const KidsGameUI = () => {
         setShowErrorModal(true);
         return;
       }
-    
+
       // Si estamos editando
       if (isEditing && editingPlayer) {
         const updatedPlayers = registeredPlayers.map(player =>
@@ -380,17 +388,47 @@ const KidsGameUI = () => {
         }
       }
     
-      // Si todos los campos están llenos y el nombre no existe, proceder con el registro
-      const randomColor = backgroundColors[Math.floor(Math.random() * backgroundColors.length)];
-      const newPlayer = {
-        ...formData,
-        name: formData.name.trim(),
-        color: randomColor
-      };
-      
-      setRegisteredPlayers([...registeredPlayers, newPlayer]);
-      setShowSuccessModal(true);
-      setFormData({ name: '', age: '', gender: '', avatar: '' });
+      // Enviar datos al backend
+      try {
+        const response = await fetch('http://localhost:5000/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: formData.name.trim(),
+            age: formData.age,
+            gender: formData.gender,
+            avatar: formData.avatar,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log(data.message);
+          
+          // Actualizar jugadores registrados localmente
+          const randomColor = backgroundColors[Math.floor(Math.random() * backgroundColors.length)];
+          const newPlayer = {
+            ...formData,
+            name: formData.name.trim(),
+            color: randomColor,
+          };
+          
+          setRegisteredPlayers([...registeredPlayers, newPlayer]);
+          setShowSuccessModal(true);
+          setFormData({ name: '', age: '', gender: '', avatar: '' });
+        } else {
+          const errorData = await response.json();
+          setErrorMessage(errorData.error || 'Error al registrar al usuario.');
+          setShowErrorModal(true);
+        }
+      } catch (error) {
+        console.error('Error al enviar datos al backend:', error);
+        setErrorMessage('Error de red al intentar registrar al usuario.');
+        setShowErrorModal(true);
+      }
+
     };
 
     return (
