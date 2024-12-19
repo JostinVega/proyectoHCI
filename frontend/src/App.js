@@ -300,6 +300,17 @@ const KidsGameUI = () => {
                 <span className="text-6xl mb-2">{player.avatar}</span>
                 <span className="text-xl font-bold text-black">{player.name}</span>
               </button>
+              <button
+                className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-lg
+                         hover:bg-gray-100 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedPlayerForOptions(player);
+                  setShowOptionsModal(true);
+                }}
+              >
+                ⚙️
+              </button>
             </div>
           ))}
         </div>
