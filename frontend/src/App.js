@@ -9,6 +9,10 @@ import Vocales from './Vocales';
 import Figuras from './Figuras';
 import Animales from './Animales';
 import Colores from './Colores';
+import Nivel2 from './Nivel2';
+import AnimalesNumeros from './AnimalesNumeros';
+import AnimalesVocales from './AnimalesVocales';
+import ColoresFormas from './ColoresFormas';
 
 const KidsGameUI = () => {
   const [currentScreen, setCurrentScreen] = useState('login');
@@ -865,6 +869,41 @@ const ChangeAvatarScreen = () => {
             setCurrentPhase(null);
           }}
           onConfigClick={() => setShowConfig(true)}
+        />
+      )}
+      {currentLevel === 2 && !currentPhase && !showConfig && (
+      <Nivel2
+        player={registeredPlayers[selectedPlayer]}
+        onBack={() => setCurrentLevel(null)}
+        onSelectPhase={(phase) => setCurrentPhase(phase)}
+        onConfigClick={() => {setShowConfig(true);}}
+      />
+      )}
+      {currentPhase === 'animales-numeros' && !showConfig && (
+        <AnimalesNumeros 
+        player={registeredPlayers[selectedPlayer]}
+        onBack={() => {
+          setCurrentPhase(null);
+        }}
+        onConfigClick={() => setShowConfig(true)}
+        />
+      )}
+      {currentPhase === 'animales-vocales' && !showConfig && (
+        <AnimalesVocales
+        player={registeredPlayers[selectedPlayer]}
+        onBack={() => {
+          setCurrentPhase(null);
+        }}
+        onConfigClick={() => setShowConfig(true)}
+        />
+      )}
+      {currentPhase === 'colores-formas' && !showConfig && (
+        <ColoresFormas
+        player={registeredPlayers[selectedPlayer]}
+        onBack={() => {
+          setCurrentPhase(null);
+        }}
+        onConfigClick={() => setShowConfig(true)}
         />
       )}
       {showConfig && !showEditProfile && (

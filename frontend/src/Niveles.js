@@ -55,9 +55,7 @@ const Niveles = ({ player, onBack, onConfigClick, onSelectLevel }) => {
                      hover:from-yellow-500 hover:to-yellow-700
                      text-white rounded-2xl p-8 transform hover:scale-105 
                      transition-all duration-300 shadow-xl"
-            onClick={() => {
-              console.log('Iniciando Nivel 2');
-            }}
+            onClick={() => onSelectLevel(2)}
           >
             <div className="flex flex-col items-center space-y-4">
               <span className="text-6xl">⭐</span>
