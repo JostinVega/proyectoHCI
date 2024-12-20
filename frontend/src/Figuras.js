@@ -48,15 +48,27 @@ const Shapes = {
   )
 };
 
-const Formas = ({ player, onBack, onConfigClick }) => {
+const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const formas = ['circulo', 'cuadrado', 'triangulo', 'rombo', 'estrella', 'corazon', 'luna'];
-  const [currentForma, setCurrentForma] = useState(0);
+  //const [currentForma, setCurrentForma] = useState(0);
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [attempts, setAttempts] = useState(0);
-  const [showInstructions, setShowInstructions] = useState(true);
+  //const [showInstructions, setShowInstructions] = useState(true);
   const [gameCompleted, setGameCompleted] = useState(false);
+
+   // Estado inicial para recuperar progreso
+   const [currentForma, setCurrentForma] = useState(() => {
+    const savedProgress = localStorage.getItem(`nivel1_figuras_progress_${player.name}`);
+    return savedProgress ? parseInt(savedProgress) : 0;
+  });
+
+  // Estado de instrucciones para recuperar
+  const [showInstructions, setShowInstructions] = useState(() => {
+    const savedInstructions = localStorage.getItem(`nivel1_figuras_instructions_${player.name}`);
+    return !savedInstructions;
+  });
 
   // Mensajes de felicitación aleatorios
   const successMessages = [
@@ -95,8 +107,22 @@ const Formas = ({ player, onBack, onConfigClick }) => {
     setAttempts(prev => prev + 1);
 
     if (isRight) {
+      // Calcular progreso
+      const progress = ((currentForma + 1) / formas.length) * 100;
+      
+      // Guardar progreso en localStorage
+      localStorage.setItem(`nivel1_figuras_progress_${player.name}`, currentForma + 1);
+
+      // Comunicar progreso
+      onProgressUpdate(progress, false);
+      
       if (currentForma === formas.length - 1) {
         // Si es la última forma, mostrar pantalla de completado
+        localStorage.removeItem(`nivel1_figuras_progress_${player.name}`);
+        localStorage.removeItem(`nivel1_figuras_instructions_${player.name}`);
+        
+        onProgressUpdate(100, true);
+
         setTimeout(() => {
           setGameCompleted(true);
           setShowFeedback(false);
@@ -119,6 +145,26 @@ const Formas = ({ player, onBack, onConfigClick }) => {
     return () => window.removeEventListener('keypress', handleKeyPress);
   }, [currentForma, showInstructions]);
 
+  // Método para iniciar el juego y guardar estado
+  const startGame = () => {
+    setShowInstructions(false);
+    localStorage.setItem(`nivel1_figuras_instructions_${player.name}`, 'started');
+  };
+
+  // Método para manejar volver atrás
+  const handleBack = () => {
+    if (!gameCompleted) {
+      // Si no está completado, mantener el progreso
+      localStorage.setItem(`nivel1_figuras_progress_${player.name}`, currentForma);
+      localStorage.setItem(`nivel1_figuras_instructions_${player.name}`, 'started');
+    } else {
+      // Si está completado, limpiar progreso
+      localStorage.removeItem(`nivel1_figuras_progress_${player.name}`);
+      localStorage.removeItem(`nivel1_figuras_instructions_${player.name}`);
+    }
+    onBack();
+  };
+
   // Obtener el componente SVG de la forma actual
   const CurrentShape = Shapes[formas[currentForma]];
 
@@ -130,7 +176,7 @@ const Formas = ({ player, onBack, onConfigClick }) => {
           <button
             className="bg-pink-500 hover:bg-pink-600 text-white text-xl font-bold py-2 px-4
                     rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-            onClick={onBack}
+            onClick={handleBack}
           >
             ← Volver
           </button>
@@ -158,7 +204,7 @@ const Formas = ({ player, onBack, onConfigClick }) => {
             <button
               className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
                      rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-              onClick={() => setShowInstructions(false)}
+              onClick={startGame}
             >
               ¡Empezar! 🚀
             </button>

@@ -44,7 +44,7 @@ const Niveles = ({ player, onBack, onConfigClick, onSelectLevel }) => {
               <h3 className="text-2xl font-bold">Nivel 1</h3>
               <p className="text-lg opacity-90">Principiante</p>
               <div className="mt-4 text-sm bg-white bg-opacity-20 rounded-lg p-2">
-                Aprende los conceptos básicos
+                Reconoce números, vocales, formas, animales y colores
               </div>
             </div>
           </button>
@@ -62,7 +62,7 @@ const Niveles = ({ player, onBack, onConfigClick, onSelectLevel }) => {
               <h3 className="text-2xl font-bold">Nivel 2</h3>
               <p className="text-lg opacity-90">Intermedio</p>
               <div className="mt-4 text-sm bg-white bg-opacity-20 rounded-lg p-2">
-                Pon a prueba tus habilidades
+                Relaciona conceptos (números, vocales, formas y colores)
               </div>
             </div>
           </button>
@@ -73,16 +73,14 @@ const Niveles = ({ player, onBack, onConfigClick, onSelectLevel }) => {
                      hover:from-purple-500 hover:to-purple-700
                      text-white rounded-2xl p-8 transform hover:scale-105 
                      transition-all duration-300 shadow-xl"
-            onClick={() => {
-              console.log('Iniciando Nivel 3');
-            }}
+            onClick={() => onSelectLevel(3)}
           >
             <div className="flex flex-col items-center space-y-4">
               <span className="text-6xl">💫</span>
               <h3 className="text-2xl font-bold">Nivel 3</h3>
               <p className="text-lg opacity-90">Avanzado</p>
               <div className="mt-4 text-sm bg-white bg-opacity-20 rounded-lg p-2">
-                Conviértete en un experto
+                Aprende a contar jugando con animales
               </div>
             </div>
           </button>

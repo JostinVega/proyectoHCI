@@ -18,15 +18,27 @@ const Shapes = {
   unicornio: () => <div className="text-9xl">🦄</div>
 };
 
-const Animales = ({ player, onBack, onConfigClick }) => {
+const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const animales = ['pajaro', 'tortuga', 'cerdo', 'pato', 'mariposa', 'pollito', 'gato', 'perro', 'oveja', 'aveja', 'elefante', 'iguana', 'oso', 'unicornio'];
-  const [currentAnimal, setCurrentAnimal] = useState(0);
+  //const [currentAnimal, setCurrentAnimal] = useState(0);
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [attempts, setAttempts] = useState(0);
-  const [showInstructions, setShowInstructions] = useState(true);
+  //const [showInstructions, setShowInstructions] = useState(true);
   const [gameCompleted, setGameCompleted] = useState(false);
+
+  // Modificar estado inicial para recuperar progreso
+  const [currentAnimal, setCurrentAnimal] = useState(() => {
+    const savedProgress = localStorage.getItem(`nivel1_animales_progress_${player.name}`);
+    return savedProgress ? parseInt(savedProgress) : 0;
+  });
+
+  // Modificar estado de instrucciones para recuperar
+  const [showInstructions, setShowInstructions] = useState(() => {
+    const savedInstructions = localStorage.getItem(`nivel1_animales_instructions_${player.name}`);
+    return !savedInstructions;
+  });
 
   // Mensajes de felicitación aleatorios
   const successMessages = [
@@ -65,7 +77,22 @@ const Animales = ({ player, onBack, onConfigClick }) => {
     setAttempts(prev => prev + 1);
 
     if (isRight) {
+      // Calcular progreso
+      const progress = ((currentAnimal + 1) / animales.length) * 100;
+      
+      // Guardar progreso en localStorage
+      localStorage.setItem(`nivel1_animales_progress_${player.name}`, currentAnimal + 1);
+
+      // Comunicar progreso
+      onProgressUpdate(progress, false);
+
       if (currentAnimal === animales.length - 1) {
+        // Si es el último animal, mostrar pantalla de completado
+        localStorage.removeItem(`nivel1_animales_progress_${player.name}`);
+        localStorage.removeItem(`nivel1_animales_instructions_${player.name}`);
+        
+        onProgressUpdate(100, true);
+
         // Si es el último animal, mostrar pantalla de completado
         setTimeout(() => {
           setGameCompleted(true);
@@ -89,6 +116,26 @@ const Animales = ({ player, onBack, onConfigClick }) => {
     return () => window.removeEventListener('keypress', handleKeyPress);
   }, [currentAnimal, showInstructions]);
 
+  // Método para iniciar el juego y guardar estado
+  const startGame = () => {
+    setShowInstructions(false);
+    localStorage.setItem(`nivel1_animales_instructions_${player.name}`, 'started');
+  };
+
+  // Método para manejar volver atrás
+  const handleBack = () => {
+    if (!gameCompleted) {
+      // Si no está completado, mantener el progreso
+      localStorage.setItem(`nivel1_animales_progress_${player.name}`, currentAnimal);
+      localStorage.setItem(`nivel1_animales_instructions_${player.name}`, 'started');
+    } else {
+      // Si está completado, limpiar progreso
+      localStorage.removeItem(`nivel1_animales_progress_${player.name}`);
+      localStorage.removeItem(`nivel1_animales_instructions_${player.name}`);
+    }
+    onBack();
+  };
+
   // Obtener el componente del animal actual
   const CurrentShape = Shapes[animales[currentAnimal]];
 
@@ -100,7 +147,7 @@ const Animales = ({ player, onBack, onConfigClick }) => {
           <button
             className="bg-pink-500 hover:bg-pink-600 text-white text-xl font-bold py-2 px-4
                     rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-            onClick={onBack}
+            onClick={handleBack}
           >
             ← Volver
           </button>
@@ -128,7 +175,7 @@ const Animales = ({ player, onBack, onConfigClick }) => {
             <button
               className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
                      rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-              onClick={() => setShowInstructions(false)}
+              onClick={startGame}
             >
               ¡Empezar! 🚀
             </button>

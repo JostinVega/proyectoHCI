@@ -1,7 +1,108 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const Nivel1 = ({ player, onBack, onSelectPhase, onConfigClick }) => {
   const [currentPhase, setCurrentPhase] = useState('menu'); // menu, numeros, vocales, figuras, animales, colores
+
+  // Estado para manejar el progreso
+  const [progress, setProgress] = useState(() => {
+    // Leer progreso desde localStorage
+    const savedProgress = localStorage.getItem(`nivel1_progress_${player.name}`);
+    return savedProgress 
+      ? JSON.parse(savedProgress) 
+      : {
+          totalProgress: 0,
+          phases: {
+            numeros: { completed: false, progress: 0 },
+            vocales: { completed: false, progress: 0 },
+            figuras: { completed: false, progress: 0 },
+            animales: { completed: false, progress: 0 },
+            colores: { completed: false, progress: 0 }
+          }
+        };
+  });
+
+  // Efecto para actualizar progreso
+  useEffect(() => {
+    // Actualizar progreso desde localStorage para cada fase
+    const updateProgressFromStorage = () => {
+      const newProgress = { ...progress };
+      
+      // Verificar progreso de números
+      const numerosProgress = localStorage.getItem(`nivel1_numeros_progress_${player.name}`);
+      if (numerosProgress) {
+        newProgress.phases.numeros.progress = (parseInt(numerosProgress) / 10) * 100;
+      }
+
+      // Verificar progreso de vocales
+      const vocalesProgress = localStorage.getItem(`nivel1_vocales_progress_${player.name}`);
+      if (vocalesProgress) {
+        newProgress.phases.vocales.progress = (parseInt(vocalesProgress) / 5) * 100;
+      }
+
+      // Verificar progreso de figuras
+      const figurasProgress = localStorage.getItem(`nivel1_figuras_progress_${player.name}`);
+      if (figurasProgress) {
+        newProgress.phases.figuras.progress = (parseInt(figurasProgress) / 7) * 100;
+      }
+
+      // Verificar progreso de animales
+      const animalesProgress = localStorage.getItem(`nivel1_animales_progress_${player.name}`);
+      if (animalesProgress) {
+        newProgress.phases.animales.progress = (parseInt(animalesProgress) / 14) * 100;
+      }
+
+      // Verificar progreso de colores
+      const coloresProgress = localStorage.getItem(`nivel1_colores_progress_${player.name}`);
+      if (coloresProgress) {
+        newProgress.phases.colores.progress = (parseInt(coloresProgress) / 10) * 100;
+      }
+
+      // Calcular progreso total
+      const completedPhases = Object.values(newProgress.phases).filter(phase => phase.completed).length;
+      const totalProgress = Object.values(newProgress.phases).reduce((sum, phase) => sum + phase.progress, 0) / Object.keys(newProgress.phases).length;
+      
+      newProgress.totalProgress = totalProgress;
+
+      // Actualizar estado y localStorage
+      setProgress(newProgress);
+      localStorage.setItem(`nivel1_progress_${player.name}`, JSON.stringify(newProgress));
+    };
+
+    updateProgressFromStorage();
+  }, [player.name]);
+
+  // Método para renderizar la barra de progreso
+  const renderProgressBar = () => {
+    const { phases } = progress;
+    
+    return (
+      <div className="bg-white bg-opacity-80 rounded-xl p-4 mb-4">
+        <h3 className="text-xl font-bold text-purple-600 mb-2">
+          Progreso del Nivel 1: {progress.totalProgress.toFixed(0)}%
+        </h3>
+        {Object.entries(phases).map(([phase, data]) => (
+          <div key={phase} className="mb-2">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-700 capitalize">{phase}</span>
+              <span className="text-sm font-bold">
+                {data.completed ? '100%' : `${data.progress.toFixed(0)}%`}
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div 
+                className={`h-2.5 rounded-full ${
+                  data.completed 
+                    ? 'bg-green-500' 
+                    : 'bg-blue-500'
+                }`} 
+                style={{width: `${data.progress}%`}}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   // Datos para cada fase
   const fases = [
@@ -45,6 +146,7 @@ const Nivel1 = ({ player, onBack, onSelectPhase, onConfigClick }) => {
   // Componente para el menú principal del nivel 1
   const MenuNivel1 = () => (
     <div className="space-y-8">
+      {renderProgressBar()}
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-purple-600 mb-2">
           Nivel 1: Aprendizaje Básico
@@ -55,24 +157,36 @@ const Nivel1 = ({ player, onBack, onSelectPhase, onConfigClick }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {fases.map((fase) => (
-          <button
-            key={fase.id}
-            className={`bg-gradient-to-r ${fase.color} hover:opacity-90
-                     text-white rounded-2xl p-6 transform hover:scale-105 
-                     transition-all duration-300 shadow-xl text-left`}
-            onClick={() => onSelectPhase(fase.id)}
-          >
-            <div className="flex items-start space-x-4">
-              <span className="text-4xl">{fase.emoji}</span>
-              <div>
-                <h3 className="text-xl font-bold mb-1">{fase.nombre}</h3>
-                <p className="text-sm opacity-90">{fase.descripcion}</p>
+        {fases.map((fase) => {
+          // Obtener el progreso de la fase actual
+          const phaseProgress = progress.phases[fase.id];
+          
+          return (
+            <button
+              key={fase.id}
+              className={`bg-gradient-to-r ${fase.color} hover:opacity-90
+                       text-white rounded-2xl p-6 transform hover:scale-105 
+                       transition-all duration-300 shadow-xl text-left
+                       ${phaseProgress.completed ? 'opacity-50' : ''}`}
+              onClick={() => onSelectPhase(fase.id)}
+              disabled={phaseProgress.completed}
+            >
+              <div className="flex items-start space-x-4">
+                <span className="text-4xl">{fase.emoji}</span>
+                <div>
+                  <h3 className="text-xl font-bold mb-1">{fase.nombre}</h3>
+                  <p className="text-sm opacity-90">{fase.descripcion}</p>
+                  {phaseProgress.completed && (
+                    <span className="text-sm text-green-200">Completado ✅</span>
+                  )}
+                </div>
               </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
+
+
     </div>
   );
 

@@ -13,15 +13,27 @@ const ColorMap = {
   azul: '#2196F3'        
 };
 
-const Colores = ({ player, onBack, onConfigClick }) => {
+const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const colores = ['celeste', 'verde', 'rosado', 'amarillo', 'morado', 'gris', 'rojo', 'marron', 'anaranjado', 'azul'];
-  const [currentColor, setCurrentColor] = useState(0);
+  //const [currentColor, setCurrentColor] = useState(0);
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(true);
+  //const [showInstructions, setShowInstructions] = useState(true);
   const [gameCompleted, setGameCompleted] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+
+   // Modificar estado inicial para recuperar progreso
+   const [currentColor, setCurrentColor] = useState(() => {
+    const savedProgress = localStorage.getItem(`nivel1_colores_progress_${player.name}`);
+    return savedProgress ? parseInt(savedProgress) : 0;
+  });
+
+  // Modificar estado de instrucciones para recuperar
+  const [showInstructions, setShowInstructions] = useState(() => {
+    const savedInstructions = localStorage.getItem(`nivel1_colores_instructions_${player.name}`);
+    return !savedInstructions;
+  });
 
   const successMessages = [
     "¡Excelente trabajo! 🌟",
@@ -148,7 +160,22 @@ const Colores = ({ player, onBack, onConfigClick }) => {
     setShowFeedback(true);
 
     if (isRight) {
+      // Calcular progreso
+      const progress = ((currentColor + 1) / colores.length) * 100;
+      
+      // Guardar progreso en localStorage
+      localStorage.setItem(`nivel1_colores_progress_${player.name}`, currentColor + 1);
+
+      // Comunicar progreso
+      onProgressUpdate(progress, false);
+
       if (currentColor === colores.length - 1) {
+        // Si es el último color, mostrar pantalla de completado
+        localStorage.removeItem(`nivel1_colores_progress_${player.name}`);
+        localStorage.removeItem(`nivel1_colores_instructions_${player.name}`);
+        
+        onProgressUpdate(100, true);
+
         setTimeout(() => {
           setGameCompleted(true);
           setShowFeedback(false);
@@ -177,6 +204,26 @@ const Colores = ({ player, onBack, onConfigClick }) => {
     return () => window.removeEventListener('keypress', handleKeyPress);
   }, [currentColor, showInstructions, isAnimating]);
 
+  // Método para iniciar el juego y guardar estado
+  const startGame = () => {
+    setShowInstructions(false);
+    localStorage.setItem(`nivel1_colores_instructions_${player.name}`, 'started');
+  };
+
+  // Método para manejar volver atrás
+  const handleBack = () => {
+    if (!gameCompleted) {
+      // Si no está completado, mantener el progreso
+      localStorage.setItem(`nivel1_colores_progress_${player.name}`, currentColor);
+      localStorage.setItem(`nivel1_colores_instructions_${player.name}`, 'started');
+    } else {
+      // Si está completado, limpiar progreso
+      localStorage.removeItem(`nivel1_colores_progress_${player.name}`);
+      localStorage.removeItem(`nivel1_colores_instructions_${player.name}`);
+    }
+    onBack();
+  };
+
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 p-6">
       <div className="max-w-4xl mx-auto bg-white bg-opacity-90 rounded-3xl p-8 shadow-2xl">
@@ -185,7 +232,7 @@ const Colores = ({ player, onBack, onConfigClick }) => {
           <button
             className="bg-pink-500 hover:bg-pink-600 text-white text-xl font-bold py-2 px-4
                     rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-            onClick={onBack}
+            onClick={handleBack}
           >
             ← Volver
           </button>
@@ -212,7 +259,7 @@ const Colores = ({ player, onBack, onConfigClick }) => {
             <button
               className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
                      rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-              onClick={() => setShowInstructions(false)}
+              onClick={startGame}
             >
               ¡Empezar! 🚀
             </button>

@@ -13,6 +13,7 @@ import Nivel2 from './Nivel2';
 import AnimalesNumeros from './AnimalesNumeros';
 import AnimalesVocales from './AnimalesVocales';
 import ColoresFormas from './ColoresFormas';
+import Nivel3 from './Nivel3';
 
 const KidsGameUI = () => {
   const [currentScreen, setCurrentScreen] = useState('login');
@@ -853,6 +854,51 @@ const ChangeAvatarScreen = () => {
     return () => document.head.removeChild(style);
   }, []);
 
+  // Nuevo useEffect para manejar mensajes de progreso
+  useEffect(() => {
+    const handleProgressMessage = (event) => {
+      if (event.data.type === 'SAVE_PHASE_PROGRESS') {
+        const { level, phase, progress, isCompleted } = event.data;
+        
+        // Obtener el progreso actual de localStorage
+        const currentProgress = JSON.parse(localStorage.getItem('gameProgress')) || {};
+        
+        // Inicializar estructura si no existe
+        if (!currentProgress[`level${level}`]) {
+          currentProgress[`level${level}`] = { 
+            phases: {},
+            totalProgress: 0
+          };
+        }
+
+        // Actualizar progreso de la fase
+        currentProgress[`level${level}`].phases[phase] = {
+          progress,
+          completed: isCompleted
+        };
+
+        // Calcular progreso total del nivel
+        const phases = currentProgress[`level${level}`].phases;
+        const completedPhases = Object.values(phases).filter(p => p.completed).length;
+        const totalPhaseProgress = Object.values(phases).reduce((sum, p) => sum + p.progress, 0);
+        
+        currentProgress[`level${level}`].totalProgress = 
+          completedPhases > 0 
+            ? (totalPhaseProgress / Object.keys(phases).length)
+            : 0;
+
+        // Guardar en localStorage
+        localStorage.setItem('gameProgress', JSON.stringify(currentProgress));
+
+        // Opcional: Log para verificar
+        console.log('Progreso actualizado:', currentProgress);
+      }
+    };
+
+    window.addEventListener('message', handleProgressMessage);
+    return () => window.removeEventListener('message', handleProgressMessage);
+  }, []);
+
   return (
     <div>
       {currentScreen === 'login' && <LoginScreen />}
@@ -882,6 +928,16 @@ const ChangeAvatarScreen = () => {
             setCurrentPhase(null);
           }}
           onConfigClick={() => setShowConfig(true)}
+          onProgressUpdate={(progress, isCompleted) => {
+            // Comunicar progreso al padre
+            window.parent.postMessage({
+              type: 'SAVE_PHASE_PROGRESS',
+              level: 1,
+              phase: 'numeros',
+              progress,
+              isCompleted
+            }, '*');
+          }}
         />
       )}
       {currentPhase === 'vocales' && !showConfig && (
@@ -891,6 +947,16 @@ const ChangeAvatarScreen = () => {
             setCurrentPhase(null);
           }}
           onConfigClick={() => setShowConfig(true)}
+          onProgressUpdate={(progress, isCompleted) => {
+            // Comunicar progreso al padre
+            window.parent.postMessage({
+              type: 'SAVE_PHASE_PROGRESS',
+              level: 1,
+              phase: 'vocales',
+              progress,
+              isCompleted
+            }, '*');
+          }}
         />
       )}
       {currentPhase === 'figuras' && !showConfig && (
@@ -900,6 +966,16 @@ const ChangeAvatarScreen = () => {
             setCurrentPhase(null);
           }}
           onConfigClick={() => setShowConfig(true)}
+          onProgressUpdate={(progress, isCompleted) => {
+            // Comunicar progreso al padre
+            window.parent.postMessage({
+              type: 'SAVE_PHASE_PROGRESS',
+              level: 1,
+              phase: 'figuras',
+              progress,
+              isCompleted
+            }, '*');
+          }}
         />
       )}
       {currentPhase === 'animales' && !showConfig && (
@@ -909,6 +985,16 @@ const ChangeAvatarScreen = () => {
             setCurrentPhase(null);
           }}
           onConfigClick={() => setShowConfig(true)}
+          onProgressUpdate={(progress, isCompleted) => {
+            // Comunicar progreso al padre
+            window.parent.postMessage({
+              type: 'SAVE_PHASE_PROGRESS',
+              level: 1,
+              phase: 'numeros',
+              progress,
+              isCompleted
+            }, '*');
+          }}
         />
       )}
       {currentPhase === 'colores' && !showConfig && (
@@ -918,6 +1004,16 @@ const ChangeAvatarScreen = () => {
             setCurrentPhase(null);
           }}
           onConfigClick={() => setShowConfig(true)}
+          onProgressUpdate={(progress, isCompleted) => {
+            // Comunicar progreso al padre
+            window.parent.postMessage({
+              type: 'SAVE_PHASE_PROGRESS',
+              level: 1,
+              phase: 'numeros',
+              progress,
+              isCompleted
+            }, '*');
+          }}
         />
       )}
       {currentLevel === 2 && !currentPhase && !showConfig && (
@@ -935,6 +1031,15 @@ const ChangeAvatarScreen = () => {
           setCurrentPhase(null);
         }}
         onConfigClick={() => setShowConfig(true)}
+        onProgressUpdate={(progress, isCompleted) => {
+          window.parent.postMessage({
+            type: 'SAVE_PHASE_PROGRESS',
+            level: 2,
+            phase: 'animales-numeros',
+            progress,
+            isCompleted
+          }, '*');
+        }}
         />
       )}
       {currentPhase === 'animales-vocales' && !showConfig && (
@@ -944,6 +1049,15 @@ const ChangeAvatarScreen = () => {
           setCurrentPhase(null);
         }}
         onConfigClick={() => setShowConfig(true)}
+        onProgressUpdate={(progress, isCompleted) => {
+          window.parent.postMessage({
+            type: 'SAVE_PHASE_PROGRESS',
+            level: 2,
+            phase: 'animales-vocales',
+            progress,
+            isCompleted
+          }, '*');
+        }}
         />
       )}
       {currentPhase === 'colores-formas' && !showConfig && (
@@ -953,7 +1067,25 @@ const ChangeAvatarScreen = () => {
           setCurrentPhase(null);
         }}
         onConfigClick={() => setShowConfig(true)}
+        onProgressUpdate={(progress, isCompleted) => {
+          window.parent.postMessage({
+            type: 'SAVE_PHASE_PROGRESS',
+            level: 2,
+            phase: 'colores-formas',
+            progress,
+            isCompleted
+          }, '*');
+        }}
         />
+      )}
+      {currentLevel === 3 && !currentPhase && !showConfig && (
+      <Nivel3
+        player={registeredPlayers[selectedPlayer]}
+        onBack={() => setCurrentLevel(null)}
+        onSelectPhase={(phase) => setCurrentPhase(phase)}
+        onConfigClick={() => {setShowConfig(true);}}
+        
+      />
       )}
       {showConfig && !showEditProfile && (
       <Configuracion 

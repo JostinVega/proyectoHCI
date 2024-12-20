@@ -1,12 +1,24 @@
 import React, { useState, useEffect } from 'react';
 
-const AnimalesNumeros = ({ player, onBack, onConfigClick }) => {
-  const [currentPair, setCurrentPair] = useState(0);
+const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
+  //const [currentPair, setCurrentPair] = useState(0);
   const [userInput, setUserInput] = useState('');  // Cambiado de userAnswer
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [gameCompleted, setGameCompleted] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(true);
+  //const [showInstructions, setShowInstructions] = useState(true);
+
+  // Modificar estado inicial para recuperar progreso
+  const [currentPair, setCurrentPair] = useState(() => {
+    const savedProgress = localStorage.getItem(`nivel2_animales_numeros_progress_${player.name}`);
+    return savedProgress ? parseInt(savedProgress) : 0;
+  });
+
+  // Modificar estado de instrucciones para recuperar
+  const [showInstructions, setShowInstructions] = useState(() => {
+    const savedInstructions = localStorage.getItem(`nivel2_animales_numeros_instructions_${player.name}`);
+    return !savedInstructions;
+  });
 
   // Datos de los pares animal-número
   const pairs = [
@@ -92,7 +104,22 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick }) => {
     setShowFeedback(true);
 
     if (isRight) {
+      // Calcular progreso
+      const progress = ((currentPair + 1) / pairs.length) * 100;
+      
+      // Guardar progreso en localStorage
+      localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, currentPair + 1);
+
+      // Comunicar progreso
+      onProgressUpdate(progress, false);
+
       if (currentPair === pairs.length - 1) {
+        // Si es el último par, mostrar pantalla de completado
+        localStorage.removeItem(`nivel2_animales_numeros_progress_${player.name}`);
+        localStorage.removeItem(`nivel2_animales_numeros_instructions_${player.name}`);
+        
+        onProgressUpdate(100, true);
+
         setTimeout(() => {
           setGameCompleted(true);
           setShowFeedback(false);
@@ -112,6 +139,26 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick }) => {
     window.addEventListener('keypress', handleKeyPress);
     return () => window.removeEventListener('keypress', handleKeyPress);
   }, [currentPair, showInstructions]);
+
+  // Método para iniciar el juego y guardar estado
+  const startGame = () => {
+    setShowInstructions(false);
+    localStorage.setItem(`nivel2_animales_numeros_instructions_${player.name}`, 'started');
+  };
+
+  // Método para manejar volver atrás
+  const handleBack = () => {
+    if (!gameCompleted) {
+      // Si no está completado, mantener el progreso
+      localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, currentPair);
+      localStorage.setItem(`nivel2_animales_numeros_instructions_${player.name}`, 'started');
+    } else {
+      // Si está completado, limpiar progreso
+      localStorage.removeItem(`nivel2_animales_numeros_progress_${player.name}`);
+      localStorage.removeItem(`nivel2_animales_numeros_instructions_${player.name}`);
+    }
+    onBack();
+  };
 
   // Renderizar los animales según la cantidad
   const renderAnimales = () => {
@@ -134,7 +181,7 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick }) => {
           <button
             className="bg-pink-500 hover:bg-pink-600 text-white text-xl font-bold py-2 px-4
                     rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-            onClick={onBack}
+            onClick={handleBack}
           >
             ← Volver
           </button>
@@ -161,7 +208,7 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick }) => {
             <button
               className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
                      rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-              onClick={() => setShowInstructions(false)}
+              onClick={startGame}
             >
               ¡Empezar! 🚀
             </button>

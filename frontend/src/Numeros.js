@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 
-const Numeros = ({ player, onBack, onConfigClick }) => {
-  const [currentNumber, setCurrentNumber] = useState(0);
+const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
+  //const [currentNumber, setCurrentNumber] = useState(0);
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [showInstructions, setShowInstructions] = useState(true);
   const [gameCompleted, setGameCompleted] = useState(false);
+
+  const [currentNumber, setCurrentNumber] = useState(() => {
+    const savedProgress = localStorage.getItem(`nivel1_numeros_progress_${player.name}`);
+    return savedProgress ? parseInt(savedProgress) : 0;
+  });
 
   // Mensajes de felicitación aleatorios
   const successMessages = [
@@ -45,8 +50,20 @@ const Numeros = ({ player, onBack, onConfigClick }) => {
     setAttempts(prev => prev + 1);
 
     if (isRight) {
+      // Calcular progreso
+      const progress = ((currentNumber + 1) / 10) * 100;
+      
+      // Guardar progreso actual en localStorage
+      localStorage.setItem(`nivel1_numeros_progress_${player.name}`, currentNumber + 1);
+
+      onProgressUpdate(progress, false);
+
       if (currentNumber === 9) {
         // Si es el último número, mostrar pantalla de completado
+        
+        localStorage.removeItem(`nivel1_numeros_progress_${player.name}`);
+        onProgressUpdate(100, true);
+
         setTimeout(() => {
           setGameCompleted(true);
           setShowFeedback(false);
@@ -63,6 +80,33 @@ const Numeros = ({ player, onBack, onConfigClick }) => {
     }
   };
 
+  // Al montar el componente, restaurar estado de instrucciones
+  useEffect(() => {
+    const savedInstructions = localStorage.getItem(`nivel1_numeros_instructions_${player.name}`);
+    if (savedInstructions) {
+      setShowInstructions(false);
+    }
+  }, []);
+
+  // Modificar el método de instrucciones para guardar estado
+  const startGame = () => {
+    setShowInstructions(false);
+    localStorage.setItem(`nivel1_numeros_instructions_${player.name}`, 'started');
+  };
+
+   // Modificar el método onBack para limpiar el progreso si se completa
+   const handleBack = () => {
+    if (!gameCompleted) {
+      // Si no está completado, mantener el progreso
+      localStorage.setItem(`nivel1_numeros_progress_${player.name}`, currentNumber);
+    } else {
+      // Si está completado, limpiar progreso
+      localStorage.removeItem(`nivel1_numeros_progress_${player.name}`);
+      localStorage.removeItem(`nivel1_numeros_instructions_${player.name}`);
+    }
+    onBack();
+  };
+
   // Configurar el event listener del teclado
   useEffect(() => {
     window.addEventListener('keypress', handleKeyPress);
@@ -77,7 +121,7 @@ const Numeros = ({ player, onBack, onConfigClick }) => {
             <button
                 className="bg-pink-500 hover:bg-pink-600 text-white text-xl font-bold py-2 px-4
                         rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-                onClick={onBack}
+                onClick={handleBack}
             >
                 ← Volver
             </button>
@@ -106,7 +150,7 @@ const Numeros = ({ player, onBack, onConfigClick }) => {
             <button
               className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
                        rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-              onClick={() => setShowInstructions(false)}
+              onClick={startGame}
             >
               ¡Empezar! 🚀
             </button>

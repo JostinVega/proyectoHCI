@@ -1,14 +1,26 @@
 import React, { useState, useEffect } from 'react';
 
-const Vocales = ({ player, onBack, onConfigClick }) => {
+const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const vocales = ['a', 'e', 'i', 'o', 'u'];
-  const [currentVocal, setCurrentVocal] = useState(0);
+  //const [currentVocal, setCurrentVocal] = useState(0);
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [attempts, setAttempts] = useState(0);
-  const [showInstructions, setShowInstructions] = useState(true);
+  //const [showInstructions, setShowInstructions] = useState(true);
   const [gameCompleted, setGameCompleted] = useState(false);
+
+  // Estado inicial de currentVocal para recuperar progreso
+  const [currentVocal, setCurrentVocal] = useState(() => {
+    const savedProgress = localStorage.getItem(`nivel1_vocales_progress_${player.name}`);
+    return savedProgress ? parseInt(savedProgress) : 0;
+  });
+
+  // Estado de instrucciones para recuperar
+  const [showInstructions, setShowInstructions] = useState(() => {
+    const savedInstructions = localStorage.getItem(`nivel1_vocales_instructions_${player.name}`);
+    return !savedInstructions;
+  });
 
   // Mensajes de felicitación aleatorios
   const successMessages = [
@@ -41,14 +53,30 @@ const Vocales = ({ player, onBack, onConfigClick }) => {
 
   // Comprobar la respuesta
   const checkAnswer = (input) => {
+    
     const isRight = input === vocales[currentVocal];
     setIsCorrect(isRight);
     setShowFeedback(true);
     setAttempts(prev => prev + 1);
 
     if (isRight) {
+
+      // Calcular progreso
+      const progress = ((currentVocal + 1) / vocales.length) * 100;
+      
+      // Guardar progreso en localStorage
+      localStorage.setItem(`nivel1_vocales_progress_${player.name}`, currentVocal + 1);
+
+      // Comunicar progreso
+      onProgressUpdate(progress, false);
+
       if (currentVocal === vocales.length - 1) {
         // Si es la última vocal, mostrar pantalla de completado
+        localStorage.removeItem(`nivel1_vocales_progress_${player.name}`);
+        localStorage.removeItem(`nivel1_vocales_instructions_${player.name}`);
+        
+        onProgressUpdate(100, true);
+
         setTimeout(() => {
           setGameCompleted(true);
           setShowFeedback(false);
@@ -71,6 +99,26 @@ const Vocales = ({ player, onBack, onConfigClick }) => {
     return () => window.removeEventListener('keypress', handleKeyPress);
   }, [currentVocal, showInstructions]);
 
+  // Método para iniciar el juego y guardar estado
+  const startGame = () => {
+    setShowInstructions(false);
+    localStorage.setItem(`nivel1_vocales_instructions_${player.name}`, 'started');
+  };
+
+  // Método para manejar volver atrás
+  const handleBack = () => {
+    if (!gameCompleted) {
+      // Si no está completado, mantener el progreso
+      localStorage.setItem(`nivel1_vocales_progress_${player.name}`, currentVocal);
+      localStorage.setItem(`nivel1_vocales_instructions_${player.name}`, 'started');
+    } else {
+      // Si está completado, limpiar progreso
+      localStorage.removeItem(`nivel1_vocales_progress_${player.name}`);
+      localStorage.removeItem(`nivel1_vocales_instructions_${player.name}`);
+    }
+    onBack();
+  };
+
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 p-6">
       <div className="max-w-4xl mx-auto bg-white bg-opacity-90 rounded-3xl p-8 shadow-2xl">
@@ -79,7 +127,7 @@ const Vocales = ({ player, onBack, onConfigClick }) => {
           <button
             className="bg-pink-500 hover:bg-pink-600 text-white text-xl font-bold py-2 px-4
                     rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-            onClick={onBack}
+            onClick={handleBack}
           >
             ← Volver
           </button>
@@ -107,7 +155,7 @@ const Vocales = ({ player, onBack, onConfigClick }) => {
             <button
               className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
                      rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-              onClick={() => setShowInstructions(false)}
+              onClick={startGame}
             >
               ¡Empezar! 🚀
             </button>
