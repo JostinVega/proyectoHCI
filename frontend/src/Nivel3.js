@@ -263,10 +263,14 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
             ← Volver
           </button>
           
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={onConfigClick}>
-            
+          <div 
+            className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-all duration-300"
+            onClick={onConfigClick}
+          >
             <span className="text-4xl">{player?.avatar}</span>
-            <span className="text-2xl font-bold text-purple-600">{player?.name}</span>
+            <span className="text-2xl font-bold text-purple-600 hover:text-purple-700">
+              {player?.name}
+            </span>
           </div>
         </div>
         {progressLoaded && (animalSeleccionado ? renderJuego() : renderSeleccionAnimal())}
