@@ -1,11 +1,20 @@
 import React from 'react';
 
+// Componente Niveles
+// Permite al jugador seleccionar un nivel de juego, mostrando opciones para los niveles disponibles.
+// Props:
+// - player: Objeto con información del jugador actual (nombre y avatar).
+// - onBack: Función para regresar a la pantalla anterior.
+// - onConfigClick: Función para abrir la configuración del jugador.
+// - onSelectLevel: Función para seleccionar un nivel y avanzar.
+
 const Niveles = ({ player, onBack, onConfigClick, onSelectLevel }) => {
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 p-6">
       <div className="max-w-4xl mx-auto bg-white bg-opacity-90 rounded-3xl p-8 shadow-2xl">
         {/* Header con información del jugador y botón volver */}
         <div className="flex items-center justify-between mb-8">
+          {/* Botón para regresar a la pantalla anterior */}
           <button
             className="bg-pink-500 hover:bg-pink-600 text-white text-xl font-bold py-2 px-4
                      rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
@@ -13,13 +22,14 @@ const Niveles = ({ player, onBack, onConfigClick, onSelectLevel }) => {
           >
             ← Volver
           </button>
+          {/* Información del jugador con nombre y avatar */}
           <div 
             className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-all duration-300"
             onClick={onConfigClick}
           >
-            <span className="text-4xl">{player?.avatar}</span>
+            <span className="text-4xl">{player?.avatar}</span> {/* Muestra el avatar */}
             <span className="text-2xl font-bold text-purple-600 hover:text-purple-700">
-              {player?.name}
+              {player?.name} {/* Muestra el nombre del jugador */}
             </span>
           </div>
         </div>
@@ -86,7 +96,6 @@ const Niveles = ({ player, onBack, onConfigClick, onSelectLevel }) => {
           </button>
         </div>
 
-        {/* Instrucciones o descripción */}
         <div className="mt-12 text-center text-gray-600">
           <p className="text-lg">
             Selecciona un nivel para comenzar tu aventura de aprendizaje.

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-// Emoji icons for animals
+// Diccionario de componentes para representar animales como emojis
 const Shapes = {
   pajaro: () => <div className="text-9xl">🐦</div>,
   tortuga: () => <div className="text-9xl">🐢</div>,
@@ -19,6 +19,7 @@ const Shapes = {
 };
 
 const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
+  // Lista de animales que se mostrarán en el juego
   const animales = ['pajaro', 'tortuga', 'cerdo', 'pato', 'mariposa', 'pollito', 'gato', 'perro', 'oveja', 'aveja', 'elefante', 'iguana', 'oso', 'unicornio'];
   //const [currentAnimal, setCurrentAnimal] = useState(0);
   const [userInput, setUserInput] = useState('');
@@ -40,7 +41,7 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return !savedInstructions;
   });
 
-  // Mensajes de felicitación aleatorios
+  // Mensajes de éxito para respuestas correctas
   const successMessages = [
     "¡Excelente trabajo! 🌟",
     "¡Lo lograste! ¡Eres increíble! ⭐",
@@ -49,7 +50,7 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     "¡Genial! ¡Lo hiciste perfectamente! 🌈"
   ];
 
-  // Mensajes de ánimo para intentos incorrectos
+  // Mensajes de ánimo para respuestas incorrectas
   const encouragementMessages = [
     "¡Casi lo tienes! Intenta de nuevo 💪",
     "¡Sigue intentando! Tú puedes 🌟",
@@ -57,7 +58,7 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     "¡Vamos a intentarlo una vez más! 🎈"
   ];
 
-  // Manejar la entrada del teclado
+  // Maneja las teclas presionadas por el jugador
   const handleKeyPress = (e) => {
     if (showInstructions) return;
     
@@ -82,7 +83,8 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       setShowInstructions(false);
     }
   }, []);
-  // Comprobar la respuesta
+
+  // Verifica si la respuesta del jugador es correcta
   const checkAnswer = (input) => {
     const currentAnimalNombre = animales[currentAnimal];
     const isRight = input === currentAnimalNombre.charAt(0);
@@ -139,7 +141,7 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     onBack();
   };
 
-  // Obtener el componente del animal actual
+  // Componente que representa el animal actual
   const CurrentShape = Shapes[animales[currentAnimal]];
 
   return (

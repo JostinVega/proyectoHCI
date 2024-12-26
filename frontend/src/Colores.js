@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
+// Mapa de colores y sus códigos hexadecimales
 const ColorMap = {
   celeste: '#64B5F6',    
   verde: '#4CAF50',      
@@ -14,6 +15,7 @@ const ColorMap = {
 };
 
 const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
+  // Lista de colores que se utilizarán en el juego
   const colores = ['celeste', 'verde', 'rosado', 'amarillo', 'morado', 'gris', 'rojo', 'marron', 'anaranjado', 'azul'];
   //const [currentColor, setCurrentColor] = useState(0);
   const [userInput, setUserInput] = useState('');
@@ -35,6 +37,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return !savedInstructions;
   });
 
+  // Mensajes de éxito y ánimo
   const successMessages = [
     "¡Excelente trabajo! 🌟",
     "¡Lo lograste! ¡Eres increíble! ⭐",
@@ -50,6 +53,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     "¡Vamos a intentarlo una vez más! 🎈"
   ];
 
+  // Componente para mostrar estrellas al acertar
   const StarBurst = ({ color }) => {
     return (
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -94,6 +98,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     );
   };
 
+  // Componente para mostrar colores en una animación de arcoíris
   const RainbowDisplay = () => {
     return (
       <div className="flex justify-center items-end perspective-1000">
@@ -146,6 +151,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     );
   };
 
+  // Maneja la entrada del teclado
   const handleKeyPress = (e) => {
     if (showInstructions || isAnimating) return;
     if (!/^[a-zA-Z]$/.test(e.key)) return;
@@ -153,7 +159,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     checkAnswer(e.key.toLowerCase());
   };
 
-  // Verificar si el juego está completado al cargar
+  // Efecto para manejar el progreso inicial y las instrucciones
   useEffect(() => {
     const savedProgress = localStorage.getItem(`nivel1_colores_progress_${player.name}`);
     const savedInstructions = localStorage.getItem(`nivel1_colores_instructions_${player.name}`);
@@ -168,6 +174,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   }, []);
 
+  // Verifica si la respuesta es correcta
   const checkAnswer = (input) => {
     const currentColorNombre = colores[currentColor];
     const isRight = input === currentColorNombre.charAt(0);

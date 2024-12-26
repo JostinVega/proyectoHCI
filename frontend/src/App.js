@@ -16,6 +16,7 @@ import ColoresFormas from './ColoresFormas';
 import Nivel3 from './Nivel3';
 
 const KidsGameUI = () => {
+  
   const [currentScreen, setCurrentScreen] = useState('login');
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [showBalloons, setShowBalloons] = useState(true);
@@ -41,16 +42,19 @@ const KidsGameUI = () => {
 
   const [showEditProfile, setShowEditProfile] = useState(false); //Editar el perfil
 
-  // Array de avatares simples
+  /**
+   * Array de emojis que representan los avatares disponibles para los jugadores.
+   */
   const avatars = [
-    '🦁', '🐰', '🐸', '🐼', '🦊', '🐯', '🐶', '🐱', '🐮', // Animales originales
-    '🦄', '🐨', '🐹', '🐻', '🐙', '🦋', '🦜', '🦒', '🦈', // Más animales
-    '🦉', '🦝', '🐢', '🦡', '🦘', '🐳', '🦚', '🦩', '🦁', // Animales exóticos
-    '🤖', '👽', '👨‍🚀', '👻'  // Personajes fantasía
+    '🦁', '🐰', '🐸', '🐼', '🦊', '🐯', '🐶', '🐱', '🐮', 
+    '🦄', '🐨', '🐹', '🐻', '🐙', '🦋', '🦜', '🦒', '🦈',
+    '🦉', '🦝', '🐢', '🦡', '🦘', '🐳', '🦚', '🦩', '🦁', 
+    '🤖', '👽', '👨‍🚀', '👻'  
   ];  
   
-
-  // Array de colores de fondo pastel
+  /**
+   * Array de clases CSS para colores de fondo en tonos pastel.
+   */
   const backgroundColors = [
     'bg-pastel-blue',        // #AEC6CF
     'bg-pastel-green',       // #77DD77
@@ -65,7 +69,10 @@ const KidsGameUI = () => {
     'bg-peach-puff',         // #FFDAB9
   ];
 
-  // Obtener usuarios de Firebase al cargar la aplicación
+   /**
+   * Efecto para cargar la lista de jugadores registrados desde el backend.
+   * Este efecto se ejecuta al montar el componente.
+   */
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -84,7 +91,9 @@ const KidsGameUI = () => {
     fetchUsers(); // Llama a la función al montar el componente
   }, []);
 
-  // Agregar este nuevo componente junto a los otros modales
+  // Modal de Error
+  // Este componente muestra un mensaje de error al usuario.
+  // Se utiliza cuando ocurre algún problema en la aplicación, y el mensaje se pasa a través del estado `errorMessage`.
   const ErrorModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl p-8 max-w-sm mx-4">
@@ -108,6 +117,9 @@ const KidsGameUI = () => {
     </div>
   );
 
+  // Modal de Opciones del Jugador
+  // Permite al usuario editar un perfil, cambiar un avatar, o eliminar un jugador.
+  // También incluye un botón para cerrar este modal.
   const PlayerOptionsModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl p-8 max-w-sm mx-4">
@@ -164,6 +176,7 @@ const KidsGameUI = () => {
   );
 
   // Modal de Registro Exitoso
+  // Notifica al usuario que el registro fue exitoso y les permite iniciar sesión.
   const SuccessModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl p-8 max-w-sm mx-4 animate-bounce">
@@ -191,6 +204,7 @@ const KidsGameUI = () => {
   );
 
   // Modal de Actualización Exitosa
+  // Indica que los cambios realizados se han guardado correctamente.
   const UpdateSuccessModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl p-8 max-w-sm mx-4 animate-bounce">
@@ -217,7 +231,9 @@ const KidsGameUI = () => {
     </div>
   );
 
+  
   // Modal de Confirmación de Eliminación
+  // Solicita confirmación al usuario antes de eliminar un jugador.
   const DeleteConfirmModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl p-8 max-w-sm mx-4">
@@ -260,6 +276,7 @@ const KidsGameUI = () => {
   );
 
   // Componente de globos flotantes
+  // Muestra globos animados que flotan en la pantalla como decoración. 
   const FloatingBalloons = () => (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
       {[...Array(6)].map((_, i) => (
@@ -279,6 +296,7 @@ const KidsGameUI = () => {
   );
 
   // Pantalla de Login
+  // Permite a los usuarios existentes iniciar sesión o crear un nuevo perfil.
   const LoginScreen = () => (
 
     <div className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 p-6">
@@ -341,7 +359,9 @@ const KidsGameUI = () => {
   );
 
   // Pantalla de Registro
+  // Permite a los usuarios crear un nuevo perfil.
   const RegisterScreen = () => {
+    // Estado para almacenar los datos del formulario
     const [formData, setFormData] = useState({
       name: '',
       age: '',
@@ -349,6 +369,7 @@ const KidsGameUI = () => {
       avatar: ''
     });
 
+    // Maneja el envío del formulario
     const handleSubmit = async (e) => {
       e.preventDefault();
       
@@ -377,21 +398,21 @@ const KidsGameUI = () => {
         return;
       }
 
-      // Si estamos editando
+      // Verifica si el usuario está editando un perfil existente
       if (isEditing && editingPlayer) {
         const updatedPlayers = registeredPlayers.map(player =>
           player === editingPlayer
-            ? { ...formData, color: player.color }
+            ? { ...formData, color: player.color } // Actualiza los datos del jugador
             : player
         );
-        setRegisteredPlayers(updatedPlayers);
+        setRegisteredPlayers(updatedPlayers); // Actualiza la lista de jugadores
         setIsEditing(false);
         setEditingPlayer(null);
-        setShowSuccessModal(true);
+        setShowSuccessModal(true); // Muestra el modal de éxito
         return;
       }
 
-      // Verificar nombre duplicado solo si no estamos editando
+      // Verifica si el nombre ya está registrado (solo en nuevos registros)
       if (!isEditing) {
         const nameExists = registeredPlayers.some(
           player => player.name.toLowerCase() === formData.name.trim().toLowerCase()
@@ -404,7 +425,7 @@ const KidsGameUI = () => {
         }
       }
     
-      // Enviar datos al backend
+      // Envía los datos al backend para registrar al usuario
       try {
         const response = await fetch('http://localhost:5000/api/register', {
           method: 'POST',
@@ -423,7 +444,7 @@ const KidsGameUI = () => {
           const data = await response.json();
           console.log(data.message);
           
-          // Actualizar jugadores registrados localmente
+          // Asigna un color aleatorio al nuevo jugador
           const randomColor = backgroundColors[Math.floor(Math.random() * backgroundColors.length)];
           const newPlayer = {
             ...formData,
@@ -431,9 +452,10 @@ const KidsGameUI = () => {
             color: randomColor,
           };
           
+          // Actualiza la lista local de jugadores registrados
           setRegisteredPlayers([...registeredPlayers, newPlayer]);
-          setShowSuccessModal(true);
-          setFormData({ name: '', age: '', gender: '', avatar: '' });
+          setShowSuccessModal(true); // Muestra el modal de éxito
+          setFormData({ name: '', age: '', gender: '', avatar: '' }); //Reinicia el formulario
         } else {
           const errorData = await response.json();
           setErrorMessage(errorData.error || 'Error al registrar al usuario.');
@@ -566,14 +588,17 @@ const KidsGameUI = () => {
   };
 
   // Pantalla de Editar Perfil
-const EditProfileScreen = () => {
-  const [formData, setFormData] = useState({
-    name: editingPlayer?.name || '',
-    age: editingPlayer?.age || '',
-    gender: editingPlayer?.gender || '',
-    avatar: editingPlayer?.avatar || ''
-  });
+  // Permite al usuario editar los datos de un perfil existente.
+  const EditProfileScreen = () => {
+    // Estado local que almacena los datos del formulario de edición.
+    const [formData, setFormData] = useState({
+      name: editingPlayer?.name || '',
+      age: editingPlayer?.age || '',
+      gender: editingPlayer?.gender || '',
+      avatar: editingPlayer?.avatar || ''
+    });
 
+  // Actualiza los datos del formulario cuando el jugador en edición cambia.
   useEffect(() => {
     if (editingPlayer) {
       setFormData({
@@ -585,17 +610,18 @@ const EditProfileScreen = () => {
     }
   }, [editingPlayer]);
 
+  // Maneja la acción de enviar el formulario.
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Verificar campos vacíos
+    // Verifica si el campo de nombre está vacío.
     if (!formData.name.trim()) {
       setErrorMessage("¡Debes ingresar tu nombre para continuar!");
       setShowErrorModal(true);
       return;
     }
 
-    // Verificar si el nombre ya existe y no es el mismo jugador
+    // Verifica si el nombre ya existe para otro jugador.
     const nameExists = registeredPlayers.some(
       player => player !== editingPlayer && 
       player.name.toLowerCase() === formData.name.trim().toLowerCase()
@@ -607,20 +633,21 @@ const EditProfileScreen = () => {
       return;
     }
 
-    // Actualizar jugador
+    // Actualiza los datos del jugador en la lista de jugadores registrados.
     const updatedPlayers = registeredPlayers.map(player =>
       player === editingPlayer
         ? { ...formData, color: player.color }
         : player
     );
     
+    // Actualiza el estado global y cierra la pantalla de edición.
     setRegisteredPlayers(updatedPlayers);
     setIsEditing(false);
     setEditingPlayer(null);
-    setShowUpdateSuccessModal(true);
+    setShowUpdateSuccessModal(true);  // Muestra el modal de éxito.
   };
 
-  // Usar el mismo JSX que RegisterScreen pero cambiar el botón de "Registrar" por "Actualizar"
+  // Renderiza la pantalla de edición con un formulario similar al de registro.
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-green-400 via-blue-400 to-purple-400 p-6">
       <FloatingBalloons />
@@ -629,148 +656,147 @@ const EditProfileScreen = () => {
         <h2 className="text-3xl font-bold text-center mb-8 text-purple-600">
           Editar Perfil de {editingPlayer?.name} 📝
         </h2>
-        {/* Mismo formulario que RegisterScreen */}
-<form onSubmit={handleSubmit} className="space-y-6">
-  <div>
-    <label className="block text-2xl font-bold text-purple-600 mb-2">
-      Tu Nombre 📝
-    </label>
-    <input
-      type="text"
-      value={formData.name}
-      onChange={(e) => setFormData({...formData, name: e.target.value})}
-      className="w-full text-xl p-4 border-4 border-purple-300 rounded-2xl 
-               focus:border-purple-500 focus:ring-4 focus:ring-purple-200"
-      placeholder="¿Cómo te llamas?"
-      required
-    />
-  </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-2xl font-bold text-purple-600 mb-2">
+              Tu Nombre 📝
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="w-full text-xl p-4 border-4 border-purple-300 rounded-2xl 
+                      focus:border-purple-500 focus:ring-4 focus:ring-purple-200"
+              placeholder="¿Cómo te llamas?"
+              required
+            />
+          </div>
 
-  <div>
-    <label className="block text-2xl font-bold text-purple-600 mb-2">
-      Tu Género 👤
-    </label>
-    <div className="flex justify-center space-x-4">
-      <button
-        type="button"
-        className={`px-6 py-3 text-xl font-bold rounded-full transform transition-all duration-300
-                 ${formData.gender === 'niño' 
-                   ? 'bg-blue-500 text-white scale-105' 
-                   : 'bg-blue-100 text-blue-500 hover:bg-blue-200'}`}
-        onClick={() => setFormData({...formData, gender: 'niño'})}
-      >
-        Niño 👦
-      </button>
-      <button
-        type="button"
-        className={`px-6 py-3 text-xl font-bold rounded-full transform transition-all duration-300
-                 ${formData.gender === 'niña' 
-                   ? 'bg-pink-500 text-white scale-105' 
-                   : 'bg-pink-100 text-pink-500 hover:bg-pink-200'}`}
-        onClick={() => setFormData({...formData, gender: 'niña'})}
-      >
-        Niña 👧
-      </button>
-    </div>
-  </div>
+          <div>
+            <label className="block text-2xl font-bold text-purple-600 mb-2">
+              Tu Género 👤
+            </label>
+            <div className="flex justify-center space-x-4">
+              <button
+                type="button"
+                className={`px-6 py-3 text-xl font-bold rounded-full transform transition-all duration-300
+                        ${formData.gender === 'niño' 
+                          ? 'bg-blue-500 text-white scale-105' 
+                          : 'bg-blue-100 text-blue-500 hover:bg-blue-200'}`}
+                onClick={() => setFormData({...formData, gender: 'niño'})}
+              >
+                Niño 👦
+              </button>
+              <button
+                type="button"
+                className={`px-6 py-3 text-xl font-bold rounded-full transform transition-all duration-300
+                        ${formData.gender === 'niña' 
+                          ? 'bg-pink-500 text-white scale-105' 
+                          : 'bg-pink-100 text-pink-500 hover:bg-pink-200'}`}
+                onClick={() => setFormData({...formData, gender: 'niña'})}
+              >
+                Niña 👧
+              </button>
+            </div>
+          </div>
 
-  <div>
-    <label className="block text-2xl font-bold text-purple-600 mb-2">
-      Tu Edad 🎂
-    </label>
-    <div className="flex justify-center space-x-4">
-      {[1, 2, 3, 4, 5].map((age) => (
-        <button
-          key={age}
-          type="button"
-          className={`w-16 h-16 text-2xl font-bold rounded-full transform transition-all duration-300
-                   ${formData.age === age.toString()
-                     ? 'bg-blue-500 text-white scale-110'
-                     : 'bg-blue-100 text-blue-500 hover:bg-blue-200'}`}
-          onClick={() => setFormData({...formData, age: age.toString()})}
-        >
-          {age}
-        </button>
-      ))}
-    </div>
-  </div>
+          <div>
+            <label className="block text-2xl font-bold text-purple-600 mb-2">
+              Tu Edad 🎂
+            </label>
+            <div className="flex justify-center space-x-4">
+              {[1, 2, 3, 4, 5].map((age) => (
+                <button
+                  key={age}
+                  type="button"
+                  className={`w-16 h-16 text-2xl font-bold rounded-full transform transition-all duration-300
+                          ${formData.age === age.toString()
+                            ? 'bg-blue-500 text-white scale-110'
+                            : 'bg-blue-100 text-blue-500 hover:bg-blue-200'}`}
+                  onClick={() => setFormData({...formData, age: age.toString()})}
+                >
+                  {age}
+                </button>
+              ))}
+            </div>
+          </div>
 
-  <div>
-    <label className="block text-2xl font-bold text-purple-600 mb-4">
-      Escoge tu Avatar 🎭
-    </label>
-    <div className="grid grid-cols-3 gap-4">
-      {avatars.map((avatar, index) => (
-        <button
-          type="button"
-          key={index}
-          className={`bg-gray-100 p-6 rounded-xl transform transition-all duration-300
-                   hover:scale-110 flex items-center justify-center
-                   ${formData.avatar === avatar ? 'ring-4 ring-yellow-400 bg-yellow-50' : ''}`}
-          onClick={() => setFormData({...formData, avatar: avatar})}
-        >
-          <span className="text-5xl">{avatar}</span>
-        </button>
-      ))}
-    </div>
-  </div>
+          <div>
+            <label className="block text-2xl font-bold text-purple-600 mb-4">
+              Escoge tu Avatar 🎭
+            </label>
+            <div className="grid grid-cols-3 gap-4">
+              {avatars.map((avatar, index) => (
+                <button
+                  type="button"
+                  key={index}
+                  className={`bg-gray-100 p-6 rounded-xl transform transition-all duration-300
+                          hover:scale-110 flex items-center justify-center
+                          ${formData.avatar === avatar ? 'ring-4 ring-yellow-400 bg-yellow-50' : ''}`}
+                  onClick={() => setFormData({...formData, avatar: avatar})}
+                >
+                  <span className="text-5xl">{avatar}</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
-  <div className="flex justify-center space-x-4">
-    <button
-      type="button"
-      className="bg-pink-500 hover:bg-pink-600 text-white text-2xl font-bold py-4 px-8
-               rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-      onClick={() => {
-        setIsEditing(false);
-        setEditingPlayer(null);
-        setCurrentScreen('login');
-      }}
-    >
-      ← Cancelar
-    </button>
-    
-    <button
-      type="submit"
-      className="bg-blue-500 hover:bg-blue-600 text-white text-2xl font-bold py-4 px-8
-               rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-    >
-      Actualizar ✨
-    </button>
-  </div>
-</form>
-        
-
-
-
-
+          <div className="flex justify-center space-x-4">
+            <button
+              type="button"
+              className="bg-pink-500 hover:bg-pink-600 text-white text-2xl font-bold py-4 px-8
+                      rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
+              onClick={() => {
+                setIsEditing(false);
+                setEditingPlayer(null);
+                setCurrentScreen('login');
+              }}
+            >
+              ← Cancelar
+            </button>
+            
+            <button
+              type="submit"
+              className="bg-blue-500 hover:bg-blue-600 text-white text-2xl font-bold py-4 px-8
+                      rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
+            >
+              Actualizar ✨
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
 };
 
 // Pantalla de Cambiar Avatar
+// Permite al jugador editar únicamente su avatar.
 const ChangeAvatarScreen = () => {
+  // Estado local para almacenar el avatar seleccionado.
   const [selectedAvatar, setSelectedAvatar] = useState(editingPlayer?.avatar || '');
 
+  // Maneja el envío del formulario para actualizar el avatar.
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    // Validación: Verifica si se ha seleccionado un avatar.
     if (!selectedAvatar) {
       setErrorMessage("¡Debes elegir un avatar!");
       setShowErrorModal(true);
       return;
     }
 
-    // Actualizar solo el avatar del jugador
+    // Actualiza el avatar del jugador editado.
     const updatedPlayers = registeredPlayers.map(player =>
       player === editingPlayer
         ? { ...player, avatar: selectedAvatar }
         : player
     );
-    
+
+    // Actualiza la lista de jugadores y cierra la edición.
     setRegisteredPlayers(updatedPlayers);
     setEditingPlayer(null);
-    setShowUpdateSuccessModal(true);
+    setShowUpdateSuccessModal(true); // Muestra el modal de éxito.
   };
 
   return (
@@ -854,7 +880,7 @@ const ChangeAvatarScreen = () => {
     return () => document.head.removeChild(style);
   }, []);
 
-  // Nuevo useEffect para manejar mensajes de progreso
+  // Maneja mensajes relacionados con el progreso del juego.
   useEffect(() => {
     const handleProgressMessage = (event) => {
       if (event.data.type === 'SAVE_PHASE_PROGRESS') {
