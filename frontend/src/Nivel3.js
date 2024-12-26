@@ -101,6 +101,26 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
     setCantidadActual(0);
   };
 
+  const resetAnimalProgress = (animal) => {
+    if (window.confirm(`¿Estás seguro de que quieres reiniciar el progreso de ${animal}? Se perderá todo el progreso.`)) {
+      if (animal === 'patitos') {
+        setCantidadesCompletadasPatitos([]);
+        if (animalSeleccionado === 'patito') {
+          setGameCompleted(false);
+          setAnimalSeleccionado(null);
+          setCantidadActual(0);
+        }
+      } else if (animal === 'cerditos') {
+        setCantidadesCompletadasCerditos([]);
+        if (animalSeleccionado === 'cerdito') {
+          setGameCompleted(false);
+          setAnimalSeleccionado(null);
+          setCantidadActual(0);
+        }
+      }
+    }
+  };
+
   useEffect(() => {
     loadProgress();
   }, [player.name]);
@@ -118,16 +138,30 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
 
   const generarNuevaCantidad = () => {
     const cantidadesCompletadas = animalSeleccionado === 'patito' ? cantidadesCompletadasPatitos : cantidadesCompletadasCerditos;
-    const numerosPosibles = Array.from({ length: 9 }, (_, i) => i + 1).filter(n => !cantidadesCompletadas.includes(n));
-
+    
+    // Crear un array completo de números del 1 al 9 que no han sido usados
+    const numerosPosibles = Array.from({ length: 9 }, (_, i) => i + 1)
+      .filter(num => !cantidadesCompletadas.includes(num));
+  
+    // Si ya no hay números disponibles, marcar como completado
     if (numerosPosibles.length === 0) {
       setGameCompleted(true);
       return null;
     }
-
-    const nuevaCantidad = numerosPosibles[Math.floor(Math.random() * numerosPosibles.length)];
-    setCantidadActual(nuevaCantidad);
-    return nuevaCantidad;
+  
+    // Seleccionar un número aleatorio de los disponibles que sea diferente al anterior
+    const index = Math.floor(Math.random() * numerosPosibles.length);
+    const nuevaCantidad = numerosPosibles[index];
+    
+    // Asegurarse de que el número sea diferente al actual
+    if (nuevaCantidad === cantidadActual && numerosPosibles.length > 1) {
+      const otherNumbers = numerosPosibles.filter(num => num !== nuevaCantidad);
+      setCantidadActual(otherNumbers[Math.floor(Math.random() * otherNumbers.length)]);
+    } else {
+      setCantidadActual(nuevaCantidad);
+    }
+  
+    return cantidadActual;
   };
 
   const iniciarJuego = (animal) => {
@@ -140,14 +174,32 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
     const isRight = parseInt(input) === cantidadActual;
     setIsCorrect(isRight);
     setShowFeedback(true);
-
+  
     if (isRight) {
+      const cantidadesCompletadas = animalSeleccionado === 'patito' ? cantidadesCompletadasPatitos : cantidadesCompletadasCerditos;
       const updateList = animalSeleccionado === 'patito' ? setCantidadesCompletadasPatitos : setCantidadesCompletadasCerditos;
-      updateList((prev) => [...prev, cantidadActual]);
+      
+      // Verificar que el número no esté ya en la lista
+      if (!cantidadesCompletadas.includes(cantidadActual)) {
+        updateList(prev => [...prev, cantidadActual]);
+  
+        // Verificar si con este número se completan los 9
+        if (cantidadesCompletadas.length + 1 >= 9) {
+          setGameCompleted(true);
+          // Actualizar el localStorage para mantener el 100%
+          localStorage.setItem(
+            `nivel3_${animalSeleccionado === 'patito' ? 'patitos' : 'cerditos'}_completed`,
+            'true'
+          );
+        }
+      }
+  
       setTimeout(() => {
         setShowFeedback(false);
         setUserInput('');
-        generarNuevaCantidad();
+        if (cantidadesCompletadas.length + 1 < 9) {
+          generarNuevaCantidad();
+        }
       }, 2000);
     } else {
       setTimeout(() => {
@@ -182,28 +234,95 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
     const totalNumbersPerAnimal = 9;
     const patitosProgress = (cantidadesCompletadasPatitos.length / totalNumbersPerAnimal) * 100;
     const cerditosProgress = (cantidadesCompletadasCerditos.length / totalNumbersPerAnimal) * 100;
-
+  
     return (
-      <div className="bg-white bg-opacity-80 rounded-xl p-4 mb-8">
-        <h3 className="text-xl font-bold text-purple-600 mb-2">
-          Progreso del Nivel 3: {Math.round((patitosProgress + cerditosProgress) / 2)}%
-        </h3>
-        <div className="mb-2">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-700">Patitos 🦆</span>
-            <span>{Math.round(patitosProgress)}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div className="h-2.5 bg-blue-500 rounded-full" style={{ width: `${patitosProgress}%` }}></div>
-          </div>
+      <div className="bg-white bg-opacity-90 rounded-xl p-4 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xl font-bold text-purple-600">Progreso</h3>
+          <span className="text-xl font-bold text-purple-600">
+            {Math.round((patitosProgress + cerditosProgress) / 2)}%
+          </span>
         </div>
-        <div>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-700">Cerditos 🐷</span>
-            <span>{Math.round(cerditosProgress)}%</span>
+        
+        <div className="space-y-2">
+          <div 
+            className="bg-gray-50 rounded-lg p-2 transition-all duration-300 
+                       hover:bg-white hover:shadow-md hover:scale-[1.02] 
+                       cursor-pointer border border-transparent hover:border-purple-200"
+          >
+            <div className="flex justify-between items-center mb-1">
+              <div className="flex items-center gap-2">
+                <span className="text-lg transition-transform duration-300 group-hover:scale-110">
+                  🦆
+                </span>
+                <span className="text-gray-700 capitalize text-sm font-medium">
+                  Patitos
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-purple-600 font-medium">
+                  {Math.round(patitosProgress)}%
+                </span>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetAnimalProgress('patitos');
+                  }}
+                  className="text-red-500 hover:text-red-700 text-sm
+                           transition-all duration-300 hover:scale-110"
+                  title="Reiniciar patitos"
+                >
+                  🔄
+                </button>
+              </div>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="h-2 rounded-full transition-all duration-300
+                         bg-gradient-to-r from-blue-400 to-purple-500" 
+                style={{width: `${patitosProgress}%`}}
+              />
+            </div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div className="h-2.5 bg-pink-500 rounded-full" style={{ width: `${cerditosProgress}%` }}></div>
+  
+          <div 
+            className="bg-gray-50 rounded-lg p-2 transition-all duration-300 
+                       hover:bg-white hover:shadow-md hover:scale-[1.02] 
+                       cursor-pointer border border-transparent hover:border-purple-200"
+          >
+            <div className="flex justify-between items-center mb-1">
+              <div className="flex items-center gap-2">
+                <span className="text-lg transition-transform duration-300 group-hover:scale-110">
+                  🐷
+                </span>
+                <span className="text-gray-700 capitalize text-sm font-medium">
+                  Cerditos
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-purple-600 font-medium">
+                  {Math.round(cerditosProgress)}%
+                </span>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetAnimalProgress('cerditos');
+                  }}
+                  className="text-red-500 hover:text-red-700 text-sm
+                           transition-all duration-300 hover:scale-110"
+                  title="Reiniciar cerditos"
+                >
+                  🔄
+                </button>
+              </div>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="h-2 rounded-full transition-all duration-300
+                         bg-gradient-to-r from-pink-400 to-purple-500" 
+                style={{width: `${cerditosProgress}%`}}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -229,27 +348,52 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
     </div>
   );
 
-  const renderJuego = () => (
-    <div className="text-center space-y-8">
-      <h2 className="text-4xl font-bold text-purple-600">Coloca {cantidadActual} {animalSeleccionado}{cantidadActual > 1 ? 's' : ''}</h2>
-      <div className="flex flex-wrap justify-center gap-4 mb-8">
-        {[...Array(cantidadActual)].map((_, i) => (
-          <span key={i} className="text-6xl">{animales[animalSeleccionado].emoji}</span>
-        ))}
-      </div>
-      <div>
-        
-        <div className="text-4xl font-bold text-purple-600">Tu respuesta: {userInput}</div>
-        {showFeedback && (
-          <div className={`mt-4 text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
-                          animate-bounce`}>
-          
-            {isCorrect ? successMessages[Math.floor(Math.random() * successMessages.length)] : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]}
+  const renderJuego = () => {
+    if (gameCompleted) {
+      return (
+        <div className="text-center space-y-8">
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-8">
+            ¡Felicitaciones! 🎉
+          </h2>
+          <div className="mb-8">
+            <div className="text-9xl mb-8">🏆</div>
+            <p className="text-2xl text-gray-600">
+              ¡Has completado todos los números con {animalSeleccionado === 'patito' ? 'los patitos' : 'los cerditos'}!
+            </p>
           </div>
-        )}
+          <button
+            className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
+                     rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
+            onClick={() => setAnimalSeleccionado(null)}
+          >
+            Volver al menú
+          </button>
+        </div>
+      );
+    }
+  
+    return (
+      <div className="text-center space-y-8">
+        <h2 className="text-4xl font-bold text-purple-600">
+          Coloca {cantidadActual} {animalSeleccionado}{cantidadActual > 1 ? 's' : ''}
+        </h2>
+        <div className="flex flex-wrap justify-center gap-4 mb-8">
+          {[...Array(cantidadActual)].map((_, i) => (
+            <span key={i} className="text-6xl">{animales[animalSeleccionado].emoji}</span>
+          ))}
+        </div>
+        <div>
+          <div className="text-4xl font-bold text-purple-600">Tu respuesta: {userInput}</div>
+          {showFeedback && (
+            <div className={`mt-4 text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
+                            animate-bounce`}>
+              {isCorrect ? successMessages[Math.floor(Math.random() * successMessages.length)] : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 p-6">

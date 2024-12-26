@@ -51,6 +51,21 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     checkAnswer(e.key.toLowerCase());
   };
 
+  // Verificar si el juego está completado al cargar
+  useEffect(() => {
+    const savedProgress = localStorage.getItem(`nivel1_vocales_progress_${player.name}`);
+    const savedInstructions = localStorage.getItem(`nivel1_vocales_instructions_${player.name}`);
+    
+    if (savedProgress === '5') {
+      setGameCompleted(true);
+      onProgressUpdate(100, true);
+    }
+    
+    if (savedInstructions) {
+      setShowInstructions(false);
+    }
+  }, []);
+
   // Comprobar la respuesta
   const checkAnswer = (input) => {
     
@@ -72,9 +87,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
       if (currentVocal === vocales.length - 1) {
         // Si es la última vocal, mostrar pantalla de completado
-        localStorage.removeItem(`nivel1_vocales_progress_${player.name}`);
-        localStorage.removeItem(`nivel1_vocales_instructions_${player.name}`);
-        
+        localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5'); 
         onProgressUpdate(100, true);
 
         setTimeout(() => {
@@ -107,15 +120,6 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
   // Método para manejar volver atrás
   const handleBack = () => {
-    if (!gameCompleted) {
-      // Si no está completado, mantener el progreso
-      localStorage.setItem(`nivel1_vocales_progress_${player.name}`, currentVocal);
-      localStorage.setItem(`nivel1_vocales_instructions_${player.name}`, 'started');
-    } else {
-      // Si está completado, limpiar progreso
-      localStorage.removeItem(`nivel1_vocales_progress_${player.name}`);
-      localStorage.removeItem(`nivel1_vocales_instructions_${player.name}`);
-    }
     onBack();
   };
 

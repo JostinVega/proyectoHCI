@@ -61,7 +61,8 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       if (currentNumber === 9) {
         // Si es el último número, mostrar pantalla de completado
         
-        localStorage.removeItem(`nivel1_numeros_progress_${player.name}`);
+        //localStorage.removeItem(`nivel1_numeros_progress_${player.name}`);
+        localStorage.setItem(`nivel1_numeros_progress_${player.name}`, '10'); 
         onProgressUpdate(100, true);
 
         setTimeout(() => {
@@ -82,7 +83,14 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
   // Al montar el componente, restaurar estado de instrucciones
   useEffect(() => {
+    const savedProgress = localStorage.getItem(`nivel1_numeros_progress_${player.name}`);
     const savedInstructions = localStorage.getItem(`nivel1_numeros_instructions_${player.name}`);
+    
+    if (savedProgress === '10') {
+      setGameCompleted(true);
+      onProgressUpdate(100, true);
+    }
+    
     if (savedInstructions) {
       setShowInstructions(false);
     }
@@ -96,14 +104,6 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
    // Modificar el método onBack para limpiar el progreso si se completa
    const handleBack = () => {
-    if (!gameCompleted) {
-      // Si no está completado, mantener el progreso
-      localStorage.setItem(`nivel1_numeros_progress_${player.name}`, currentNumber);
-    } else {
-      // Si está completado, limpiar progreso
-      localStorage.removeItem(`nivel1_numeros_progress_${player.name}`);
-      localStorage.removeItem(`nivel1_numeros_instructions_${player.name}`);
-    }
     onBack();
   };
 

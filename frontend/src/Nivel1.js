@@ -3,6 +3,30 @@ import React, { useState, useEffect } from 'react';
 const Nivel1 = ({ player, onBack, onSelectPhase, onConfigClick }) => {
   const [currentPhase, setCurrentPhase] = useState('menu'); // menu, numeros, vocales, figuras, animales, colores
 
+  // Función para reiniciar el progreso de una fase específica
+  const handleResetPhase = (phaseId) => {
+    if (window.confirm(`¿Estás seguro que deseas reiniciar el progreso de ${phaseId}?`)) {
+      // Eliminar el progreso específico del localStorage
+      localStorage.removeItem(`nivel1_${phaseId}_progress_${player.name}`);
+      localStorage.removeItem(`nivel1_${phaseId}_instructions_${player.name}`);
+      
+      // Actualizar el estado de progress
+      const newProgress = { ...progress };
+      newProgress.phases[phaseId] = { completed: false, progress: 0 };
+      
+      // Recalcular el progreso total
+      const totalProgress = Object.values(newProgress.phases).reduce(
+        (sum, phase) => sum + phase.progress, 0
+      ) / Object.keys(newProgress.phases).length;
+      
+      newProgress.totalProgress = totalProgress;
+      
+      // Actualizar el estado y localStorage
+      setProgress(newProgress);
+      localStorage.setItem(`nivel1_progress_${player.name}`, JSON.stringify(newProgress));
+    }
+  };
+
   // Estado para manejar el progreso
   const [progress, setProgress] = useState(() => {
     // Leer progreso desde localStorage
@@ -76,34 +100,70 @@ const Nivel1 = ({ player, onBack, onSelectPhase, onConfigClick }) => {
     const { phases } = progress;
     
     return (
-      <div className="bg-white bg-opacity-80 rounded-xl p-4 mb-4">
-        <h3 className="text-xl font-bold text-purple-600 mb-2">
-          Progreso del Nivel 1: {progress.totalProgress.toFixed(0)}%
-        </h3>
-        {Object.entries(phases).map(([phase, data]) => (
-          <div key={phase} className="mb-2">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 capitalize">{phase}</span>
-              <span className="text-sm font-bold">
-                {data.completed ? '100%' : `${data.progress.toFixed(0)}%`}
-              </span>
+      <div className="bg-white bg-opacity-90 rounded-xl p-4 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xl font-bold text-purple-600">Progreso</h3>
+          <span className="text-xl font-bold text-purple-600">
+            {progress.totalProgress.toFixed(0)}%
+          </span>
+        </div>
+        
+        <div className="space-y-2">
+          {Object.entries(phases).map(([phase, data]) => (
+            <div 
+              key={phase} 
+              className="bg-gray-50 rounded-lg p-2 transition-all duration-300 
+                       hover:bg-white hover:shadow-md hover:scale-[1.02] 
+                       cursor-pointer border border-transparent hover:border-purple-200"
+            >
+              <div className="flex justify-between items-center mb-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg transition-transform duration-300 group-hover:scale-110">
+                    {phase === 'numeros' ? '🔢' : 
+                     phase === 'vocales' ? '📝' : 
+                     phase === 'figuras' ? '⭐' : 
+                     phase === 'animales' ? '🦁' : '🎨'}
+                  </span>
+                  <span className="text-gray-700 capitalize text-sm font-medium">
+                    {phase}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-purple-600 font-medium">
+                    {data.completed ? '100%' : `${data.progress.toFixed(0)}%`}
+                  </span>
+                  {data.progress > 0 && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleResetPhase(phase);
+                      }}
+                      className="text-red-500 hover:text-red-700 text-sm
+                               transition-all duration-300 hover:scale-110"
+                      title="Reiniciar progreso"
+                    >
+                      🔄
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    data.completed 
+                      ? 'bg-gradient-to-r from-green-400 to-green-500' 
+                      : 'bg-gradient-to-r from-blue-400 to-purple-500'
+                  }`} 
+                  style={{width: `${data.progress}%`}}
+                />
+              </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div 
-                className={`h-2.5 rounded-full ${
-                  data.completed 
-                    ? 'bg-green-500' 
-                    : 'bg-blue-500'
-                }`} 
-                style={{width: `${data.progress}%`}}
-              />
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   };
-
+  
   // Datos para cada fase
   const fases = [
     {

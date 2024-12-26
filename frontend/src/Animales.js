@@ -68,6 +68,20 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     checkAnswer(e.key.toLowerCase());
   };
 
+  // Verificar si el juego está completado al cargar
+  useEffect(() => {
+    const savedProgress = localStorage.getItem(`nivel1_animales_progress_${player.name}`);
+    const savedInstructions = localStorage.getItem(`nivel1_animales_instructions_${player.name}`);
+    
+    if (savedProgress === '14') {
+      setGameCompleted(true);
+      onProgressUpdate(100, true);
+    }
+    
+    if (savedInstructions) {
+      setShowInstructions(false);
+    }
+  }, []);
   // Comprobar la respuesta
   const checkAnswer = (input) => {
     const currentAnimalNombre = animales[currentAnimal];
@@ -88,9 +102,7 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
       if (currentAnimal === animales.length - 1) {
         // Si es el último animal, mostrar pantalla de completado
-        localStorage.removeItem(`nivel1_animales_progress_${player.name}`);
-        localStorage.removeItem(`nivel1_animales_instructions_${player.name}`);
-        
+        localStorage.setItem(`nivel1_animales_progress_${player.name}`, '14');
         onProgressUpdate(100, true);
 
         // Si es el último animal, mostrar pantalla de completado
@@ -124,15 +136,6 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
   // Método para manejar volver atrás
   const handleBack = () => {
-    if (!gameCompleted) {
-      // Si no está completado, mantener el progreso
-      localStorage.setItem(`nivel1_animales_progress_${player.name}`, currentAnimal);
-      localStorage.setItem(`nivel1_animales_instructions_${player.name}`, 'started');
-    } else {
-      // Si está completado, limpiar progreso
-      localStorage.removeItem(`nivel1_animales_progress_${player.name}`);
-      localStorage.removeItem(`nivel1_animales_instructions_${player.name}`);
-    }
     onBack();
   };
 

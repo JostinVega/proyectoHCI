@@ -98,6 +98,21 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     checkAnswer(e.key.toLowerCase());
   };
 
+  // Verificar si el juego está completado al cargar
+  useEffect(() => {
+    const savedProgress = localStorage.getItem(`nivel1_figuras_progress_${player.name}`);
+    const savedInstructions = localStorage.getItem(`nivel1_figuras_instructions_${player.name}`);
+    
+    if (savedProgress === '7') {
+      setGameCompleted(true);
+      onProgressUpdate(100, true);
+    }
+    
+    if (savedInstructions) {
+      setShowInstructions(false);
+    }
+  }, []);
+
   // Comprobar la respuesta
   const checkAnswer = (input) => {
     const currentFormaNombre = formas[currentForma];
@@ -118,8 +133,7 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       
       if (currentForma === formas.length - 1) {
         // Si es la última forma, mostrar pantalla de completado
-        localStorage.removeItem(`nivel1_figuras_progress_${player.name}`);
-        localStorage.removeItem(`nivel1_figuras_instructions_${player.name}`);
+        localStorage.setItem(`nivel1_figuras_progress_${player.name}`, '7');
         
         onProgressUpdate(100, true);
 
@@ -153,15 +167,6 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
   // Método para manejar volver atrás
   const handleBack = () => {
-    if (!gameCompleted) {
-      // Si no está completado, mantener el progreso
-      localStorage.setItem(`nivel1_figuras_progress_${player.name}`, currentForma);
-      localStorage.setItem(`nivel1_figuras_instructions_${player.name}`, 'started');
-    } else {
-      // Si está completado, limpiar progreso
-      localStorage.removeItem(`nivel1_figuras_progress_${player.name}`);
-      localStorage.removeItem(`nivel1_figuras_instructions_${player.name}`);
-    }
     onBack();
   };
 

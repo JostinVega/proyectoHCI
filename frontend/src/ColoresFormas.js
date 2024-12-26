@@ -1,6 +1,47 @@
 import React, { useState, useEffect } from 'react';
 
 const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
+
+
+  // Datos de los pares color-forma
+  const pairs = [
+    {
+      forma: 'circulo',
+      color: 'verde',
+      inicial: 'v'
+    },
+    {
+      forma: 'cuadrado',
+      color: 'rosado',
+      inicial: 'r'
+    },
+    {
+      forma: 'estrella',
+      color: 'amarillo',
+      inicial: 'a'
+    },
+    {
+      forma: 'triangulo',
+      color: 'morado',
+      inicial: 'm'
+    },
+    {
+      forma: 'corazon',
+      color: 'rojo',
+      inicial: 'r'
+    },
+    {
+      forma: 'rombo',
+      color: 'anaranjado',
+      inicial: 'a'
+    },
+    {
+      forma: 'luna',
+      color: 'azul',
+      inicial: 'a'
+    }
+  ];
+  
   //const [currentPair, setCurrentPair] = useState(0);
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
@@ -8,10 +49,26 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [gameCompleted, setGameCompleted] = useState(false);
   //const [showInstructions, setShowInstructions] = useState(true);
 
-  // Modificar estado inicial para recuperar progreso
   const [currentPair, setCurrentPair] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel2_colores_formas_progress_${player.name}`);
-    return savedProgress ? parseInt(savedProgress) : 0;
+    const completedStatus = localStorage.getItem(`nivel2_colores_formas_completed_${player.name}`);
+    
+    // Si está completado, forzar 100%
+    if (completedStatus === 'true') {
+      onProgressUpdate(100, true);
+      setGameCompleted(true);
+      return pairs.length - 1;
+    }
+    
+    // Si hay progreso guardado
+    if (savedProgress) {
+      const progress = parseInt(savedProgress);
+      const currentProgress = (progress / pairs.length) * 100;
+      onProgressUpdate(currentProgress, false);
+      return progress < pairs.length ? progress : 0;
+    }
+    
+    return 0;
   });
 
   // Modificar estado de instrucciones para recuperar
@@ -113,44 +170,7 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     )
   };
 
-  // Datos de los pares color-forma
-  const pairs = [
-    {
-      forma: 'circulo',
-      color: 'verde',
-      inicial: 'v'
-    },
-    {
-      forma: 'cuadrado',
-      color: 'rosado',
-      inicial: 'r'
-    },
-    {
-      forma: 'estrella',
-      color: 'amarillo',
-      inicial: 'a'
-    },
-    {
-      forma: 'triangulo',
-      color: 'morado',
-      inicial: 'm'
-    },
-    {
-      forma: 'corazon',
-      color: 'rojo',
-      inicial: 'r'
-    },
-    {
-      forma: 'rombo',
-      color: 'anaranjado',
-      inicial: 'a'
-    },
-    {
-      forma: 'luna',
-      color: 'azul',
-      inicial: 'a'
-    }
-  ];
+  
 
   // Mensajes de felicitación y ánimo
   const successMessages = [
@@ -179,35 +199,35 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     checkAnswer(key);
   };
 
-  // Comprobar la respuesta
   const checkAnswer = (input) => {
     const isRight = input === pairs[currentPair].inicial;
     setIsCorrect(isRight);
     setShowFeedback(true);
-
+  
     if (isRight) {
-      // Calcular progreso
-      const progress = ((currentPair + 1) / pairs.length) * 100;
-      
-      // Guardar progreso en localStorage
-      localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, currentPair + 1);
-
-      // Comunicar progreso
-      onProgressUpdate(progress, false);
-
       if (currentPair === pairs.length - 1) {
-        // Si es el último par, mostrar pantalla de completado
-        localStorage.removeItem(`nivel2_colores_formas_progress_${player.name}`);
-        localStorage.removeItem(`nivel2_colores_formas_instructions_${player.name}`);
+        // Marcar como completado y guardar estado final
+        localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
+        localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
         
+        // Comunicar 100% de progreso
         onProgressUpdate(100, true);
+  
         setTimeout(() => {
           setGameCompleted(true);
           setShowFeedback(false);
         }, 2000);
       } else {
+        // Guardar progreso parcial
+        const nextPair = currentPair + 1;
+        localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, nextPair);
+        
+        // Calcular y comunicar progreso
+        const progress = ((nextPair) / pairs.length) * 100;
+        onProgressUpdate(progress, false);
+  
         setTimeout(() => {
-          setCurrentPair(prev => prev + 1);
+          setCurrentPair(nextPair);
           setShowFeedback(false);
           setUserInput('');
         }, 2000);
@@ -227,17 +247,22 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     localStorage.setItem(`nivel2_colores_formas_instructions_${player.name}`, 'started');
   };
 
-  // Método para manejar volver atrás
   const handleBack = () => {
-    if (!gameCompleted) {
-      // Si no está completado, mantener el progreso
-      localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, currentPair);
-      localStorage.setItem(`nivel2_colores_formas_instructions_${player.name}`, 'started');
+    // Verificar si está completado
+    const isCompleted = localStorage.getItem(`nivel2_colores_formas_completed_${player.name}`) === 'true';
+    
+    if (isCompleted || gameCompleted) {
+      // Si está completado, mantener el estado y forzar 100%
+      localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
+      localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
+      onProgressUpdate(100, true);
     } else {
-      // Si está completado, limpiar progreso
-      localStorage.removeItem(`nivel2_colores_formas_progress_${player.name}`);
-      localStorage.removeItem(`nivel2_colores_formas_instructions_${player.name}`);
+      // Guardar progreso parcial
+      localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, currentPair);
+      const progress = ((currentPair) / pairs.length) * 100;
+      onProgressUpdate(progress, false);
     }
+    
     onBack();
   };
 
@@ -354,7 +379,13 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
               <button
                 className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
                      rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-                onClick={onBack}
+                     onClick={() => {
+                      // Asegurar que se guarda como completado
+                      localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
+                      localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
+                      onProgressUpdate(100, true);
+                      onBack();
+                    }}
               >
                 Volver al menú
               </button>

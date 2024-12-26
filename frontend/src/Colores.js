@@ -153,6 +153,21 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     checkAnswer(e.key.toLowerCase());
   };
 
+  // Verificar si el juego está completado al cargar
+  useEffect(() => {
+    const savedProgress = localStorage.getItem(`nivel1_colores_progress_${player.name}`);
+    const savedInstructions = localStorage.getItem(`nivel1_colores_instructions_${player.name}`);
+    
+    if (savedProgress === '10') {
+      setGameCompleted(true);
+      onProgressUpdate(100, true);
+    }
+    
+    if (savedInstructions) {
+      setShowInstructions(false);
+    }
+  }, []);
+
   const checkAnswer = (input) => {
     const currentColorNombre = colores[currentColor];
     const isRight = input === currentColorNombre.charAt(0);
@@ -171,8 +186,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
       if (currentColor === colores.length - 1) {
         // Si es el último color, mostrar pantalla de completado
-        localStorage.removeItem(`nivel1_colores_progress_${player.name}`);
-        localStorage.removeItem(`nivel1_colores_instructions_${player.name}`);
+        localStorage.setItem(`nivel1_colores_progress_${player.name}`, '10'); 
         
         onProgressUpdate(100, true);
 
@@ -212,15 +226,6 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
   // Método para manejar volver atrás
   const handleBack = () => {
-    if (!gameCompleted) {
-      // Si no está completado, mantener el progreso
-      localStorage.setItem(`nivel1_colores_progress_${player.name}`, currentColor);
-      localStorage.setItem(`nivel1_colores_instructions_${player.name}`, 'started');
-    } else {
-      // Si está completado, limpiar progreso
-      localStorage.removeItem(`nivel1_colores_progress_${player.name}`);
-      localStorage.removeItem(`nivel1_colores_instructions_${player.name}`);
-    }
     onBack();
   };
 

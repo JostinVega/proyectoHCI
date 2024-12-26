@@ -1,25 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
-  //const [currentPair, setCurrentPair] = useState(0);
-  const [userInput, setUserInput] = useState('');  // Cambiado de userAnswer
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
-  const [gameCompleted, setGameCompleted] = useState(false);
-  //const [showInstructions, setShowInstructions] = useState(true);
-
-  // Modificar estado inicial para recuperar progreso
-  const [currentPair, setCurrentPair] = useState(() => {
-    const savedProgress = localStorage.getItem(`nivel2_animales_numeros_progress_${player.name}`);
-    return savedProgress ? parseInt(savedProgress) : 0;
-  });
-
-  // Modificar estado de instrucciones para recuperar
-  const [showInstructions, setShowInstructions] = useState(() => {
-    const savedInstructions = localStorage.getItem(`nivel2_animales_numeros_instructions_${player.name}`);
-    return !savedInstructions;
-  });
-
+  
   // Datos de los pares animal-número
   const pairs = [
     {
@@ -68,6 +50,35 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
       nombre: 'oveja'
     }
   ];
+  //const [currentPair, setCurrentPair] = useState(0);
+  const [userInput, setUserInput] = useState('');  // Cambiado de userAnswer
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [gameCompleted, setGameCompleted] = useState(false);
+  //const [showInstructions, setShowInstructions] = useState(true);
+
+  // Modificar estado inicial para recuperar progreso
+  const [currentPair, setCurrentPair] = useState(() => {
+    const savedProgress = localStorage.getItem(`nivel2_animales_numeros_progress_${player.name}`);
+    const progress = savedProgress ? parseInt(savedProgress) : 0;
+    // Añadir validación para asegurar que el valor está dentro del rango
+    return progress >= 0 && progress < pairs.length ? progress : 0;
+  });
+
+  // Modificar estado de instrucciones para recuperar
+  const [showInstructions, setShowInstructions] = useState(() => {
+    const savedInstructions = localStorage.getItem(`nivel2_animales_numeros_instructions_${player.name}`);
+    return !savedInstructions;
+  });
+
+  
+
+  // Al inicio del componente, después de la definición de pairs
+  useEffect(() => {
+    if (currentPair >= pairs.length) {
+      setCurrentPair(0);
+    }
+  }, [currentPair]);
 
   // Mensajes de felicitación
   const successMessages = [
@@ -99,32 +110,28 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
 
   // Comprobar la respuesta
   const checkAnswer = (input) => {
+    if (currentPair >= pairs.length) return;
+  
     const isRight = parseInt(input) === pairs[currentPair].cantidad;
     setIsCorrect(isRight);
     setShowFeedback(true);
-
+  
     if (isRight) {
-      // Calcular progreso
-      const progress = ((currentPair + 1) / pairs.length) * 100;
-      
-      // Guardar progreso en localStorage
-      localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, currentPair + 1);
-
-      // Comunicar progreso
-      onProgressUpdate(progress, false);
-
       if (currentPair === pairs.length - 1) {
-        // Si es el último par, mostrar pantalla de completado
-        localStorage.removeItem(`nivel2_animales_numeros_progress_${player.name}`);
-        localStorage.removeItem(`nivel2_animales_numeros_instructions_${player.name}`);
+        // Si es el último par, mantener el progreso en 100%
+        localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, pairs.length);
+        localStorage.setItem(`nivel2_animales_numeros_completed_${player.name}`, 'true');
         
         onProgressUpdate(100, true);
-
+  
         setTimeout(() => {
           setGameCompleted(true);
           setShowFeedback(false);
         }, 2000);
       } else {
+        localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, currentPair + 1);
+        onProgressUpdate(((currentPair + 1) / pairs.length) * 100, false);
+  
         setTimeout(() => {
           setCurrentPair(prev => prev + 1);
           setShowFeedback(false);
@@ -149,19 +156,16 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   // Método para manejar volver atrás
   const handleBack = () => {
     if (!gameCompleted) {
-      // Si no está completado, mantener el progreso
       localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, currentPair);
       localStorage.setItem(`nivel2_animales_numeros_instructions_${player.name}`, 'started');
-    } else {
-      // Si está completado, limpiar progreso
-      localStorage.removeItem(`nivel2_animales_numeros_progress_${player.name}`);
-      localStorage.removeItem(`nivel2_animales_numeros_instructions_${player.name}`);
     }
     onBack();
   };
 
   // Renderizar los animales según la cantidad
   const renderAnimales = () => {
+    if (currentPair >= pairs.length) return null;
+    
     const animales = [];
     for (let i = 0; i < pairs[currentPair].cantidad; i++) {
       animales.push(
@@ -233,7 +237,9 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
         ) : (
           <div className="text-center space-y-8">
             <h2 className="text-4xl font-bold text-purple-600 mb-8">
-              ¿Cuántos {pairs[currentPair].nombre}s hay?
+              {currentPair < pairs.length ? 
+                `¿Cuántos ${pairs[currentPair].nombre}s hay?` : 
+                "¿Cuántos animales hay?"}
             </h2>
             
             <div className="flex flex-wrap justify-center gap-4 mb-8">

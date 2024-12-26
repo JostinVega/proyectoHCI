@@ -1,24 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
 const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
-  //const [currentPair, setCurrentPair] = useState(0);
-  const [userInput, setUserInput] = useState('');
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
-  const [gameCompleted, setGameCompleted] = useState(false);
-  //const [showInstructions, setShowInstructions] = useState(true);
-
-  // Modificar estado inicial para recuperar progreso
-  const [currentPair, setCurrentPair] = useState(() => {
-    const savedProgress = localStorage.getItem(`nivel2_animales_vocales_progress_${player.name}`);
-    return savedProgress ? parseInt(savedProgress) : 0;
-  });
-
-  // Modificar estado de instrucciones para recuperar
-  const [showInstructions, setShowInstructions] = useState(() => {
-    const savedInstructions = localStorage.getItem(`nivel2_animales_vocales_instructions_${player.name}`);
-    return !savedInstructions;
-  });
 
   // Datos de los pares animal-vocal
   const pairs = [
@@ -49,6 +31,52 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     }
   ];
 
+
+  //const [currentPair, setCurrentPair] = useState(0);
+  const [userInput, setUserInput] = useState('');
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [gameCompleted, setGameCompleted] = useState(false);
+  //const [showInstructions, setShowInstructions] = useState(true);
+
+  
+  const [currentPair, setCurrentPair] = useState(() => {
+    const savedProgress = localStorage.getItem(`nivel2_animales_vocales_progress_${player.name}`);
+    const completedStatus = localStorage.getItem(`nivel2_animales_vocales_completed_${player.name}`);
+    
+    // Si está completado, forzar el último par y comunicar 100%
+    if (completedStatus === 'true') {
+      onProgressUpdate(100, true);
+      setGameCompleted(true);
+      return pairs.length - 1;
+    }
+    
+    // Si hay progreso guardado
+    if (savedProgress) {
+      const progress = parseInt(savedProgress);
+      const currentProgress = (progress / pairs.length) * 100;
+      onProgressUpdate(currentProgress, false);
+      return progress < pairs.length ? progress : 0;
+    }
+    
+    return 0;
+  });
+
+  // Modificar estado de instrucciones para recuperar
+  const [showInstructions, setShowInstructions] = useState(() => {
+    const savedInstructions = localStorage.getItem(`nivel2_animales_vocales_instructions_${player.name}`);
+    return !savedInstructions;
+  });
+
+  // Agregar después de la definición de estados
+  useEffect(() => {
+    if (currentPair >= pairs.length) {
+      setCurrentPair(0);
+    }
+  }, [currentPair]);
+
+  
+
   // Mensajes de felicitación
   const successMessages = [
     "¡Excelente trabajo! 🌟",
@@ -77,36 +105,37 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     checkAnswer(e.key.toLowerCase());
   };
 
+
   // Comprobar la respuesta
   const checkAnswer = (input) => {
     const isRight = input === pairs[currentPair].vocal;
     setIsCorrect(isRight);
     setShowFeedback(true);
-
+  
     if (isRight) {
-      // Calcular progreso
-      const progress = ((currentPair + 1) / pairs.length) * 100;
-      
-      // Guardar progreso en localStorage
-      localStorage.setItem(`nivel2_animales_vocales_progress_${player.name}`, currentPair + 1);
-
-      // Comunicar progreso
-      onProgressUpdate(progress, false);
-
       if (currentPair === pairs.length - 1) {
-        // Si es el último par, mostrar pantalla de completado
-        localStorage.removeItem(`nivel2_animales_vocales_progress_${player.name}`);
-        localStorage.removeItem(`nivel2_animales_vocales_instructions_${player.name}`);
+        // Marcar como completado y guardar el progreso final
+        localStorage.setItem(`nivel2_animales_vocales_completed_${player.name}`, 'true');
+        localStorage.setItem(`nivel2_animales_vocales_progress_${player.name}`, pairs.length);
         
+        // IMPORTANTE: Comunicar el 100% de progreso
         onProgressUpdate(100, true);
-
+  
         setTimeout(() => {
           setGameCompleted(true);
           setShowFeedback(false);
         }, 2000);
       } else {
+        // Guardar progreso parcial
+        const nextPair = currentPair + 1;
+        localStorage.setItem(`nivel2_animales_vocales_progress_${player.name}`, nextPair);
+        
+        // Calcular y comunicar progreso
+        const progress = ((nextPair) / pairs.length) * 100;
+        onProgressUpdate(progress, false);
+  
         setTimeout(() => {
-          setCurrentPair(prev => prev + 1);
+          setCurrentPair(nextPair);
           setShowFeedback(false);
           setUserInput('');
         }, 2000);
@@ -124,19 +153,30 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   const startGame = () => {
     setShowInstructions(false);
     localStorage.setItem(`nivel2_animales_vocales_instructions_${player.name}`, 'started');
+    
+    // Eliminar la marca de reinicio
+    localStorage.removeItem(`nivel2_animales_vocales_reset_${player.name}`);
   };
 
+
   // Método para manejar volver atrás
+
   const handleBack = () => {
-    if (!gameCompleted) {
-      // Si no está completado, mantener el progreso
-      localStorage.setItem(`nivel2_animales_vocales_progress_${player.name}`, currentPair);
-      localStorage.setItem(`nivel2_animales_vocales_instructions_${player.name}`, 'started');
+    // Verificar si está completado primero
+    const isCompleted = localStorage.getItem(`nivel2_animales_vocales_completed_${player.name}`) === 'true';
+    
+    if (isCompleted || gameCompleted) {
+      // Si está completado, forzar 100%
+      localStorage.setItem(`nivel2_animales_vocales_completed_${player.name}`, 'true');
+      localStorage.setItem(`nivel2_animales_vocales_progress_${player.name}`, pairs.length);
+      onProgressUpdate(100, true);
     } else {
-      // Si está completado, limpiar progreso
-      localStorage.removeItem(`nivel2_animales_vocales_progress_${player.name}`);
-      localStorage.removeItem(`nivel2_animales_vocales_instructions_${player.name}`);
+      // Guardar progreso parcial
+      localStorage.setItem(`nivel2_animales_vocales_progress_${player.name}`, currentPair);
+      const progress = ((currentPair) / pairs.length) * 100;
+      onProgressUpdate(progress, false);
     }
+    
     onBack();
   };
 
@@ -191,46 +231,58 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
             </p>
             <button
               className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
-                     rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-              onClick={onBack}
+                        rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
+              onClick={() => {
+                // Asegurar que se guarda como completado
+                localStorage.setItem(`nivel2_animales_vocales_completed_${player.name}`, 'true');
+                localStorage.setItem(`nivel2_animales_vocales_progress_${player.name}`, pairs.length);
+                onProgressUpdate(100, true);
+                onBack();
+              }}
             >
               Volver al menú
             </button>
           </div>
         ) : (
           <div className="text-center space-y-8">
-            <h2 className="text-4xl font-bold text-purple-600 mb-8">
-              ¿Con qué vocal empieza {pairs[currentPair].nombre}?
-            </h2>
-            
-            <div className="text-9xl animate-bounce mb-8">
-              {pairs[currentPair].animal}
-            </div>
-
-            {/* Indicador visual de entrada */}
-            <div className="mt-8">
-              <div className="text-2xl text-gray-600 mb-4">
-                Presiona la vocal correcta en tu teclado
-              </div>
-              <div className="text-4xl font-bold text-purple-600">
-                Tu respuesta: <span className="text-6xl uppercase">{userInput}</span>
-              </div>
-            </div>
-
-            {showFeedback && (
-              <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
-                          animate-bounce`}>
-                {isCorrect 
-                  ? successMessages[Math.floor(Math.random() * successMessages.length)]
-                  : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]}
-              </div>
+            {currentPair < pairs.length && (
+              <>
+                <h2 className="text-4xl font-bold text-purple-600 mb-8">
+                  ¿Con qué vocal empieza {pairs[currentPair].nombre}?
+                </h2>
+                
+                <div className="text-9xl animate-bounce mb-8">
+                  {pairs[currentPair].animal}
+                </div>
+        
+                {/* Indicador visual de entrada */}
+                <div className="mt-8">
+                  <div className="text-2xl text-gray-600 mb-4">
+                    Presiona la vocal correcta en tu teclado
+                  </div>
+                  <div className="text-4xl font-bold text-purple-600">
+                    Tu respuesta: <span className="text-6xl uppercase">{userInput}</span>
+                  </div>
+                </div>
+        
+                {showFeedback && (
+                  <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
+                              animate-bounce`}>
+                    {isCorrect 
+                      ? successMessages[Math.floor(Math.random() * successMessages.length)]
+                      : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]}
+                  </div>
+                )}
+              </>
             )}
-
+        
             <div className="mt-8 text-gray-500">
               Progreso: {currentPair + 1} / {pairs.length}
             </div>
           </div>
-        )}
+        )
+        
+        }
       </div>
     </div>
   );
