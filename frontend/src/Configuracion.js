@@ -1,8 +1,27 @@
 import React from 'react';
 
-const Configuracion = ({ player, onBack, onEditProfile, onLogout }) => {
+const Configuracion = ({ player, onBack, onEditProfile, onLogout, onShowProgress }) => {
   // Calcula el progreso (esto es un ejemplo, ajusta según tus necesidades)
-  const progress = 67; // Porcentaje de progreso
+  //const progress = 67; // Porcentaje de progreso
+
+  const calcularProgresoGeneral = () => {
+    // Obtener progreso de Nivel 1
+    const progresoNivel1 = JSON.parse(localStorage.getItem(`nivel1_progress_${player.name}`) || '{"totalProgress": 0}').totalProgress;
+    
+    // Obtener progreso de Nivel 2
+    const progresoNivel2 = JSON.parse(localStorage.getItem(`nivel2_progress_${player.name}`) || '{"totalProgress": 0}').totalProgress;
+    
+    // Obtener progreso de Nivel 3
+    const datosNivel3 = JSON.parse(localStorage.getItem(`nivel3_progress_${player.name}`) || '{"patitos":[],"cerditos":[]}');
+    const progresoPatitos = (datosNivel3.patitos?.length || 0) * (100/9);
+    const progresoCerditos = (datosNivel3.cerditos?.length || 0) * (100/9);
+    const progresoNivel3 = (progresoPatitos + progresoCerditos) / 2;
+
+    // Calcular promedio de los 3 niveles
+    return Math.round((progresoNivel1 + progresoNivel2 + progresoNivel3) / 3);
+  };
+
+  const progress = calcularProgresoGeneral();
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 p-6">
@@ -43,22 +62,47 @@ const Configuracion = ({ player, onBack, onEditProfile, onLogout }) => {
             Progreso General: {progress}%
           </span>
         </div>
-
-        {/* Logros y Estadísticas */}
+ 
+        {/* Niveles y Progreso */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-yellow-100 rounded-xl p-4 text-center">
-            <span className="text-4xl mb-2 block">🌟</span>
-            <span className="font-bold">12 Estrellas</span>
-          </div>
-          <div className="bg-blue-100 rounded-xl p-4 text-center">
-            <span className="text-4xl mb-2 block">🏆</span>
-            <span className="font-bold">5 Trofeos</span>
-          </div>
-          <div className="bg-green-100 rounded-xl p-4 text-center">
-            <span className="text-4xl mb-2 block">💎</span>
-            <span className="font-bold">100 Puntos</span>
-          </div>
+          {[
+            { emoji: "1️⃣", color: "yellow", title: "Nivel 1", progress: JSON.parse(localStorage.getItem(`nivel1_progress_${player.name}`) || '{"totalProgress": 0}').totalProgress },
+            { emoji: "2️⃣", color: "blue", title: "Nivel 2", progress: JSON.parse(localStorage.getItem(`nivel2_progress_${player.name}`) || '{"totalProgress": 0}').totalProgress },
+            { 
+              emoji: "3️⃣", 
+              color: "green", 
+              title: "Nivel 3", 
+              progress: (() => {
+                const datos = JSON.parse(localStorage.getItem(`nivel3_progress_${player.name}`) || '{"patitos":[],"cerditos":[]}');
+                const progresoPatitos = (datos.patitos?.length || 0) * (100/9);
+                const progresoCerditos = (datos.cerditos?.length || 0) * (100/9);
+                return ((progresoPatitos + progresoCerditos) / 2).toFixed(1);
+              })()
+            }
+          ].map((nivel, index) => (
+            <div key={index} className={`bg-${nivel.color}-50 rounded-xl p-4 shadow hover:shadow-md transition-shadow duration-300`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{nivel.emoji}</span>
+                  <span className="font-semibold">{nivel.title}</span>
+                </div>
+                {nivel.progress >= 100 && <span className="text-xl">⭐</span>}
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-grow bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`bg-${nivel.color}-500 rounded-full h-2 transition-all duration-500`}
+                    style={{ width: `${nivel.progress}%` }}
+                  />
+                </div>
+                <span className={`text-sm font-medium ${nivel.progress >= 100 ? 'text-yellow-500' : 'text-gray-600'}`}>
+                  {Number(nivel.progress).toFixed(1)}%
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
+
 
         {/* Opciones del Perfil */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -76,6 +120,7 @@ const Configuracion = ({ player, onBack, onEditProfile, onLogout }) => {
             className="bg-purple-500 hover:bg-purple-600 text-white text-xl font-bold py-4 px-6
                      rounded-xl transform hover:scale-105 transition-all duration-300 shadow-lg
                      flex items-center justify-center space-x-2"
+            onClick={() => onShowProgress()}
           >
             <span>📊</span>
             <span>Ver Progreso Detallado</span>
@@ -104,23 +149,49 @@ const Configuracion = ({ player, onBack, onEditProfile, onLogout }) => {
         {/* Sección de Últimos Logros */}
         <div className="mt-8">
           <h3 className="text-2xl font-bold text-purple-600 mb-4">
-            Últimos Logros 🏆
+            Logros Desbloqueados 🏆
           </h3>
           <div className="bg-gray-50 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span>Completaste el Nivel 1</span>
-              <span className="text-yellow-500">⭐⭐⭐</span>
-            </div>
-            <div className="flex items-center justify-between mb-2">
-              <span>Primera Partida Perfecta</span>
-              <span className="text-yellow-500">🏆</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Racha de 3 días jugando</span>
-              <span className="text-yellow-500">🌟</span>
-            </div>
+            {/* Logros de Nivel 1 */}
+            {JSON.parse(localStorage.getItem(`nivel1_progress_${player.name}`) || '{"totalProgress": 0}').totalProgress >= 100 && (
+              <div className="flex items-center justify-between mb-2">
+                <span>¡Maestro del Nivel 1! - Dominaste los conceptos básicos</span>
+                <span className="text-yellow-500">🌟</span>
+              </div>
+            )}
+            
+            {/* Logros de Nivel 2 */}
+            {JSON.parse(localStorage.getItem(`nivel2_progress_${player.name}`) || '{"totalProgress": 0}').totalProgress >= 100 && (
+              <div className="flex items-center justify-between mb-2">
+                <span>¡Experto en Relaciones! - Completaste el Nivel 2</span>
+                <span className="text-yellow-500">🏆</span>
+              </div>
+            )}
+            
+            {/* Logros de Nivel 3 */}
+            {(() => {
+              const datos = JSON.parse(localStorage.getItem(`nivel3_progress_${player.name}`) || '{"patitos":[],"cerditos":[]}');
+              return datos.patitos?.length === 9 || datos.cerditos?.length === 9;
+            })() && (
+              <div className="flex items-center justify-between">
+                <span>¡Contador Prodigio! - Dominaste el conteo en el Nivel 3</span>
+                <span className="text-yellow-500">👑</span>
+              </div>
+            )}
+            
+            {/* Mensaje si no hay logros */}
+            {!localStorage.getItem(`nivel1_progress_${player.name}`) && 
+            !localStorage.getItem(`nivel2_progress_${player.name}`) && 
+            !localStorage.getItem(`nivel3_progress_${player.name}`) && (
+              <div className="text-center text-gray-500">
+                ¡Comienza a jugar para desbloquear logros! 🎮
+              </div>
+            )}
           </div>
         </div>
+
+
+
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import AnimalesNumeros from './AnimalesNumeros';
 import AnimalesVocales from './AnimalesVocales';
 import ColoresFormas from './ColoresFormas';
 import Nivel3 from './Nivel3';
+import Progreso from './Progreso';
 
 const KidsGameUI = () => {
   
@@ -41,6 +42,8 @@ const KidsGameUI = () => {
   const [currentPhase, setCurrentPhase] = useState(null);
 
   const [showEditProfile, setShowEditProfile] = useState(false); //Editar el perfil
+
+  const [showProgress, setShowProgress] = useState(false); //Progreso
 
   /**
    * Array de emojis que representan los avatares disponibles para los jugadores.
@@ -1113,17 +1116,32 @@ const ChangeAvatarScreen = () => {
         
       />
       )}
-      {showConfig && !showEditProfile && (
-      <Configuracion 
-        player={registeredPlayers[selectedPlayer]}
-        onBack={() => setShowConfig(false)}
-        onEditProfile={() => setShowEditProfile(true)}
-        onLogout={() => {
-          setShowConfig(false);
-          setCurrentScreen('login');
-          setSelectedPlayer(null);
-        }}
-      />
+      
+
+      {showConfig && !showEditProfile && !showProgress && (
+        <Configuracion 
+          player={registeredPlayers[selectedPlayer]}
+          onBack={() => setShowConfig(false)}
+          onEditProfile={() => setShowEditProfile(true)}
+          onShowProgress={() => setShowProgress(true)}
+          onLogout={() => {
+            setShowConfig(false);
+            setShowProgress(false);
+            setCurrentScreen('login');
+            setSelectedPlayer(null);
+          }}
+        />
+      )}
+
+      {showProgress && (
+        <Progreso
+          player={registeredPlayers[selectedPlayer]}
+          onBack={() => setShowProgress(false)}
+          onConfigClick={() => {
+            setShowProgress(false);
+            setShowConfig(true);
+          }}
+        />
       )}
 
       {showEditProfile && (
