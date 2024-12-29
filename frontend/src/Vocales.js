@@ -10,6 +10,12 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   //const [showInstructions, setShowInstructions] = useState(true);
   const [gameCompleted, setGameCompleted] = useState(false);
 
+  const [errorsArray, setErrorsArray] = useState(new Array(vocales.length).fill(0));
+
+  const [startTime, setStartTime] = useState(Date.now()); // Tiempo de inicio para cada intento
+  const [responseTimes, setResponseTimes] = useState([]); // Array para almacenar los tiempos de respuesta
+
+
   // Estado inicial de currentVocal para recuperar progreso
   const [currentVocal, setCurrentVocal] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel1_vocales_progress_${player.name}`);
@@ -66,6 +72,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   }, []);
 
+  /*
   // Comprobar la respuesta
   const checkAnswer = (input) => {
     
@@ -105,6 +112,83 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }
     }
   };
+  */
+
+  const checkAnswer = (input) => {
+    const isRight = input === vocales[currentVocal];
+    setIsCorrect(isRight);
+    setShowFeedback(true);
+  
+    // Calcular el tiempo de respuesta
+    const endTime = Date.now();
+    const responseTime = (endTime - startTime) / 1000; // Convertir a segundos
+  
+    // Registrar el tiempo de respuesta
+    setResponseTimes((prevTimes) => [...prevTimes, responseTime]);
+  
+    if (!isRight) {
+      setErrorsArray((prevErrors) => {
+        const updatedErrors = [...prevErrors];
+        updatedErrors[currentVocal] += 1;
+        return updatedErrors;
+      });
+  
+      const randomEncouragement =
+        encouragementMessages[
+          Math.floor(Math.random() * encouragementMessages.length)
+        ];
+      //console.log(randomEncouragement);
+      console.log("Error");
+  
+      return;
+    }
+  
+    const progress = ((currentVocal + 1) / vocales.length) * 100;
+    localStorage.setItem(
+      `nivel1_vocales_progress_${player.name}`,
+      currentVocal + 1
+    );
+    onProgressUpdate(progress, false);
+  
+    if (currentVocal === vocales.length - 1) {
+      localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5');
+      onProgressUpdate(100, true);
+  
+      showFinalStats();
+  
+      setTimeout(() => {
+        setGameCompleted(true);
+        setShowFeedback(false);
+      }, 2000);
+    } else {
+      setTimeout(() => {
+        setCurrentVocal((prev) => prev + 1);
+        setShowFeedback(false);
+        setUserInput('');
+        setAttempts(0);
+        setStartTime(Date.now()); // Reiniciar el tiempo de inicio para la siguiente vocal
+      }, 2000);
+    }
+  };
+  
+  const showFinalStats = () => {
+    let totalErrors = 0;
+    let totalTime = 0;
+  
+    errorsArray.forEach((errors, index) => {
+      const time = responseTimes[index] || 0; // Tiempo de respuesta para la vocal
+      totalErrors += errors;
+      totalTime += time;
+      console.log(
+        `Vocal: ${vocales[index]} | Errores: ${errors} | Tiempo de respuesta: ${time.toFixed(2)}s`
+      );
+    });
+  
+    console.log(`Errores totales: ${totalErrors}`);
+    console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
+  };
+  
+  
 
   // Configurar el event listener del teclado
   useEffect(() => {

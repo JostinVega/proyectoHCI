@@ -11,6 +11,13 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
   const [gameCompleted, setGameCompleted] = useState(false);
   const [progressLoaded, setProgressLoaded] = useState(false); // Nuevo estado
 
+  const [patitosStats, setPatitosStats] = useState({});
+  const [cerditosStats, setCerditosStats] = useState({});
+  
+
+  const [tiempoInicio, setTiempoInicio] = useState(null);
+
+
   // Mensajes de felicitación
   const successMessages = [
     "¡Excelente trabajo! 🌟",
@@ -105,6 +112,7 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
     if (window.confirm(`¿Estás seguro de que quieres reiniciar el progreso de ${animal}? Se perderá todo el progreso.`)) {
       if (animal === 'patitos') {
         setCantidadesCompletadasPatitos([]);
+        setPatitosStats({});
         if (animalSeleccionado === 'patito') {
           setGameCompleted(false);
           setAnimalSeleccionado(null);
@@ -112,6 +120,7 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
         }
       } else if (animal === 'cerditos') {
         setCantidadesCompletadasCerditos([]);
+        setCerditosStats({});
         if (animalSeleccionado === 'cerdito') {
           setGameCompleted(false);
           setAnimalSeleccionado(null);
@@ -160,6 +169,9 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
     } else {
       setCantidadActual(nuevaCantidad);
     }
+
+    // Reiniciar el tiempo de respuesta
+    setTiempoInicio(Date.now()); 
   
     return cantidadActual;
   };
@@ -168,8 +180,10 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
     setAnimalSeleccionado(animal);
     setGameCompleted(false);
     generarNuevaCantidad();
+    setTiempoInicio(Date.now()); // Inicia el tiempo
   };
 
+  /*
   const checkAnswer = (input) => {
     const isRight = parseInt(input) === cantidadActual;
     setIsCorrect(isRight);
@@ -208,7 +222,96 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
       }, 1500);
     }
   };
+*/
 
+const checkAnswer = (input) => {
+  const isRight = parseInt(input) === cantidadActual;
+  setIsCorrect(isRight);
+  setShowFeedback(true);
+
+  if (tiempoInicio) {
+    const tiempoRespuesta = (Date.now() - tiempoInicio) / 1000; // Tiempo en segundos
+    const currentStats = animalSeleccionado === 'patito' ? patitosStats : cerditosStats;
+
+    const updatedStats = {
+      ...currentStats,
+      [cantidadActual]: {
+        errores: currentStats[cantidadActual]?.errores || 0,
+        tiempo: currentStats[cantidadActual]?.tiempo || 0,
+      },
+    };
+
+    if (isRight) {
+      updatedStats[cantidadActual].tiempo += tiempoRespuesta;
+    } else {
+      updatedStats[cantidadActual].errores += 1;
+    }
+
+    if (animalSeleccionado === 'patito') {
+      setPatitosStats(updatedStats);
+    } else {
+      setCerditosStats(updatedStats);
+    }
+
+    console.log(
+      `Animal: ${animalSeleccionado}, Número: ${cantidadActual}, ` +
+        `Errores: ${updatedStats[cantidadActual].errores}, ` +
+        `Tiempo acumulado: ${updatedStats[cantidadActual].tiempo.toFixed(2)}s`
+    );
+  }
+
+  if (isRight) {
+    const cantidadesCompletadas = animalSeleccionado === 'patito' ? cantidadesCompletadasPatitos : cantidadesCompletadasCerditos;
+    const updateList = animalSeleccionado === 'patito' ? setCantidadesCompletadasPatitos : setCantidadesCompletadasCerditos;
+
+    if (!cantidadesCompletadas.includes(cantidadActual)) {
+      updateList((prev) => [...prev, cantidadActual]);
+
+      if (cantidadesCompletadas.length + 1 >= 9) {
+        setGameCompleted(true);
+        // Actualizar el localStorage para mantener el 100%
+        localStorage.setItem(
+          `nivel3_${animalSeleccionado === 'patito' ? 'patitos' : 'cerditos'}_completed`,
+          'true'
+        );
+      }
+    }
+
+    setTimeout(() => {
+      setShowFeedback(false);
+      setUserInput('');
+      if (cantidadesCompletadas.length + 1 < 9) {
+        generarNuevaCantidad();
+      }
+    }, 2000);
+  } else {
+    setTimeout(() => {
+      setShowFeedback(false);
+      setUserInput('');
+    }, 1500);
+  }
+};
+
+useEffect(() => {
+  if (gameCompleted) {
+    const sumarErrores = (stats) =>
+      Object.values(stats).reduce((acc, curr) => acc + (curr.errores || 0), 0);
+    const sumarTiempos = (stats) =>
+      Object.values(stats).reduce((acc, curr) => acc + (curr.tiempo || 0), 0);
+
+    console.log(`Errores Totales Patitos: ${sumarErrores(patitosStats)}`);
+    console.log(`Errores Totales Cerditos: ${sumarErrores(cerditosStats)}`);
+    console.log(`Tiempo Total Patitos: ${sumarTiempos(patitosStats).toFixed(2)}s`);
+    console.log(`Tiempo Total Cerditos: ${sumarTiempos(cerditosStats).toFixed(2)}s`);
+    console.log(
+      `Tiempo Total General: ${(sumarTiempos(patitosStats) + sumarTiempos(cerditosStats)).toFixed(2)}s`
+    );
+  }
+}, [gameCompleted]);
+
+
+
+  
   const handleKeyPress = (e) => {
     if (!animalSeleccionado || gameCompleted) return;
     if (!/[0-9]/.test(e.key)) return;

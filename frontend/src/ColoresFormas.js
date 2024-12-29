@@ -49,6 +49,10 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [gameCompleted, setGameCompleted] = useState(false);
   //const [showInstructions, setShowInstructions] = useState(true);
 
+  const [errorsArray, setErrorsArray] = useState(new Array(pairs.length).fill(0)); // Errores por forma
+  const [responseTimes, setResponseTimes] = useState([]); // Tiempos de respuesta por forma
+  const [startTime, setStartTime] = useState(Date.now()); // Tiempo de inicio de la pregunta actual
+
   const [currentPair, setCurrentPair] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel2_colores_formas_progress_${player.name}`);
     const completedStatus = localStorage.getItem(`nivel2_colores_formas_completed_${player.name}`);
@@ -199,6 +203,7 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     checkAnswer(key);
   };
 
+  /*
   const checkAnswer = (input) => {
     const isRight = input === pairs[currentPair].inicial;
     setIsCorrect(isRight);
@@ -234,6 +239,98 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }
     }
   };
+  */
+
+  const checkAnswer = (input) => {
+    const isRight = input === pairs[currentPair].inicial;
+    const responseTime = Date.now() - startTime; // Calcular tiempo de respuesta
+    setIsCorrect(isRight);
+    setShowFeedback(true);
+  
+    // Guardar tiempo de respuesta individual
+    setResponseTimes((prevTimes) => {
+      const updatedTimes = [...prevTimes];
+      updatedTimes[currentPair] = responseTime;
+      return updatedTimes;
+    });
+  
+    if (!isRight) {
+      // Registrar error
+      setErrorsArray((prevErrors) => {
+        const updatedErrors = [...prevErrors];
+        updatedErrors[currentPair] += 1;
+        return updatedErrors;
+      });
+  
+      // Mostrar mensaje de ánimo
+      const randomEncouragement =
+        encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)];
+      //console.log(randomEncouragement);
+      console.log("Error");
+  
+      // Reiniciar el tiempo de inicio para el próximo intento
+      setStartTime(Date.now());
+      return;
+    }
+  
+    if (isRight) {
+      if (currentPair === pairs.length - 1) {
+        // Marcar como completado y guardar estado final
+        localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
+        localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
+  
+        // Comunicar 100% de progreso
+        onProgressUpdate(100, true);
+  
+        // Mostrar estadísticas finales después de completar
+        showFinalStats();
+  
+        setTimeout(() => {
+          setGameCompleted(true);
+          setShowFeedback(false);
+        }, 2000);
+      } else {
+        // Avanzar al siguiente par
+        const nextPair = currentPair + 1;
+        localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, nextPair);
+  
+        // Calcular y comunicar progreso parcial
+        const progress = ((nextPair) / pairs.length) * 100;
+        onProgressUpdate(progress, false);
+  
+        setTimeout(() => {
+          setCurrentPair(nextPair);
+          setShowFeedback(false);
+          setUserInput('');
+          setStartTime(Date.now()); // Reiniciar tiempo de inicio para el próximo intento
+        }, 2000);
+      }
+    }
+  };
+
+  const showFinalStats = () => {
+    let totalErrors = 0;
+    let totalTime = 0;
+  
+    errorsArray.forEach((errors, index) => {
+      totalErrors += errors;
+      console.log(
+        `Forma: ${pairs[index].forma} (${pairs[index].color}) | Errores: ${errors}`
+      );
+    });
+  
+    responseTimes.forEach((time, index) => {
+      totalTime += time;
+      console.log(
+        `Forma: ${pairs[index].forma} (${pairs[index].color}) | Tiempo de respuesta: ${(time / 1000).toFixed(2)}s`
+      );
+    });
+  
+    console.log(`Errores totales: ${totalErrors}`);
+    console.log(`Tiempo total de respuesta: ${(totalTime / 1000).toFixed(2)}s`);
+  };
+  
+  
 
   // Event listener para el teclado
   useEffect(() => {

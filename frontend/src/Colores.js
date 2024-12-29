@@ -25,6 +25,11 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [gameCompleted, setGameCompleted] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
 
+  const [errorsArray, setErrorsArray] = useState(new Array(colores.length).fill(0));
+  const [colorStats, setColorStats] = useState([]);
+
+  const [startTime, setStartTime] = useState(Date.now());
+
    // Modificar estado inicial para recuperar progreso
    const [currentColor, setCurrentColor] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel1_colores_progress_${player.name}`);
@@ -174,6 +179,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   }, []);
 
+  /*
   // Verifica si la respuesta es correcta
   const checkAnswer = (input) => {
     const currentColorNombre = colores[currentColor];
@@ -210,6 +216,92 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }
     }
   };
+  */
+
+  const checkAnswer = (input) => {
+    const currentColorNombre = colores[currentColor];
+    const isRight = input === currentColorNombre.charAt(0);
+    setIsCorrect(isRight);
+    setShowFeedback(true);
+  
+    if (!isRight) {
+      // Actualizar el array de errores
+      setErrorsArray((prevErrors) => {
+        const updatedErrors = [...prevErrors];
+        updatedErrors[currentColor] += 1; // Incrementar el error para el color actual
+        return updatedErrors;
+      });
+  
+      // Mostrar mensaje de ánimo
+      const randomEncouragement =
+        encouragementMessages[
+          Math.floor(Math.random() * encouragementMessages.length)
+        ];
+      //console.log(randomEncouragement);
+      console.log("Error");
+  
+      return; // Salir si la respuesta es incorrecta
+    }
+  
+    // Calcular progreso
+    const progress = ((currentColor + 1) / colores.length) * 100;
+    localStorage.setItem(
+      `nivel1_colores_progress_${player.name}`,
+      currentColor + 1
+    );
+    onProgressUpdate(progress, false);
+  
+    // Calcular tiempo de respuesta
+    const endTime = Date.now();
+    const responseTime = (endTime - startTime) / 1000;
+  
+    // Guardar estadísticas del color actual
+    const colorStatsEntry = {
+      color: currentColorNombre,
+      errors: errorsArray[currentColor], // Usar errores del array
+      responseTime
+    };
+    setColorStats((prevStats) => [...prevStats, colorStatsEntry]);
+  
+    if (currentColor === colores.length - 1) {
+      // Si es el último color, mostrar pantalla de completado
+      localStorage.setItem(`nivel1_colores_progress_${player.name}`, '10');
+      onProgressUpdate(100, true);
+  
+      // Mostrar estadísticas finales
+      showFinalStats([...colorStats, colorStatsEntry]);
+  
+      setTimeout(() => {
+        setGameCompleted(true);
+        setShowFeedback(false);
+      }, 2000);
+    } else {
+      // Continuar al siguiente color
+      setTimeout(() => {
+        setCurrentColor((prev) => prev + 1);
+        setShowFeedback(false);
+        setUserInput('');
+        setStartTime(Date.now());
+      }, 2000);
+    }
+  };
+  
+  const showFinalStats = (stats) => {
+    let totalErrors = 0;
+    let totalTime = 0;
+  
+    stats.forEach(({ color, responseTime }, index) => {
+      totalErrors += errorsArray[index]; // Usar errores del array
+      totalTime += responseTime;
+      console.log(
+        `Color: ${color} | Errores: ${errorsArray[index]} | Tiempo de respuesta: ${responseTime}s`
+      );
+    });
+  
+    console.log(`Errores totales: ${totalErrors}`);
+    console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
+  };
+  
 
   useEffect(() => {
     if (!showInstructions && !gameCompleted) {

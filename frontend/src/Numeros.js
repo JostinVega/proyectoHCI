@@ -9,6 +9,11 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [showInstructions, setShowInstructions] = useState(true);
   const [gameCompleted, setGameCompleted] = useState(false);
 
+  const [errorsArray, setErrorsArray] = useState(new Array(10).fill(0));
+
+  const [startTime, setStartTime] = useState(Date.now()); // Para rastrear el inicio de cada intento
+  const [responseTimes, setResponseTimes] = useState([]); // Array para almacenar los tiempos de respuesta
+
   const [currentNumber, setCurrentNumber] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel1_numeros_progress_${player.name}`);
     return savedProgress ? parseInt(savedProgress) : 0;
@@ -42,6 +47,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     checkAnswer(e.key);
   };
 
+  /*
   // Comprobar la respuesta
   const checkAnswer = (input) => {
     const isRight = parseInt(input) === currentNumber;
@@ -80,6 +86,85 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }
     }
   };
+  */
+
+  const checkAnswer = (input) => {
+    const isRight = parseInt(input) === currentNumber;
+    setIsCorrect(isRight);
+    setShowFeedback(true);
+  
+    // Calcular el tiempo de respuesta
+    const endTime = Date.now();
+    const responseTime = (endTime - startTime) / 1000; // Tiempo en segundos
+  
+    // Registrar el tiempo de respuesta
+    setResponseTimes((prevTimes) => [...prevTimes, responseTime]);
+  
+    if (!isRight) {
+      setErrorsArray((prevErrors) => {
+        const updatedErrors = [...prevErrors];
+        updatedErrors[currentNumber] += 1;
+        return updatedErrors;
+      });
+  
+      const randomEncouragement =
+        encouragementMessages[
+          Math.floor(Math.random() * encouragementMessages.length)
+        ];
+      //console.log(randomEncouragement);
+      console.log("Error");
+  
+      return;
+    }
+  
+    if(isRight){
+      const progress = ((currentNumber + 1) / 10) * 100;
+    localStorage.setItem(
+      `nivel1_numeros_progress_${player.name}`,
+      currentNumber + 1
+    );
+    onProgressUpdate(progress, false);
+  
+    if (currentNumber === 9) {
+      localStorage.setItem(`nivel1_numeros_progress_${player.name}`, '10');
+      onProgressUpdate(100, true);
+  
+      showFinalStats();
+  
+      setTimeout(() => {
+        setGameCompleted(true);
+        setShowFeedback(false);
+      }, 2000);
+    } else {
+      setTimeout(() => {
+        setCurrentNumber((prev) => prev + 1);
+        setShowFeedback(false);
+        setUserInput('');
+        setAttempts(0);
+        setStartTime(Date.now()); // Reiniciar el tiempo de inicio
+      }, 2000);
+    }
+    }
+  };
+  
+  const showFinalStats = () => {
+    let totalErrors = 0;
+    let totalTime = 0;
+  
+    errorsArray.forEach((errors, index) => {
+      const time = responseTimes[index] || 0; // Tiempo de respuesta para este número
+      totalErrors += errors;
+      totalTime += time;
+      console.log(
+        `Número: ${index} | Errores: ${errors} | Tiempo de respuesta: ${time.toFixed(2)}s`
+      );
+    });
+  
+    console.log(`Errores totales: ${totalErrors}`);
+    console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
+  };
+  
+  
 
   // Al montar el componente, restaurar estado de instrucciones
   useEffect(() => {

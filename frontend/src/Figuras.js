@@ -58,6 +58,12 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   //const [showInstructions, setShowInstructions] = useState(true);
   const [gameCompleted, setGameCompleted] = useState(false);
 
+  const [errorsArray, setErrorsArray] = useState(new Array(formas.length).fill(0));
+
+  const [startTime, setStartTime] = useState(Date.now()); // Tiempo de inicio de cada forma
+  const [responseTimes, setResponseTimes] = useState([]); // Array para guardar los tiempos de respuesta
+
+
    // Estado inicial para recuperar progreso
    const [currentForma, setCurrentForma] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel1_figuras_progress_${player.name}`);
@@ -113,6 +119,7 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   }, []);
 
+  /*
   // Comprobar la respuesta
   const checkAnswer = (input) => {
     const currentFormaNombre = formas[currentForma];
@@ -152,6 +159,88 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }
     }
   };
+  */
+
+  const checkAnswer = (input) => {
+    const currentFormaNombre = formas[currentForma];
+    const isRight = input === currentFormaNombre.charAt(0);
+    setIsCorrect(isRight);
+    setShowFeedback(true);
+  
+    // Calcular el tiempo de respuesta
+    const endTime = Date.now();
+    const responseTime = (endTime - startTime) / 1000; // Tiempo en segundos
+  
+    // Registrar el tiempo de respuesta
+    setResponseTimes((prevTimes) => [...prevTimes, responseTime]);
+  
+    if (!isRight) {
+      // Actualizar el array de errores
+      setErrorsArray((prevErrors) => {
+        const updatedErrors = [...prevErrors];
+        updatedErrors[currentForma] += 1;
+        return updatedErrors;
+      });
+  
+      // Mostrar mensaje de ánimo
+      const randomEncouragement =
+        encouragementMessages[
+          Math.floor(Math.random() * encouragementMessages.length)
+        ];
+      //console.log(randomEncouragement);
+      console.log("Error");
+  
+      return;
+    }
+  
+    // Calcular progreso
+    const progress = ((currentForma + 1) / formas.length) * 100;
+    localStorage.setItem(
+      `nivel1_figuras_progress_${player.name}`,
+      currentForma + 1
+    );
+    onProgressUpdate(progress, false);
+  
+    if (currentForma === formas.length - 1) {
+      localStorage.setItem(`nivel1_figuras_progress_${player.name}`, '7');
+      onProgressUpdate(100, true);
+  
+      showFinalStats();
+  
+      setTimeout(() => {
+        setGameCompleted(true);
+        setShowFeedback(false);
+      }, 2000);
+    } else {
+      setTimeout(() => {
+        setCurrentForma((prev) => prev + 1);
+        setShowFeedback(false);
+        setUserInput('');
+        setAttempts(0);
+        setStartTime(Date.now()); // Reiniciar el tiempo de inicio
+      }, 2000);
+    }
+  };
+  
+  
+  const showFinalStats = () => {
+    let totalErrors = 0;
+    let totalTime = 0;
+  
+    errorsArray.forEach((errors, index) => {
+      totalErrors += errors;
+      const time = responseTimes[index] || 0; // Tiempo para esta forma
+      totalTime += time;
+      console.log(
+        `Forma: ${formas[index]} | Errores: ${errors} | Tiempo de respuesta: ${time.toFixed(2)}s`
+      );
+    });
+  
+    console.log(`Errores totales: ${totalErrors}`);
+    console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
+  };
+  
+  
 
   // Configurar el event listener del teclado
   useEffect(() => {

@@ -11,7 +11,7 @@ const Shapes = {
   gato: () => <div className="text-9xl">🐱</div>,
   perro: () => <div className="text-9xl">🐶</div>,
   oveja: () => <div className="text-9xl">🐑</div>,
-  aveja: () => <div className="text-9xl">🐝</div>,
+  abeja: () => <div className="text-9xl">🐝</div>,
   elefante: () => <div className="text-9xl">🐘</div>,
   iguana: () => <div className="text-9xl">🦎</div>,
   oso: () => <div className="text-9xl">🐻</div>,
@@ -20,7 +20,7 @@ const Shapes = {
 
 const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   // Lista de animales que se mostrarán en el juego
-  const animales = ['pajaro', 'tortuga', 'cerdo', 'pato', 'mariposa', 'pollito', 'gato', 'perro', 'oveja', 'aveja', 'elefante', 'iguana', 'oso', 'unicornio'];
+  const animales = ['pajaro', 'tortuga', 'cerdo', 'pato', 'mariposa', 'pollito', 'gato', 'perro', 'oveja', 'abeja', 'elefante', 'iguana', 'oso', 'unicornio'];
   //const [currentAnimal, setCurrentAnimal] = useState(0);
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
@@ -28,6 +28,12 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [attempts, setAttempts] = useState(0);
   //const [showInstructions, setShowInstructions] = useState(true);
   const [gameCompleted, setGameCompleted] = useState(false);
+
+  const [startTime, setStartTime] = useState(Date.now());
+  const [animalStats, setAnimalStats] = useState([]);
+
+  const [errorsArray, setErrorsArray] = useState(new Array(animales.length).fill(0));
+
 
   // Modificar estado inicial para recuperar progreso
   const [currentAnimal, setCurrentAnimal] = useState(() => {
@@ -84,6 +90,7 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   }, []);
 
+  /*
   // Verifica si la respuesta del jugador es correcta
   const checkAnswer = (input) => {
     const currentAnimalNombre = animales[currentAnimal];
@@ -123,6 +130,96 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }
     }
   };
+  */
+
+  // Verifica si la respuesta del jugador es correcta
+  
+  const checkAnswer = (input) => {
+    const currentAnimalNombre = animales[currentAnimal];
+    const isRight = input === currentAnimalNombre.charAt(0);
+    setIsCorrect(isRight);
+    setShowFeedback(true);
+  
+    if (!isRight) {
+      // Usar una copia local para acumular errores correctamente
+      setErrorsArray((prevErrors) => {
+        const updatedErrors = [...prevErrors];
+        updatedErrors[currentAnimal] += 1; // Incrementar el error para el animal actual
+        return updatedErrors;
+      });
+  
+      // Mostrar mensaje de ánimo
+      const randomEncouragement =
+        encouragementMessages[
+          Math.floor(Math.random() * encouragementMessages.length)
+        ];
+      //console.log(randomEncouragement);
+      console.log("Error");
+  
+      return; // Salir si la respuesta es incorrecta
+    }
+  
+    // Calcular progreso
+    const progress = ((currentAnimal + 1) / animales.length) * 100;
+    localStorage.setItem(
+      `nivel1_animales_progress_${player.name}`,
+      currentAnimal + 1
+    );
+    onProgressUpdate(progress, false);
+  
+    // Calcular tiempo de respuesta
+    const endTime = Date.now();
+    const responseTime = (endTime - startTime) / 1000;
+  
+    // Guardar estadísticas del animal actual
+    const animalStatsEntry = {
+      animal: currentAnimalNombre,
+      errors: errorsArray[currentAnimal], // Usar errores del array
+      responseTime
+    };
+    setAnimalStats((prevStats) => [...prevStats, animalStatsEntry]);
+  
+    if (currentAnimal === animales.length - 1) {
+      // Si es el último animal, mostrar pantalla de completado
+      localStorage.setItem(`nivel1_animales_progress_${player.name}`, '14');
+      onProgressUpdate(100, true);
+  
+      // Mostrar estadísticas finales
+      showFinalStats([...animalStats, animalStatsEntry]);
+  
+      setTimeout(() => {
+        setGameCompleted(true);
+        setShowFeedback(false);
+      }, 2000);
+    } else {
+      // Continuar al siguiente animal
+      setTimeout(() => {
+        setCurrentAnimal((prev) => prev + 1);
+        setShowFeedback(false);
+        setUserInput('');
+        setStartTime(Date.now());
+      }, 2000);
+    }
+  };
+  
+  const showFinalStats = (stats) => {
+    let totalErrors = 0;
+    let totalTime = 0;
+  
+    stats.forEach(({ animal, responseTime }, index) => {
+      totalErrors += errorsArray[index]; // Usar errores del array
+      totalTime += responseTime;
+      console.log(
+        `Animal: ${animal} | Errores: ${errorsArray[index]} | Tiempo de respuesta: ${responseTime}s`
+      );
+    });
+  
+    console.log(`Errores totales: ${totalErrors}`);
+    console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
+  };
+  
+
+
 
   // Configurar el event listener del teclado
   useEffect(() => {
@@ -142,7 +239,8 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   };
 
   // Componente que representa el animal actual
-  const CurrentShape = Shapes[animales[currentAnimal]];
+  const CurrentShape = Shapes[animales[currentAnimal]] || (() => <div className="text-9xl">❓</div>);
+
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 p-6">
