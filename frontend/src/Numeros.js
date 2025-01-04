@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
 
+import pajarito from '../src/images/pajarito.png';
+import tortuga from '../src/images/tortuga.png';
+import cerdito from '../src/images/cerdito.png';
+import patito from '../src/images/patito.png';
+import mariposa from '../src/images/mariposa.png';
+import pollito from '../src/images/pollito.png';
+import gatito from '../src/images/gatito.png';
+import perrito from '../src/images/perrito.png';
+import oveja from '../src/images/oveja.png';
+
 const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   //const [currentNumber, setCurrentNumber] = useState(0);
   const [userInput, setUserInput] = useState('');
@@ -35,6 +45,18 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     "¡No te rindas! Estás muy cerca ⭐",
     "¡Vamos a intentarlo una vez más! 🎈"
   ];
+
+  const animalesConfig = {
+    1: { imagen: pajarito, cantidad: 1, nombre: 'pajarito' },
+    2: { imagen: tortuga, cantidad: 2, nombre: 'tortuga' },
+    3: { imagen: cerdito, cantidad: 3, nombre: 'cerdito' },
+    4: { imagen: patito, cantidad: 4, nombre: 'patito' },
+    5: { imagen: mariposa, cantidad: 5, nombre: 'mariposa' },
+    6: { imagen: pollito, cantidad: 6, nombre: 'pollito' },
+    7: { imagen: gatito, cantidad: 7, nombre: 'gatito' },
+    8: { imagen: perrito, cantidad: 8, nombre: 'perrito' },
+    9: { imagen: oveja, cantidad: 9, nombre: 'oveja' }
+  };
 
   // Manejar la entrada del teclado
   const handleKeyPress = (e) => {
@@ -265,11 +287,38 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
               Encuentra el número:
             </h2>
             
-            {/* Número actual */}
-            <div className="text-9xl font-bold text-blue-500 animate-bounce">
+            {/* Número actual
+            <div className="text-[250px] font-bold text-blue-500 animate-bounce">
               {currentNumber}
             </div>
+            */}
 
+            {/* Número con animales animados */}
+            <div className="flex flex-col items-center">
+              {/* Número */}
+              <div className="text-[250px] font-bold text-blue-500 animate-bounce">
+                {currentNumber}
+              </div>
+              
+              {/* Contenedor de animales */}
+              {animalesConfig[currentNumber] && (
+                <div className="flex flex-nowrap justify-center gap-4 mt-4 max-w-3xl mx-auto">
+                  {Array(animalesConfig[currentNumber].cantidad).fill(0).map((_, index) => (
+                    <img 
+                      key={index}
+                      src={animalesConfig[currentNumber].imagen}
+                      alt={`${animalesConfig[currentNumber].nombre} ${index + 1}`}
+                      className={`w-23 h-20 object-contain animate-bounce`}
+                      style={{ 
+                        animationDelay: `${index * 0.2}s`
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/*text-9xl*/}
             {/* Mensaje de instrucción */}
             <p className="text-2xl text-gray-600">
               Inserta la tarjeta del número {currentNumber}

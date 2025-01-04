@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import pajarito from '../src/images/pajarito.png';
+import tortuga from '../src/images/tortuga.png';
+import cerdito from '../src/images/cerdito.png';
+import patito from '../src/images/patito.png';
+import mariposa from '../src/images/mariposa.png';
+import pollito from '../src/images/pollito.png';
+import gatito from '../src/images/gatito.png';
+import perrito from '../src/images/perrito.png';
+import oveja from '../src/images/oveja.png';
 
 const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
-  
+
   // Datos de los pares animal-número
+  /*
   const pairs = [
     {
       animal: '🐦',
@@ -50,6 +60,56 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
       nombre: 'oveja'
     }
   ];
+  */
+
+  const pairs = [
+    {
+      imagen: pajarito,
+      cantidad: 1,
+      nombre: 'pájaro'
+    },
+    {
+      imagen: tortuga,
+      cantidad: 2,
+      nombre: 'tortuga'
+    },
+    {
+      imagen: cerdito,
+      cantidad: 3,
+      nombre: 'cerdo'
+    },
+    {
+      imagen: patito,
+      cantidad: 4,
+      nombre: 'pato'
+    },
+    {
+      imagen: mariposa,
+      cantidad: 5,
+      nombre: 'mariposa'
+    },
+    {
+      imagen: pollito,
+      cantidad: 6,
+      nombre: 'pollito'
+    },
+    {
+      imagen: gatito,
+      cantidad: 7,
+      nombre: 'gato'
+    },
+    {
+      imagen: perrito,
+      cantidad: 8,
+      nombre: 'perro'
+    },
+    {
+      imagen: oveja,
+      cantidad: 9,
+      nombre: 'oveja'
+    }
+  ];
+
   //const [currentPair, setCurrentPair] = useState(0);
   const [userInput, setUserInput] = useState('');  // Cambiado de userAnswer
   const [showFeedback, setShowFeedback] = useState(false);
@@ -62,11 +122,25 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   const [startTime, setStartTime] = useState(Date.now()); // Tiempo de inicio para cada intento
   const [responseTimes, setResponseTimes] = useState([]); // Array para almacenar los tiempos de respuesta
 
+  /*
   // Modificar estado inicial para recuperar progreso
   const [currentPair, setCurrentPair] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel2_animales_numeros_progress_${player.name}`);
     const progress = savedProgress ? parseInt(savedProgress) : 0;
     // Añadir validación para asegurar que el valor está dentro del rango
+    return progress >= 0 && progress < pairs.length ? progress : 0;
+  });
+  */
+
+  const [currentPair, setCurrentPair] = useState(() => {
+    const savedProgress = localStorage.getItem(`nivel2_animales_numeros_progress_${player.name}`);
+    const isCompleted = localStorage.getItem(`nivel2_animales_numeros_completed_${player.name}`);
+    
+    if (isCompleted === 'true') {
+      return pairs.length - 1; // Retorna el último índice si está completado
+    }
+    
+    const progress = savedProgress ? parseInt(savedProgress) : 0;
     return progress >= 0 && progress < pairs.length ? progress : 0;
   });
 
@@ -101,6 +175,23 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     "¡No te rindas! Estás muy cerca ⭐",
     "¡Vamos a intentarlo una vez más! 🎈"
   ];
+
+  // Verificar si el juego está completado al cargar
+  useEffect(() => {
+    const savedProgress = localStorage.getItem(`nivel2_animales_numeros_progress_${player.name}`);
+    const isCompleted = localStorage.getItem(`nivel2_animales_numeros_completed_${player.name}`);
+    const savedInstructions = localStorage.getItem(`nivel2_animales_numeros_instructions_${player.name}`);
+    
+    if (isCompleted === 'true' || savedProgress === '9') {
+      setGameCompleted(true);
+      onProgressUpdate(100, true);
+      setCurrentPair(pairs.length - 1); // Asegurarnos que currentPair esté en la última posición
+    }
+    
+    if (savedInstructions) {
+      setShowInstructions(false);
+    }
+  }, []);
 
   // Manejar la entrada del teclado
   const handleKeyPress = (e) => {
@@ -246,6 +337,7 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   };
 
   // Renderizar los animales según la cantidad
+  /*
   const renderAnimales = () => {
     if (currentPair >= pairs.length) return null;
     
@@ -255,6 +347,25 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
         <span key={i} className="text-5xl animate-bounce inline-block m-2">
           {pairs[currentPair].animal}
         </span>
+      );
+    }
+    return animales;
+  };
+  */
+
+  const renderAnimales = () => {
+    if (currentPair >= pairs.length) return null;
+    
+    const animales = [];
+    for (let i = 0; i < pairs[currentPair].cantidad; i++) {
+      animales.push(
+        <div key={i} className="animate-bounce inline-block m-2">
+          <img 
+            src={pairs[currentPair].imagen} 
+            alt={pairs[currentPair].nombre}
+            className="w-24 h-24 object-contain"
+          />
+        </div>
       );
     }
     return animales;

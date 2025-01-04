@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import abeja from '../src/images/abeja.png';
+import elefante from '../src/images/elefante.png';
+import iguana from '../src/images/iguana.png';
+import oso from '../src/images/oso.png';
+import unicornio from '../src/images/unicornio.png';
 
 const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
+  /*
   // Datos de los pares animal-vocal
   const pairs = [
     {
@@ -30,7 +36,35 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
       nombre: 'unicornio'
     }
   ];
+  */
 
+  const pairs = [
+    {
+      imagen: abeja,
+      vocal: 'a',
+      nombre: 'abeja'
+    },
+    {
+      imagen: elefante,
+      vocal: 'e',
+      nombre: 'elefante'
+    },
+    {
+      imagen: iguana,
+      vocal: 'i',
+      nombre: 'iguana'
+    },
+    {
+      imagen: oso,
+      vocal: 'o',
+      nombre: 'oso'
+    },
+    {
+      imagen: unicornio,
+      vocal: 'u',
+      nombre: 'unicornio'
+    }
+  ];
 
   //const [currentPair, setCurrentPair] = useState(0);
   const [userInput, setUserInput] = useState('');
@@ -330,15 +364,23 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
             </button>
           </div>
         ) : (
-          <div className="text-center space-y-8">
+          <div className="text-center space-y-16">
             {currentPair < pairs.length && (
               <>
                 <h2 className="text-4xl font-bold text-purple-600 mb-8">
                   ¿Con qué vocal empieza {pairs[currentPair].nombre}?
                 </h2>
-                
+                {/* 
                 <div className="text-9xl animate-bounce mb-8">
                   {pairs[currentPair].animal}
+                </div>
+                */}
+                <div className="text-9xl animate-bounce mb-8 mt-2">
+                  <img 
+                    src={pairs[currentPair].imagen} 
+                    alt={pairs[currentPair].nombre}
+                    className="w-64 h-64 object-contain inline-block"
+                  />
                 </div>
         
                 {/* Indicador visual de entrada */}

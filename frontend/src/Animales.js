@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from 'react';
 
+import pajarito from '../src/images/pajarito.png';
+import tortuga from '../src/images/tortuga.png';
+import cerdito from '../src/images/cerdito.png';
+import patito from '../src/images/patito.png';
+import mariposa from '../src/images/mariposa.png';
+import pollito from '../src/images/pollito.png';
+import gatito from '../src/images/gatito.png';
+import perrito from '../src/images/perrito.png';
+import oveja from '../src/images/oveja.png';
+import abeja from '../src/images/abeja.png';
+import elefante from '../src/images/elefante.png';
+import iguana from '../src/images/iguana.png';
+import oso from '../src/images/oso.png';
+import unicornio from '../src/images/unicornio.png';
+
 // Diccionario de componentes para representar animales como emojis
+/* 
 const Shapes = {
   pajaro: () => <div className="text-9xl">🐦</div>,
   tortuga: () => <div className="text-9xl">🐢</div>,
@@ -16,6 +32,80 @@ const Shapes = {
   iguana: () => <div className="text-9xl">🦎</div>,
   oso: () => <div className="text-9xl">🐻</div>,
   unicornio: () => <div className="text-9xl">🦄</div>
+};
+*/
+
+const Shapes = {
+  pajaro: () => (
+    <div>
+      <img src={pajarito} alt="pajarito" className="w-64 h-64 object-contain" />
+    </div>
+  ),
+  tortuga: () => (
+    <div>
+      <img src={tortuga} alt="tortuga" className="w-64 h-64 object-contain" />
+    </div>
+  ),
+  cerdo: () => (
+    <div>
+      <img src={cerdito} alt="cerdito" className="w-64 h-64 object-contain" />
+    </div>
+  ),
+  pato: () => (
+    <div>
+      <img src={patito} alt="patito" className="w-64 h-64 object-contain" />
+    </div>
+  ),
+  mariposa: () => (
+    <div>
+      <img src={mariposa} alt="mariposa" className="w-64 h-64 object-contain" />
+    </div>
+  ),
+  pollito: () => (
+    <div>
+      <img src={pollito} alt="pollito" className="w-64 h-64 object-contain" />
+    </div>
+  ),
+  gato: () => (
+    <div>
+      <img src={gatito} alt="gatito" className="w-64 h-64 object-contain" />
+    </div>
+  ),
+  perro: () => (
+    <div>
+      <img src={perrito} alt="perrito" className="w-64 h-64 object-contain" />
+    </div>
+  ),
+  oveja: () => (
+    <div>
+      <img src={oveja} alt="oveja" className="w-64 h-64 object-contain" />
+    </div>
+  ),
+  abeja: () => (
+    <div>
+      <img src={abeja} alt="abeja" className="w-64 h-64 object-contain" />
+    </div>
+  ),
+  elefante: () => (
+    <div>
+      <img src={elefante} alt="elefante" className="w-64 h-64 object-contain" />
+    </div>
+  ),
+  iguana: () => (
+    <div>
+      <img src={iguana} alt="iguana" className="w-64 h-64 object-contain" />
+    </div>
+  ),
+  oso: () => (
+    <div>
+      <img src={oso} alt="oso" className="w-64 h-64 object-contain" />
+    </div>
+  ),
+  unicornio: () => (
+    <div>
+      <img src={unicornio} alt="unicornio" className="w-64 h-64 object-contain" />
+    </div>
+  )
 };
 
 const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
@@ -303,13 +393,13 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
           </div>
         ) : (
           // Pantalla del juego
-          <div className="text-center space-y-8">
+          <div className="text-center space-y-14">
             <h2 className="text-4xl font-bold text-purple-600 mb-8">
               Encuentra el animal:
             </h2>
             
             {/* Animal actual */}
-            <div className="flex justify-center items-center animate-bounce">
+            <div className="flex justify-center items-center animate-bounce mt-8">
               <CurrentShape />
             </div>
 

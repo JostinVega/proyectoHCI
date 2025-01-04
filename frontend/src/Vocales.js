@@ -1,4 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import abejita from '../src/images/abejita.gif';
+import elefante from '../src/images/elefante.gif';
+import iguana from '../src/images/iguana.png';
+import oso from '../src/images/oso.gif';
+import unicornio from '../src/images/unicornio.gif';
 
 const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const vocales = ['a', 'e', 'i', 'o', 'u'];
@@ -15,7 +20,6 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [startTime, setStartTime] = useState(Date.now()); // Tiempo de inicio para cada intento
   const [responseTimes, setResponseTimes] = useState([]); // Array para almacenar los tiempos de respuesta
 
-
   // Estado inicial de currentVocal para recuperar progreso
   const [currentVocal, setCurrentVocal] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel1_vocales_progress_${player.name}`);
@@ -27,6 +31,14 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     const savedInstructions = localStorage.getItem(`nivel1_vocales_instructions_${player.name}`);
     return !savedInstructions;
   });
+
+  const vocalesConfig = {
+    'a': { imagen: abejita, nombre: 'abejita' },
+    'e': { imagen: elefante, nombre: 'elefante' },
+    'i': { imagen: iguana, nombre: 'iguana' },
+    'o': { imagen: oso, nombre: 'oso' },
+    'u': { imagen: unicornio, nombre: 'unicornio' }
+  };
 
   // Mensajes de felicitación aleatorios
   const successMessages = [
@@ -188,8 +200,6 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
   };
   
-  
-
   // Configurar el event listener del teclado
   useEffect(() => {
     window.addEventListener('keypress', handleKeyPress);
@@ -273,9 +283,29 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
               Encuentra la vocal:
             </h2>
             
-            {/* Vocal actual */}
+            {/* Vocal actual 
             <div className="text-9xl font-bold text-blue-500 animate-bounce uppercase">
               {vocales[currentVocal]}
+            </div>
+            */}
+
+            {/* Vocal con animal */}
+            <div className="flex items-center justify-center gap-8">
+              {/* Vocal */}
+              <div className="text-9xl font-bold text-blue-500 animate-bounce uppercase">
+                {vocales[currentVocal]}
+              </div>
+              
+              {/* Animal correspondiente */}
+              {vocalesConfig[vocales[currentVocal]] && (
+                <div className="flex justify-center">
+                  <img 
+                    src={vocalesConfig[vocales[currentVocal]].imagen}
+                    alt={vocalesConfig[vocales[currentVocal]].nombre}
+                    className="w-64 h-64 object-contain"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Mensaje de instrucción */}

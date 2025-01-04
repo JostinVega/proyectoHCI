@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import patito from '../src/images/patito.png';
+import cerdito from '../src/images/cerdito.png';
 
 const Nivel3 = ({ player, onBack, onConfigClick }) => {
   const [animalSeleccionado, setAnimalSeleccionado] = useState(null);
@@ -56,12 +58,25 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
     "¡Cada intento cuenta! ¡Sigue adelante! 🎉"
   ];
 
+  /*
   const animales = {
     patito: {
       emoji: '🦆',
     },
     cerdito: {
       emoji: '🐷',
+    },
+  };
+  */
+
+  const animales = {
+    patito: {
+      imagen: patito,
+      nombre: 'patito'
+    },
+    cerdito: {
+      imagen: cerdito,
+      nombre: 'cerdito'
     },
   };
 
@@ -437,6 +452,8 @@ useEffect(() => {
       {renderProgressBar()}
       <h2 className="text-4xl font-bold text-purple-600">¿Con qué animal quieres practicar?</h2>
       <div className="flex justify-center gap-8">
+
+        {/* 
         {Object.entries(animales).map(([nombre, datos]) => (
           <button
             key={nombre}
@@ -447,6 +464,24 @@ useEffect(() => {
             <div className="text-2xl font-bold text-purple-600 capitalize">{nombre}s</div>
           </button>
         ))}
+        */}
+        {Object.entries(animales).map(([nombre, datos]) => (
+          <button
+            key={nombre}
+            className="bg-white p-8 rounded-xl shadow-xl hover:scale-105 transition-all duration-300"
+            onClick={() => iniciarJuego(nombre)}
+          >
+            <div className="mb-4">
+              <img 
+                src={datos.imagen} 
+                alt={datos.nombre}
+                className="w-32 h-32 object-contain"
+              />
+            </div>
+            <div className="text-2xl font-bold text-purple-600 capitalize">{nombre}s</div>
+          </button>
+        ))}
+
       </div>
     </div>
   );
@@ -482,7 +517,14 @@ useEffect(() => {
         </h2>
         <div className="flex flex-wrap justify-center gap-4 mb-8">
           {[...Array(cantidadActual)].map((_, i) => (
-            <span key={i} className="text-6xl">{animales[animalSeleccionado].emoji}</span>
+            //<span key={i} className="text-6xl">{animales[animalSeleccionado].emoji}</span>
+            <div key={i} className="w-24 h-24">
+              <img 
+                src={animales[animalSeleccionado].imagen}
+                alt={animales[animalSeleccionado].nombre}
+                className="w-full h-full object-contain"
+              />
+            </div>
           ))}
         </div>
         <div>

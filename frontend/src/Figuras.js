@@ -65,9 +65,15 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
 
    // Estado inicial para recuperar progreso
-   const [currentForma, setCurrentForma] = useState(() => {
+   //const [currentForma, setCurrentForma] = useState(() => {
+    //const savedProgress = localStorage.getItem(`nivel1_figuras_progress_${player.name}`);
+    //return savedProgress ? parseInt(savedProgress) : 0;
+  //});
+
+  const [currentForma, setCurrentForma] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel1_figuras_progress_${player.name}`);
-    return savedProgress ? parseInt(savedProgress) : 0;
+    const progress = savedProgress ? parseInt(savedProgress) : 0;
+    return progress < formas.length ? progress : 0; // Asegura que no exceda el límite
   });
 
   // Estado de instrucciones para recuperar
@@ -260,7 +266,10 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   };
 
   // Obtener el componente SVG de la forma actual
-  const CurrentShape = Shapes[formas[currentForma]];
+  //const CurrentShape = Shapes[formas[currentForma]];
+
+  // Obtener el componente SVG de la forma actual
+  const CurrentShape = formas[currentForma] ? Shapes[formas[currentForma]] : null;
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 p-6">
