@@ -82,6 +82,56 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
+// Endpoint para eliminar un jugador
+app.delete('/api/users/:id', async (req, res) => {
+  const userId = req.params.id;
+
+  try {
+    const userRef = db.collection('users').doc(userId);
+
+    // Verificar si el usuario existe
+    const doc = await userRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    // Eliminar el documento
+    await userRef.delete();
+    res.status(200).json({ message: 'Usuario eliminado correctamente.' });
+  } catch (error) {
+    console.error('Error al eliminar el usuario:', error);
+    res.status(500).json({ error: 'Error al eliminar el usuario.' });
+  }
+});
+
+// Endpoint para actualizar un jugador
+app.put('/api/users/:id', async (req, res) => {
+  const userId = req.params.id;
+  const { name, age, gender, avatar } = req.body;
+
+  if (!name || !age || !gender || !avatar) {
+    return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
+  }
+
+  try {
+    const userRef = db.collection('users').doc(userId);
+
+    // Verificar si el usuario existe
+    const doc = await userRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    // Actualizar el documento
+    await userRef.update({ name, age, gender, avatar });
+    res.status(200).json({ message: 'Usuario actualizado correctamente.' });
+  } catch (error) {
+    console.error('Error al actualizar el usuario:', error);
+    res.status(500).json({ error: 'Error al actualizar el usuario.' });
+  }
+});
+
+
 // Iniciar el servidor
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);

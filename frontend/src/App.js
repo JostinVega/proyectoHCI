@@ -252,15 +252,38 @@ const KidsGameUI = () => {
             <button
               className="w-full bg-red-500 text-white px-6 py-2 rounded-full font-bold
                       hover:bg-red-600 transition-colors"
-              onClick={() => {
-                const newPlayers = registeredPlayers.filter(
-                  player => player !== selectedPlayerForOptions
-                );
-                setRegisteredPlayers(newPlayers);
-                setShowDeleteConfirmModal(false);
-                setShowOptionsModal(false);
-                setErrorMessage(`¡El jugador ${selectedPlayerForOptions.name} ha sido eliminado con éxito!`);
-                setShowErrorModal(true);
+              onClick={async () => {
+                try {
+                  // Llamar al backend para eliminar el jugador
+                  const response = await fetch(
+                    `http://localhost:5000/api/users/${selectedPlayerForOptions.id}`,
+                    {
+                      method: 'DELETE',
+                    }
+                  );
+  
+                  if (response.ok) {
+                    // Actualizar el estado local eliminando el jugador
+                    const newPlayers = registeredPlayers.filter(
+                      (player) => player.id !== selectedPlayerForOptions.id
+                    );
+                    setRegisteredPlayers(newPlayers);
+                    setShowDeleteConfirmModal(false);
+                    setShowOptionsModal(false);
+                    setErrorMessage(
+                      `¡El jugador ${selectedPlayerForOptions.name} ha sido eliminado con éxito!`
+                    );
+                    setShowErrorModal(true);
+                  } else {
+                    console.error('Error al eliminar el jugador.');
+                    setErrorMessage('Error al eliminar el jugador en el servidor.');
+                    setShowErrorModal(true);
+                  }
+                } catch (error) {
+                  console.error('Error al enviar la solicitud al backend:', error);
+                  setErrorMessage('Error de red al intentar eliminar el jugador.');
+                  setShowErrorModal(true);
+                }
               }}
             >
               Sí, Eliminar
@@ -276,7 +299,7 @@ const KidsGameUI = () => {
         </div>
       </div>
     </div>
-  );
+  );  
 
   // Componente de globos flotantes
   // Muestra globos animados que flotan en la pantalla como decoración. 
@@ -614,7 +637,7 @@ const KidsGameUI = () => {
   }, [editingPlayer]);
 
   // Maneja la acción de enviar el formulario.
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Verifica si el campo de nombre está vacío.
@@ -622,6 +645,44 @@ const KidsGameUI = () => {
       setErrorMessage("¡Debes ingresar tu nombre para continuar!");
       setShowErrorModal(true);
       return;
+    }
+
+    try {
+      // Llamada al backend para actualizar los datos en Firebase
+      const response = await fetch(
+        `http://localhost:5000/api/users/${editingPlayer.id}`, // URL al backend
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData), // Enviar datos actualizados
+        }
+      );
+
+      if  (response.ok) {
+        const updatedPlayer = await response.json();
+        console.log('Perfil actualizado:', updatedPlayer);
+
+        // Actualizar el estado local con los nuevos datos
+        const updatedPlayers = registeredPlayers.map((player) =>
+          player.id === editingPlayer.id ? { ...player, ...formData } : player
+        );
+        setRegisteredPlayers(updatedPlayers);
+
+        // Mostrar mensaje de éxito y cerrar pantalla de edición
+        setShowUpdateSuccessModal(true);
+        setEditingPlayer(null);
+        setCurrentScreen('login');
+      } else {
+        const errorData = await response.json();
+        setErrorMessage(errorData.error || 'Error al actualizar el usuario.');
+        setShowErrorModal(true);
+      }
+    } catch (error) {
+      console.error('Error al actualizar el perfil:', error);
+      setErrorMessage('Error de red al intentar actualizar el usuario.');
+      setShowErrorModal(true);
     }
 
     // Verifica si el nombre ya existe para otro jugador.

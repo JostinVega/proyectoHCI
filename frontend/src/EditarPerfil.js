@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
 
 const EditarPerfil = ({ player, onBack, onUpdate }) => {
-
-    // Array de avatares simples
+  // Array de avatares simples
   const avatars = [
-    '🦁', '🐰', '🐸', '🐼', '🦊', '🐯', '🐶', '🐱', '🐮', // Animales originales
-    '🦄', '🐨', '🐹', '🐻', '🐙', '🦋', '🦜', '🦒', '🦈', // Más animales
-    '🦉', '🦝', '🐢', '🦡', '🦘', '🐳', '🦚', '🦩', '🦁', // Animales exóticos
-    '🤖', '👽', '👨‍🚀', '👻'  // Personajes fantasía
-  ];  
-  
+    '🦁', '🐰', '🐸', '🐼', '🦊', '🐯', '🐶', '🐱', '🐮',
+    '🦄', '🐨', '🐹', '🐻', '🐙', '🦋', '🦜', '🦒', '🦈',
+    '🦉', '🦝', '🐢', '🦡', '🦘', '🐳', '🦚', '🦩', '🦁',
+    '🤖', '👽', '👨‍🚀', '👻',
+  ];
+
   const [formData, setFormData] = useState({
     name: '',
     age: '',
     gender: '',
-    avatar: ''
+    avatar: '',
   });
 
   // Cargar datos del usuario cuando el componente se monta
@@ -24,14 +23,40 @@ const EditarPerfil = ({ player, onBack, onUpdate }) => {
         name: player.name || '',
         age: player.age || '',
         gender: player.gender || '',
-        avatar: player.avatar || ''
+        avatar: player.avatar || '',
       });
     }
   }, [player]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onUpdate(formData);
+
+    try {
+      // Llamada al backend para actualizar los datos en Firebase
+      const response = await fetch(
+        `http://localhost:5000/api/users/${player.id}`, // Reemplaza con tu ruta al backend
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      if (response.ok) {
+        const updatedPlayer = await response.json();
+        console.log('Usuario actualizado:', updatedPlayer);
+
+        // Llamar la función de actualización local (onUpdate)
+        onUpdate(formData);
+      } else {
+        const errorData = await response.json();
+        console.error('Error al actualizar:', errorData);
+      }
+    } catch (error) {
+      console.error('Error al enviar datos al backend:', error);
+    }
   };
 
   return (
@@ -45,9 +70,7 @@ const EditarPerfil = ({ player, onBack, onUpdate }) => {
           >
             ← Volver
           </button>
-          <div className="text-2xl font-bold text-purple-600">
-            Editar Perfil
-          </div>
+          <div className="text-2xl font-bold text-purple-600">Editar Perfil</div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -58,7 +81,7 @@ const EditarPerfil = ({ player, onBack, onUpdate }) => {
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full text-xl p-4 border-4 border-purple-300 rounded-2xl 
                        focus:border-purple-500 focus:ring-4 focus:ring-purple-200"
               placeholder="¿Cómo te llamas?"
@@ -77,7 +100,7 @@ const EditarPerfil = ({ player, onBack, onUpdate }) => {
                          ${formData.gender === 'niño' 
                            ? 'bg-blue-500 text-white scale-105' 
                            : 'bg-blue-100 text-blue-500 hover:bg-blue-200'}`}
-                onClick={() => setFormData({...formData, gender: 'niño'})}
+                onClick={() => setFormData({ ...formData, gender: 'niño' })}
               >
                 Niño 👦
               </button>
@@ -87,7 +110,7 @@ const EditarPerfil = ({ player, onBack, onUpdate }) => {
                          ${formData.gender === 'niña' 
                            ? 'bg-pink-500 text-white scale-105' 
                            : 'bg-pink-100 text-pink-500 hover:bg-pink-200'}`}
-                onClick={() => setFormData({...formData, gender: 'niña'})}
+                onClick={() => setFormData({ ...formData, gender: 'niña' })}
               >
                 Niña 👧
               </button>
@@ -107,7 +130,7 @@ const EditarPerfil = ({ player, onBack, onUpdate }) => {
                            ${formData.age === age.toString()
                              ? 'bg-blue-500 text-white scale-110'
                              : 'bg-blue-100 text-blue-500 hover:bg-blue-200'}`}
-                  onClick={() => setFormData({...formData, age: age.toString()})}
+                  onClick={() => setFormData({ ...formData, age: age.toString() })}
                 >
                   {age}
                 </button>
@@ -127,7 +150,7 @@ const EditarPerfil = ({ player, onBack, onUpdate }) => {
                   className={`bg-gray-100 p-6 rounded-xl transform transition-all duration-300
                            hover:scale-110 flex items-center justify-center
                            ${formData.avatar === avatar ? 'ring-4 ring-yellow-400 bg-yellow-50' : ''}`}
-                  onClick={() => setFormData({...formData, avatar: avatar})}
+                  onClick={() => setFormData({ ...formData, avatar: avatar })}
                 >
                   <span className="text-5xl">{avatar}</span>
                 </button>
