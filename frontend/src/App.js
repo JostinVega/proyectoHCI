@@ -946,48 +946,77 @@ const ChangeAvatarScreen = () => {
 
   // Maneja mensajes relacionados con el progreso del juego.
   useEffect(() => {
-    const handleProgressMessage = (event) => {
+    const handleProgressMessage = async (event) => {
       if (event.data.type === 'SAVE_PHASE_PROGRESS') {
         const { level, phase, progress, isCompleted } = event.data;
-        
-        // Obtener el progreso actual de localStorage
-        const currentProgress = JSON.parse(localStorage.getItem('gameProgress')) || {};
-        
+  
+        // Validar si hay un jugador seleccionado
+        const selectedPlayerData = registeredPlayers[selectedPlayer];
+        if (!selectedPlayerData || !selectedPlayerData.name) {
+          console.error('Error: No se ha seleccionado un jugador válido.');
+          return;
+        }
+  
+        const playerName = selectedPlayerData.name; // Obtener el nombre del jugador
+  
+        // Obtener el progreso actual para este jugador
+        const currentProgress = JSON.parse(localStorage.getItem(`gameProgress-${playerName}`)) || {};
+  
         // Inicializar estructura si no existe
         if (!currentProgress[`level${level}`]) {
-          currentProgress[`level${level}`] = { 
+          currentProgress[`level${level}`] = {
             phases: {},
-            totalProgress: 0
+            totalProgress: 0,
           };
         }
-
+  
         // Actualizar progreso de la fase
         currentProgress[`level${level}`].phases[phase] = {
           progress,
-          completed: isCompleted
-        };
-
+          completed: isCompleted,
+          attempts: (currentProgress[`level${level}`].phases[phase]?.attempts || 0) + 1,
+          errors: (currentProgress[`level${level}`].phases[phase]?.errors || 0) + (!isCompleted ? 1 : 0),
+        };        
+  
         // Calcular progreso total del nivel
         const phases = currentProgress[`level${level}`].phases;
-        const completedPhases = Object.values(phases).filter(p => p.completed).length;
+        const completedPhases = Object.values(phases).filter((p) => p.completed).length;
         const totalPhaseProgress = Object.values(phases).reduce((sum, p) => sum + p.progress, 0);
-        
-        currentProgress[`level${level}`].totalProgress = 
-          completedPhases > 0 
-            ? (totalPhaseProgress / Object.keys(phases).length)
+  
+        currentProgress[`level${level}`].totalProgress =
+          Object.keys(phases).length > 0
+            ? totalPhaseProgress / Object.keys(phases).length
             : 0;
-
-        // Guardar en localStorage
-        localStorage.setItem('gameProgress', JSON.stringify(currentProgress));
-
-        // Opcional: Log para verificar
-        console.log('Progreso actualizado:', currentProgress);
+  
+        // Guardar progreso localmente vinculado al jugador
+        localStorage.setItem(`gameProgress-${playerName}`, JSON.stringify(currentProgress));
+  
+        // Guardar progreso en Firebase
+        try {
+          const response = await fetch(`http://localhost:5000/api/progress/${playerName}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              playerName,
+              progress: currentProgress,
+            }),
+          });
+  
+          if (!response.ok) {
+            throw new Error('Error al guardar el progreso en el backend');
+          }
+  
+          console.log('Progreso guardado correctamente en Firebase');
+        } catch (error) {
+          console.error('Error al guardar el progreso en Firebase:', error);
+        }
       }
     };
-
+  
     window.addEventListener('message', handleProgressMessage);
     return () => window.removeEventListener('message', handleProgressMessage);
-  }, []);
+  }, [selectedPlayer, registeredPlayers]);  
+  
 
   return (
     <div>
@@ -1080,7 +1109,7 @@ const ChangeAvatarScreen = () => {
             window.parent.postMessage({
               type: 'SAVE_PHASE_PROGRESS',
               level: 1,
-              phase: 'numeros',
+              phase: 'animales',
               progress,
               isCompleted
             }, '*');
@@ -1099,7 +1128,7 @@ const ChangeAvatarScreen = () => {
             window.parent.postMessage({
               type: 'SAVE_PHASE_PROGRESS',
               level: 1,
-              phase: 'numeros',
+              phase: 'colores',
               progress,
               isCompleted
             }, '*');

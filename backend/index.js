@@ -131,6 +131,38 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
+// Endpoint para guardar el progreso del jugador
+app.put('/api/progress/:name', async (req, res) => {
+  const playerName = req.params.name; // Nombre del jugador
+  const { progress } = req.body;
+
+  if (!progress) {
+    return res.status(400).json({ error: 'El progreso es obligatorio.' });
+  }
+
+  try {
+    // Buscar el documento en la colección `progress` por nombre del jugador
+    const progressRef = db.collection('progress');
+    const querySnapshot = await progressRef.where('playerName', '==', playerName).get();
+
+    if (querySnapshot.empty) {
+      // Crear un nuevo documento si no existe
+      await db.collection('progress').add({
+        playerName,
+        progress,
+      });
+      res.status(200).json({ message: 'Progreso guardado correctamente.' });
+    } else {
+      // Actualizar el documento existente
+      const docId = querySnapshot.docs[0].id;
+      await db.collection('progress').doc(docId).update({ progress });
+      res.status(200).json({ message: 'Progreso actualizado correctamente.' });
+    }
+  } catch (error) {
+    console.error('Error al guardar el progreso:', error);
+    res.status(500).json({ error: 'Error al guardar el progreso.' });
+  }
+});
 
 // Iniciar el servidor
 app.listen(PORT, () => {
