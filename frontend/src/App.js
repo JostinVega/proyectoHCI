@@ -1203,11 +1203,9 @@ const ChangeAvatarScreen = () => {
         onBack={() => setCurrentLevel(null)}
         onSelectPhase={(phase) => setCurrentPhase(phase)}
         onConfigClick={() => {setShowConfig(true);}}
-        
       />
       )}
       
-
       {showConfig && !showEditProfile && !showProgress && (
         <Configuracion 
           player={registeredPlayers[selectedPlayer]}
