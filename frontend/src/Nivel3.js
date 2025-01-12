@@ -89,11 +89,30 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
         lastAnimal: animalSeleccionado,
         lastCantidad: cantidadActual,
       };
+
+      // Evitar guardar progreso si el animalSeleccionado es nulo
+      if (!['patito', 'cerdito'].includes(animalSeleccionado)) return;
+
       localStorage.setItem(`nivel3_progress_${player.name}`, JSON.stringify(progressData));
+  
+      // Calcular progreso para cada animal
+      const progressPatitos = (cantidadesCompletadasPatitos.length / 9) * 100;
+      const progressCerditos = (cantidadesCompletadasCerditos.length / 9) * 100;
+  
+      window.parent.postMessage(
+        {
+          type: 'SAVE_PHASE_PROGRESS',
+          level: 3,
+          phase: animalSeleccionado,
+          progress: animalSeleccionado === 'patito' ? progressPatitos : progressCerditos,
+          isCompleted: gameCompleted,
+        },
+        '*'
+      );
     } catch (error) {
       console.error('Error guardando progreso:', error);
     }
-  };
+  };  
 
   const loadProgress = () => {
     try {
@@ -103,7 +122,6 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
         setCantidadesCompletadasPatitos(progress.patitos || []);
         setCantidadesCompletadasCerditos(progress.cerditos || []);
         setGameCompleted(progress.gameCompleted || false);
-        setAnimalSeleccionado(progress.lastAnimal || null);
         setCantidadActual(progress.lastCantidad || 0);
       } else {
         resetProgress();
@@ -150,53 +168,53 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
   }, [player.name]);
 
   useEffect(() => {
-    if (progressLoaded) saveProgress();
+    if (progressLoaded) {
+      saveProgress();
+    }
   }, [
     cantidadesCompletadasPatitos,
     cantidadesCompletadasCerditos,
     gameCompleted,
-    animalSeleccionado,
-    cantidadActual,
     progressLoaded,
   ]);
 
   const generarNuevaCantidad = () => {
-    const cantidadesCompletadas = animalSeleccionado === 'patito' ? cantidadesCompletadasPatitos : cantidadesCompletadasCerditos;
-    
-    // Crear un array completo de números del 1 al 9 que no han sido usados
-    const numerosPosibles = Array.from({ length: 9 }, (_, i) => i + 1)
-      .filter(num => !cantidadesCompletadas.includes(num));
+    const cantidadesCompletadas =
+      animalSeleccionado === 'patito'
+        ? cantidadesCompletadasPatitos
+        : cantidadesCompletadasCerditos;
   
-    // Si ya no hay números disponibles, marcar como completado
+    const numerosPosibles = Array.from({ length: 9 }, (_, i) => i + 1).filter(
+      (num) => !cantidadesCompletadas.includes(num)
+    );
+  
     if (numerosPosibles.length === 0) {
       setGameCompleted(true);
       return null;
     }
   
-    // Seleccionar un número aleatorio de los disponibles que sea diferente al anterior
     const index = Math.floor(Math.random() * numerosPosibles.length);
     const nuevaCantidad = numerosPosibles[index];
-    
-    // Asegurarse de que el número sea diferente al actual
+  
     if (nuevaCantidad === cantidadActual && numerosPosibles.length > 1) {
-      const otherNumbers = numerosPosibles.filter(num => num !== nuevaCantidad);
-      setCantidadActual(otherNumbers[Math.floor(Math.random() * otherNumbers.length)]);
+      const otherNumbers = numerosPosibles.filter((num) => num !== nuevaCantidad);
+      setCantidadActual(
+        otherNumbers[Math.floor(Math.random() * otherNumbers.length)]
+      );
     } else {
       setCantidadActual(nuevaCantidad);
     }
-
-    // Reiniciar el tiempo de respuesta
-    setTiempoInicio(Date.now()); 
   
-    return cantidadActual;
+    setTiempoInicio(Date.now());
   };
+  
 
   const iniciarJuego = (animal) => {
     setAnimalSeleccionado(animal);
     setGameCompleted(false);
     generarNuevaCantidad();
     setTiempoInicio(Date.now()); // Inicia el tiempo
-  };
+  };  
 
   /*
   const checkAnswer = (input) => {
@@ -240,28 +258,36 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
 */
 
 const checkAnswer = (input) => {
-  const isRight = parseInt(input) === cantidadActual;
+  const isRight = parseInt(input) === cantidadActual; // Verifica si la respuesta es correcta
   setIsCorrect(isRight);
   setShowFeedback(true);
 
   if (tiempoInicio) {
-    const tiempoRespuesta = (Date.now() - tiempoInicio) / 1000; // Tiempo en segundos
+    const tiempoRespuesta = (Date.now() - tiempoInicio) / 1000; // Calcula el tiempo de respuesta
     const currentStats = animalSeleccionado === 'patito' ? patitosStats : cerditosStats;
 
+    // Actualiza las estadísticas del número actual
     const updatedStats = {
       ...currentStats,
       [cantidadActual]: {
         errores: currentStats[cantidadActual]?.errores || 0,
+        attempts: currentStats[cantidadActual]?.attempts || 0,
         tiempo: currentStats[cantidadActual]?.tiempo || 0,
       },
     };
 
-    if (isRight) {
-      updatedStats[cantidadActual].tiempo += tiempoRespuesta;
-    } else {
+    // Incrementar intentos (siempre, ya que es un intento)
+    updatedStats[cantidadActual].attempts += 1;
+
+    // Si la respuesta es incorrecta, incrementar errores
+    if (!isRight) {
       updatedStats[cantidadActual].errores += 1;
+    } else {
+      // Si es correcta, acumular tiempo
+      updatedStats[cantidadActual].tiempo += tiempoRespuesta;
     }
 
+    // Actualiza el estado correspondiente
     if (animalSeleccionado === 'patito') {
       setPatitosStats(updatedStats);
     } else {
@@ -270,11 +296,13 @@ const checkAnswer = (input) => {
 
     console.log(
       `Animal: ${animalSeleccionado}, Número: ${cantidadActual}, ` +
+        `Intentos: ${updatedStats[cantidadActual].attempts}, ` +
         `Errores: ${updatedStats[cantidadActual].errores}, ` +
         `Tiempo acumulado: ${updatedStats[cantidadActual].tiempo.toFixed(2)}s`
     );
   }
 
+  // Manejo de respuesta correcta o incorrecta
   if (isRight) {
     const cantidadesCompletadas = animalSeleccionado === 'patito' ? cantidadesCompletadasPatitos : cantidadesCompletadasCerditos;
     const updateList = animalSeleccionado === 'patito' ? setCantidadesCompletadasPatitos : setCantidadesCompletadasCerditos;
@@ -284,14 +312,10 @@ const checkAnswer = (input) => {
 
       if (cantidadesCompletadas.length + 1 >= 9) {
         setGameCompleted(true);
-        // Actualizar el localStorage para mantener el 100%
-        localStorage.setItem(
-          `nivel3_${animalSeleccionado === 'patito' ? 'patitos' : 'cerditos'}_completed`,
-          'true'
-        );
       }
     }
 
+    // Generar nueva cantidad tras un acierto
     setTimeout(() => {
       setShowFeedback(false);
       setUserInput('');
@@ -300,6 +324,7 @@ const checkAnswer = (input) => {
       }
     }, 2000);
   } else {
+    // Solo espera cuando es incorrecto
     setTimeout(() => {
       setShowFeedback(false);
       setUserInput('');
@@ -323,9 +348,6 @@ useEffect(() => {
     );
   }
 }, [gameCompleted]);
-
-
-
   
   const handleKeyPress = (e) => {
     if (!animalSeleccionado || gameCompleted) return;
@@ -340,13 +362,12 @@ useEffect(() => {
   }, [animalSeleccionado, cantidadActual, showFeedback]);
 
   const handleBack = () => {
-    saveProgress();
     if (animalSeleccionado) {
       setAnimalSeleccionado(null);
     } else {
       onBack();
     }
-  };
+  };  
 
   const renderProgressBar = () => {
     const totalNumbersPerAnimal = 9;

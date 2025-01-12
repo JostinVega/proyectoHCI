@@ -84,7 +84,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             />
           </div>
         ))}
-        <style jsx>{`
+        <style>{`
           @keyframes fallingStar {
             0% {
               transform: translateY(0) rotate(0deg);
@@ -125,7 +125,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                 animation: isCurrentColor ? 'playfulJump 2s infinite' : 'none'
               }}
             >
-              <style jsx>{`
+              <style>{`
                 @keyframes playfulJump {
                   0% {
                     transform: translateY(-20px) scale(1);
