@@ -553,7 +553,7 @@ const KidsGameUI = () => {
                 Tu Edad 🎂
               </label>
               <div className="flex justify-center space-x-4">
-                {[1, 2, 3, 4, 5].map((age) => (
+                {[2, 3, 4, 5].map((age) => (
                   <button
                     key={age}
                     type="button"
@@ -769,7 +769,7 @@ const KidsGameUI = () => {
               Tu Edad 🎂
             </label>
             <div className="flex justify-center space-x-4">
-              {[1, 2, 3, 4, 5].map((age) => (
+              {[2, 3, 4, 5].map((age) => (
                 <button
                   key={age}
                   type="button"
