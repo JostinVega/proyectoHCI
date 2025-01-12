@@ -262,6 +262,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
               ¡Empezar! 🚀
             </button>
           </div>
+          
         ) : gameCompleted ? (
             // Nueva pantalla de juego completado
           <div className="text-center space-y-8">
