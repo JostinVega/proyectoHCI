@@ -164,6 +164,73 @@ app.put('/api/progress/:name', async (req, res) => {
   }
 });
 
+// Endpoint para guardar los detalles del juego en Firestore
+app.put('/api/game-details', async (req, res) => {
+  const { playerName, details } = req.body;
+
+  if (!playerName || !details) {
+    return res.status(400).json({ error: 'El nombre del jugador y los detalles son obligatorios.' });
+  }
+
+  try {
+    // Crear un ID único basado en el nombre del jugador
+    const playerDocId = `player_${playerName}`;
+    const playerRef = db.collection('gameDetails').doc(playerDocId);
+
+    // Obtener el documento actual si existe
+    const doc = await playerRef.get();
+    let existingData = { numbers: {}, totalErrors: 0, totalTime: 0 };
+
+    if (doc.exists) {
+      // Si el documento ya existe, obtén los datos actuales
+      existingData = doc.data();
+    } else {
+      console.log(`Creando un nuevo documento para el jugador: ${playerName}`);
+    }
+
+    // Fusionar los detalles nuevos con los existentes
+    const updatedNumbers = { ...existingData.numbers };
+
+    Object.entries(details).forEach(([key, value]) => {
+      const existingNumberDetails = updatedNumbers[key] || { errors: 0, time: 0, completed: false };
+
+      updatedNumbers[key] = {
+        errors: value.errors, // Sobreescribir errores directamente
+        time: value.time, // Actualizar el tiempo directamente sin acumulación
+        completed: value.errors === 0, // Marcar como completado si no hay errores
+      };
+    });
+
+    // Calcular los totales directamente desde los detalles actualizados
+    const totalErrors = Object.values(updatedNumbers).reduce(
+      (sum, num) => sum + num.errors,
+      0
+    );
+    const totalTime = Object.values(updatedNumbers).reduce(
+      (sum, num) => sum + num.time,
+      0
+    );
+
+    // Actualizar o crear el documento en Firestore
+    await playerRef.set(
+      {
+        playerName,
+        numbers: updatedNumbers,
+        totalErrors,
+        totalTime,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true } // Fusionar los datos en lugar de sobrescribir
+    );
+
+    res.status(200).json({ message: 'Detalles del juego guardados correctamente.' });
+  } catch (error) {
+    console.error('Error al guardar los detalles:', error);
+    res.status(500).json({ error: 'Error al guardar los detalles en la base de datos.' });
+  }
+});
+
+
 // Iniciar el servidor
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);

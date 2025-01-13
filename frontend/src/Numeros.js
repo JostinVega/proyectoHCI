@@ -16,6 +16,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [attempts, setAttempts] = useState(0);
+  const [detailsByNumber, setDetailsByNumber] = useState({});
   const [showInstructions, setShowInstructions] = useState(true);
   const [gameCompleted, setGameCompleted] = useState(false);
 
@@ -110,49 +111,76 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   };
   */
 
+  const saveDetailsToDatabase = async (updatedDetails) => {  
+    try {
+      const response = await fetch('http://localhost:5000/api/game-details', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName: player.name,
+          details: updatedDetails, // Enviamos solo el estado actual, no acumulado
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('Advertencia al guardar detalles:', errorData);
+        return; // Detén aquí si no es un error crítico
+      }
+    } catch (error) {
+      console.error('Error al guardar detalles:', error);
+    }
+  };
+  
   const checkAnswer = (input) => {
     const isRight = parseInt(input) === currentNumber;
     setIsCorrect(isRight);
     setShowFeedback(true);
   
-    // Calcular el tiempo de respuesta
     const endTime = Date.now();
     const responseTime = (endTime - startTime) / 1000; // Tiempo en segundos
   
-    // Registrar el tiempo de respuesta
-    setResponseTimes((prevTimes) => [...prevTimes, responseTime]);
+    // Actualizar los detalles de la respuesta actual
+    setDetailsByNumber((prevDetails) => {
+      const updatedDetails = { ...prevDetails };
+  
+      // Asegúrate de inicializar los detalles correctamente
+      if (!updatedDetails[currentNumber]) {
+        updatedDetails[currentNumber] = { errors: 0, time: 0 };
+      }
+  
+      updatedDetails[currentNumber] = {
+        ...updatedDetails[currentNumber],
+        time: responseTime, // Sobreescribe el tiempo en vez de acumular
+        errors: isRight ? updatedDetails[currentNumber].errors : updatedDetails[currentNumber].errors + 1, // Incrementa solo si es incorrecto
+      };
+  
+      // Envía los detalles al backend
+      saveDetailsToDatabase({ [currentNumber]: updatedDetails[currentNumber] });
+  
+      return updatedDetails;
+    });
   
     if (!isRight) {
-      setErrorsArray((prevErrors) => {
-        const updatedErrors = [...prevErrors];
-        updatedErrors[currentNumber] += 1;
-        return updatedErrors;
-      });
-  
-      const randomEncouragement =
-        encouragementMessages[
-          Math.floor(Math.random() * encouragementMessages.length)
-        ];
-      //console.log(randomEncouragement);
-      console.log("Error");
-  
+      console.log('Respuesta incorrecta');
       return;
     }
   
-    if(isRight){
-      const progress = ((currentNumber + 1) / 10) * 100;
+    // Actualizar progreso si la respuesta es correcta
+    const progress = ((currentNumber + 1) / 10) * 100;
     localStorage.setItem(
       `nivel1_numeros_progress_${player.name}`,
       currentNumber + 1
     );
     onProgressUpdate(progress, false);
   
+    // Finalizar o pasar al siguiente número
     if (currentNumber === 9) {
       localStorage.setItem(`nivel1_numeros_progress_${player.name}`, '10');
       onProgressUpdate(100, true);
-  
       showFinalStats();
-  
       setTimeout(() => {
         setGameCompleted(true);
         setShowFeedback(false);
@@ -165,7 +193,6 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
         setAttempts(0);
         setStartTime(Date.now()); // Reiniciar el tiempo de inicio
       }, 2000);
-    }
     }
   };
   
