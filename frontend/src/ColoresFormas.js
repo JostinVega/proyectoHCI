@@ -247,26 +247,26 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     setIsCorrect(isRight);
     setShowFeedback(true);
   
-    // Guardar tiempo de respuesta individual
-    setResponseTimes((prevTimes) => {
-      const updatedTimes = [...prevTimes];
-      updatedTimes[currentPair] = responseTime;
-      return updatedTimes;
-    });
-  
     if (!isRight) {
       // Registrar error
       setErrorsArray((prevErrors) => {
         const updatedErrors = [...prevErrors];
         updatedErrors[currentPair] += 1;
+  
+        // Guardar detalles en el backend
+        saveDetailsToDatabase({
+          section: 'colores-formas',
+          details: {
+            [pairs[currentPair].forma]: {
+              errors: updatedErrors[currentPair],
+              time: responseTime / 1000, // Tiempo en segundos
+              completed: false,
+            },
+          },
+        });
+  
         return updatedErrors;
       });
-  
-      // Mostrar mensaje de ánimo
-      const randomEncouragement =
-        encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)];
-      //console.log(randomEncouragement);
-      console.log("Error");
   
       // Reiniciar el tiempo de inicio para el próximo intento
       setStartTime(Date.now());
@@ -274,6 +274,25 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   
     if (isRight) {
+      // Guardar errores acumulados antes de guardar el estado como completado
+      setErrorsArray((prevErrors) => {
+        const updatedErrors = [...prevErrors];
+  
+        // Guardar detalles en el backend incluyendo los errores acumulados
+        saveDetailsToDatabase({
+          section: 'colores-formas',
+          details: {
+            [pairs[currentPair].forma]: {
+              errors: updatedErrors[currentPair],
+              time: responseTime / 1000, // Tiempo en segundos
+              completed: true,
+            },
+          },
+        });
+  
+        return updatedErrors; // Devolver los errores actualizados
+      });
+  
       if (currentPair === pairs.length - 1) {
         // Marcar como completado y guardar estado final
         localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
@@ -306,8 +325,38 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
         }, 2000);
       }
     }
+  };  
+  
+  // Guardar detalles en el backend
+  const saveDetailsToDatabase = async ({ section, details }) => {
+    console.log('Datos que se enviarán al backend:', { section, details });
+  
+    try {
+      const response = await fetch('http://localhost:5000/api/game-details', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName: player.name,
+          section,
+          details,
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('Advertencia al guardar detalles:', errorData);
+        return;
+      }
+  
+      console.log('Detalles guardados correctamente en la base de datos');
+    } catch (error) {
+      console.error('Error al guardar detalles:', error);
+    }
   };
-
+  
+  // Mostrar estadísticas finales
   const showFinalStats = () => {
     let totalErrors = 0;
     let totalTime = 0;
@@ -328,9 +377,7 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   
     console.log(`Errores totales: ${totalErrors}`);
     console.log(`Tiempo total de respuesta: ${(totalTime / 1000).toFixed(2)}s`);
-  };
-  
-  
+  };  
 
   // Event listener para el teclado
   useEffect(() => {

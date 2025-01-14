@@ -218,32 +218,75 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   };
   */
 
+  const saveDetailsToDatabase = async ({ section, details }) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/game-details', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName: player.name,
+          section,
+          details,
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('Advertencia al guardar detalles:', errorData);
+        return;
+      }
+  
+      console.log('Detalles guardados correctamente en la base de datos');
+    } catch (error) {
+      console.error('Error al guardar detalles:', error);
+    }
+  };  
+
   const checkAnswer = (input) => {
     const currentColorNombre = colores[currentColor];
     const isRight = input === currentColorNombre.charAt(0);
     setIsCorrect(isRight);
     setShowFeedback(true);
   
-    if (!isRight) {
-      // Actualizar el array de errores
-      setErrorsArray((prevErrors) => {
-        const updatedErrors = [...prevErrors];
-        updatedErrors[currentColor] += 1; // Incrementar el error para el color actual
-        return updatedErrors;
+    const endTime = Date.now();
+    const responseTime = (endTime - startTime) / 1000; // Tiempo de respuesta en segundos
+  
+    // Actualizar los detalles de la respuesta actual
+    setColorStats((prevStats) => {
+      const updatedStats = { ...prevStats };
+  
+      // Asegúrate de inicializar correctamente los detalles
+      if (!updatedStats[currentColorNombre]) {
+        updatedStats[currentColorNombre] = { errors: 0, time: 0, completed: false };
+      }
+  
+      updatedStats[currentColorNombre] = {
+        errors: isRight
+          ? updatedStats[currentColorNombre].errors // No incrementar errores si es correcto
+          : updatedStats[currentColorNombre].errors + 1, // Incrementar errores si es incorrecto
+        time: responseTime,
+        completed: isRight,
+      };
+  
+      // Guardar los detalles en el backend
+      saveDetailsToDatabase({
+        section: 'colores', // Especifica la sección
+        details: {
+          [currentColorNombre]: updatedStats[currentColorNombre],
+        },
       });
   
-      // Mostrar mensaje de ánimo
-      const randomEncouragement =
-        encouragementMessages[
-          Math.floor(Math.random() * encouragementMessages.length)
-        ];
-      //console.log(randomEncouragement);
-      console.log("Error");
+      return updatedStats;
+    });
   
+    if (!isRight) {
+      console.log('Respuesta incorrecta');
       return; // Salir si la respuesta es incorrecta
     }
   
-    // Calcular progreso
+    // Actualizar progreso si la respuesta es correcta
     const progress = ((currentColor + 1) / colores.length) * 100;
     localStorage.setItem(
       `nivel1_colores_progress_${player.name}`,
@@ -251,56 +294,40 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     );
     onProgressUpdate(progress, false);
   
-    // Calcular tiempo de respuesta
-    const endTime = Date.now();
-    const responseTime = (endTime - startTime) / 1000;
-  
-    // Guardar estadísticas del color actual
-    const colorStatsEntry = {
-      color: currentColorNombre,
-      errors: errorsArray[currentColor], // Usar errores del array
-      responseTime
-    };
-    setColorStats((prevStats) => [...prevStats, colorStatsEntry]);
-  
     if (currentColor === colores.length - 1) {
-      // Si es el último color, mostrar pantalla de completado
       localStorage.setItem(`nivel1_colores_progress_${player.name}`, '10');
       onProgressUpdate(100, true);
-  
-      // Mostrar estadísticas finales
-      showFinalStats([...colorStats, colorStatsEntry]);
-  
+      showFinalStats();
       setTimeout(() => {
         setGameCompleted(true);
         setShowFeedback(false);
       }, 2000);
     } else {
-      // Continuar al siguiente color
       setTimeout(() => {
         setCurrentColor((prev) => prev + 1);
         setShowFeedback(false);
         setUserInput('');
-        setStartTime(Date.now());
+        setStartTime(Date.now()); // Reiniciar el tiempo de inicio
       }, 2000);
     }
-  };
+  };  
   
-  const showFinalStats = (stats) => {
+  const showFinalStats = () => {
     let totalErrors = 0;
     let totalTime = 0;
   
-    stats.forEach(({ color, responseTime }, index) => {
-      totalErrors += errorsArray[index]; // Usar errores del array
-      totalTime += responseTime;
+    Object.keys(colorStats).forEach((key) => {
+      const { errors, time } = colorStats[key];
+      totalErrors += errors;
+      totalTime += time;
       console.log(
-        `Color: ${color} | Errores: ${errorsArray[index]} | Tiempo de respuesta: ${responseTime}s`
+        `Color: ${key} | Errores: ${errors} | Tiempo de respuesta: ${time.toFixed(2)}s`
       );
     });
   
     console.log(`Errores totales: ${totalErrors}`);
     console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
-  };
+  };  
   
 
   useEffect(() => {
