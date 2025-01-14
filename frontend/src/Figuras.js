@@ -54,6 +54,7 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+  const [detailsByNumber, setDetailsByNumber] = useState({});
   const [attempts, setAttempts] = useState(0);
   //const [showInstructions, setShowInstructions] = useState(true);
   const [gameCompleted, setGameCompleted] = useState(false);
@@ -167,6 +168,35 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   };
   */
 
+  const saveDetailsToDatabase = async ({ section, details }) => {
+    console.log('Datos que se enviarán al backend:', { section, details });
+  
+    try {
+      const response = await fetch('http://localhost:5000/api/game-details', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName: player.name, // Asegúrate de que "player.name" esté disponible
+          section,
+          details,
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('Advertencia al guardar detalles:', errorData);
+        return; // Detén aquí si no es un error crítico
+      }
+  
+      console.log('Detalles guardados correctamente en la base de datos');
+    } catch (error) {
+      console.error('Error al guardar detalles:', error);
+    }
+  };
+  
+
   const checkAnswer = (input) => {
     const currentFormaNombre = formas[currentForma];
     const isRight = input === currentFormaNombre.charAt(0);
@@ -175,31 +205,47 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   
     // Calcular el tiempo de respuesta
     const endTime = Date.now();
-    const responseTime = (endTime - startTime) / 1000; // Tiempo en segundos
+    const responseTime = (endTime - startTime) / 1000;
   
-    // Registrar el tiempo de respuesta
-    setResponseTimes((prevTimes) => [...prevTimes, responseTime]);
+    // Actualizar los detalles de la respuesta actual
+    setDetailsByNumber((prevDetails) => {
+      const updatedDetails = { ...prevDetails };
+  
+      // Usa el nombre de la forma como clave
+      if (!updatedDetails[currentFormaNombre]) {
+        updatedDetails[currentFormaNombre] = { errors: 0, time: 0 };
+      }
+  
+      updatedDetails[currentFormaNombre] = {
+        ...updatedDetails[currentFormaNombre],
+        time: responseTime,
+        errors: isRight
+          ? updatedDetails[currentFormaNombre].errors
+          : updatedDetails[currentFormaNombre].errors + 1,
+      };
+  
+     // Guardar los detalles en el backend
+    saveDetailsToDatabase({
+      section: 'figuras', // Especifica la sección
+      details: {
+        [currentFormaNombre]: updatedDetails[currentFormaNombre], // Usa el nombre de la forma como clave
+      },
+    });
+
+      return updatedDetails;
+    });
   
     if (!isRight) {
-      // Actualizar el array de errores
       setErrorsArray((prevErrors) => {
         const updatedErrors = [...prevErrors];
         updatedErrors[currentForma] += 1;
         return updatedErrors;
       });
   
-      // Mostrar mensaje de ánimo
-      const randomEncouragement =
-        encouragementMessages[
-          Math.floor(Math.random() * encouragementMessages.length)
-        ];
-      //console.log(randomEncouragement);
       console.log("Error");
-  
       return;
     }
   
-    // Calcular progreso
     const progress = ((currentForma + 1) / formas.length) * 100;
     localStorage.setItem(
       `nivel1_figuras_progress_${player.name}`,
@@ -222,31 +268,27 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
         setCurrentForma((prev) => prev + 1);
         setShowFeedback(false);
         setUserInput('');
-        setAttempts(0);
-        setStartTime(Date.now()); // Reiniciar el tiempo de inicio
+        setStartTime(Date.now());
       }, 2000);
     }
-  };
-  
+  };  
   
   const showFinalStats = () => {
     let totalErrors = 0;
     let totalTime = 0;
   
-    errorsArray.forEach((errors, index) => {
+    Object.keys(detailsByNumber).forEach((key) => {
+      const { errors, time } = detailsByNumber[key];
       totalErrors += errors;
-      const time = responseTimes[index] || 0; // Tiempo para esta forma
       totalTime += time;
       console.log(
-        `Forma: ${formas[index]} | Errores: ${errors} | Tiempo de respuesta: ${time.toFixed(2)}s`
+        `Forma: ${key} | Errores: ${errors} | Tiempo de respuesta: ${time.toFixed(2)}s`
       );
     });
   
     console.log(`Errores totales: ${totalErrors}`);
     console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
-  };
-  
-  
+  };  
 
   // Configurar el event listener del teclado
   useEffect(() => {

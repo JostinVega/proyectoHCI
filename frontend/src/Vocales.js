@@ -11,6 +11,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+  const [detailsByNumber, setDetailsByNumber] = useState({});
   const [attempts, setAttempts] = useState(0);
   //const [showInstructions, setShowInstructions] = useState(true);
   const [gameCompleted, setGameCompleted] = useState(false);
@@ -126,6 +127,34 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   };
   */
 
+  const saveDetailsToDatabase = async (updatedDetails) => {
+    console.log('Datos que se enviarán al backend:', updatedDetails);
+  
+    try {
+      const response = await fetch('http://localhost:5000/api/game-details', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName: player.name,
+          details: updatedDetails,
+          section: 'vocales', // Especificar la sección
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('Advertencia al guardar detalles:', errorData);
+        return;
+      }
+  
+      console.log('Detalles guardados correctamente en la base de datos');
+    } catch (error) {
+      console.error('Error al guardar detalles:', error);
+    }
+  };
+  
   const checkAnswer = (input) => {
     const isRight = input === vocales[currentVocal];
     setIsCorrect(isRight);
@@ -135,26 +164,33 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     const endTime = Date.now();
     const responseTime = (endTime - startTime) / 1000; // Convertir a segundos
   
-    // Registrar el tiempo de respuesta
-    setResponseTimes((prevTimes) => [...prevTimes, responseTime]);
+    // Actualizar los detalles de la respuesta actual
+    setDetailsByNumber((prevDetails) => {
+      const updatedDetails = { ...prevDetails };
+  
+      // Asegúrate de inicializar los detalles correctamente
+      if (!updatedDetails[currentVocal]) {
+        updatedDetails[currentVocal] = { errors: 0, time: 0 };
+      }
+  
+      updatedDetails[currentVocal] = {
+        ...updatedDetails[currentVocal],
+        time: responseTime, // Sobreescribe el tiempo en vez de acumular
+        errors: isRight ? updatedDetails[currentVocal].errors : updatedDetails[currentVocal].errors + 1, // Incrementa solo si es incorrecto
+      };
+  
+      // Envía los detalles al backend
+      saveDetailsToDatabase({ [vocales[currentVocal]]: updatedDetails[currentVocal] });
+      
+      return updatedDetails;
+    });
   
     if (!isRight) {
-      setErrorsArray((prevErrors) => {
-        const updatedErrors = [...prevErrors];
-        updatedErrors[currentVocal] += 1;
-        return updatedErrors;
-      });
-  
-      const randomEncouragement =
-        encouragementMessages[
-          Math.floor(Math.random() * encouragementMessages.length)
-        ];
-      //console.log(randomEncouragement);
-      console.log("Error");
-  
+      console.log('Respuesta incorrecta');
       return;
     }
   
+    // Actualizar progreso si la respuesta es correcta
     const progress = ((currentVocal + 1) / vocales.length) * 100;
     localStorage.setItem(
       `nivel1_vocales_progress_${player.name}`,
@@ -162,12 +198,11 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     );
     onProgressUpdate(progress, false);
   
+    // Finalizar o pasar al siguiente número
     if (currentVocal === vocales.length - 1) {
       localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5');
       onProgressUpdate(100, true);
-  
       showFinalStats();
-  
       setTimeout(() => {
         setGameCompleted(true);
         setShowFeedback(false);
@@ -198,7 +233,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   
     console.log(`Errores totales: ${totalErrors}`);
     console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
-  };
+  };  
   
   // Configurar el event listener del teclado
   useEffect(() => {
