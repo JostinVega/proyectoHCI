@@ -1,23 +1,40 @@
 import React, { useState, useEffect } from 'react';
+
+// Importar imágenes para las vocales y soluciones
 import abejita from '../src/images/abejita.gif';
 import elefante from '../src/images/elefante.gif';
 import iguana from '../src/images/iguana.png';
 import oso from '../src/images/oso.gif';
 import unicornio from '../src/images/unicornio.gif';
 
+// Importar las imágenes de solución 
+import vocala from '../src/images/vocala.png';
+import vocale from '../src/images/vocale.png';
+import vocali from '../src/images/vocali.png';
+import vocalo from '../src/images/vocalo.png';
+import vocalu from '../src/images/vocalu.png';
+
+// Objeto para mapear vocales con sus imágenes de solución
+const solutionImages = {
+  'a': vocala,
+  'e': vocale,
+  'i': vocali,
+  'o': vocalo,
+  'u': vocalu
+};
+
 const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
+  // Lista de vocales
   const vocales = ['a', 'e', 'i', 'o', 'u'];
-  //const [currentVocal, setCurrentVocal] = useState(0);
+  
+  // Estados para manejar el progreso y las interacciones del usuario
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [detailsByNumber, setDetailsByNumber] = useState({});
   const [attempts, setAttempts] = useState(0);
-  //const [showInstructions, setShowInstructions] = useState(true);
   const [gameCompleted, setGameCompleted] = useState(false);
-
   const [errorsArray, setErrorsArray] = useState(new Array(vocales.length).fill(0));
-
   const [startTime, setStartTime] = useState(Date.now()); // Tiempo de inicio para cada intento
   const [responseTimes, setResponseTimes] = useState([]); // Array para almacenar los tiempos de respuesta
 
@@ -27,12 +44,19 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return savedProgress ? parseInt(savedProgress) : 0;
   });
 
-  // Estado de instrucciones para recuperar
+  // Recuperar el estado de instrucciones
   const [showInstructions, setShowInstructions] = useState(() => {
     const savedInstructions = localStorage.getItem(`nivel1_vocales_instructions_${player.name}`);
     return !savedInstructions;
   });
 
+  // Temporizador para cada vocal
+  const [timeLeft, setTimeLeft] = useState(10);
+
+  // Mostrar solución después de agotar el tiempo
+  const [showSolution, setShowSolution] = useState(false);
+
+  // Configuración de cada vocal con su imagen y nombre
   const vocalesConfig = {
     'a': { imagen: abejita, nombre: 'abejita' },
     'e': { imagen: elefante, nombre: 'elefante' },
@@ -41,7 +65,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     'u': { imagen: unicornio, nombre: 'unicornio' }
   };
 
-  // Mensajes de felicitación aleatorios
+  // Mensajes de felicitación
   const successMessages = [
     "¡Excelente trabajo! 🌟",
     "¡Lo lograste! ¡Eres increíble! ⭐",
@@ -70,7 +94,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     checkAnswer(e.key.toLowerCase());
   };
 
-  // Verificar si el juego está completado al cargar
+  // Verificar el progreso guardado al cargar el componente
   useEffect(() => {
     const savedProgress = localStorage.getItem(`nivel1_vocales_progress_${player.name}`);
     const savedInstructions = localStorage.getItem(`nivel1_vocales_instructions_${player.name}`);
@@ -84,48 +108,6 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       setShowInstructions(false);
     }
   }, []);
-
-  /*
-  // Comprobar la respuesta
-  const checkAnswer = (input) => {
-    
-    const isRight = input === vocales[currentVocal];
-    setIsCorrect(isRight);
-    setShowFeedback(true);
-    setAttempts(prev => prev + 1);
-
-    if (isRight) {
-
-      // Calcular progreso
-      const progress = ((currentVocal + 1) / vocales.length) * 100;
-      
-      // Guardar progreso en localStorage
-      localStorage.setItem(`nivel1_vocales_progress_${player.name}`, currentVocal + 1);
-
-      // Comunicar progreso
-      onProgressUpdate(progress, false);
-
-      if (currentVocal === vocales.length - 1) {
-        // Si es la última vocal, mostrar pantalla de completado
-        localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5'); 
-        onProgressUpdate(100, true);
-
-        setTimeout(() => {
-          setGameCompleted(true);
-          setShowFeedback(false);
-        }, 2000);
-      } else {
-        // Si no es la última, continuar a la siguiente vocal
-        setTimeout(() => {
-          setCurrentVocal(prev => prev + 1);
-          setShowFeedback(false);
-          setUserInput('');
-          setAttempts(0);
-        }, 2000);
-      }
-    }
-  };
-  */
 
   const saveDetailsToDatabase = async (updatedDetails) => {
     console.log('Datos que se enviarán al backend:', updatedDetails);
@@ -155,6 +137,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   };
   
+  /*
   const checkAnswer = (input) => {
     const isRight = input === vocales[currentVocal];
     setIsCorrect(isRight);
@@ -217,6 +200,101 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }, 2000);
     }
   };
+  */
+
+  // Verificar respuesta del usuario
+  const checkAnswer = (input) => {
+    if (showFeedback || showSolution || showInstructions || gameCompleted) return;
+
+    const isRight = input === vocales[currentVocal];
+    setIsCorrect(isRight);
+    setShowFeedback(true);
+
+    const endTime = Date.now();
+    const responseTime = Math.min((endTime - startTime) / 1000, 10);
+    const currentVocalName = vocales[currentVocal];
+
+    if (!isRight) {
+        setDetailsByNumber((prevDetails) => {
+            const updatedDetails = { ...prevDetails };
+            
+            if (!updatedDetails[currentVocalName]) {
+                updatedDetails[currentVocalName] = { 
+                    errors: 0, 
+                    time: 0, 
+                    resultado: false 
+                };
+            }
+            
+            updatedDetails[currentVocalName] = {
+                ...updatedDetails[currentVocalName],
+                errors: updatedDetails[currentVocalName].errors + 1,
+                resultado: false
+            };
+
+            // Guardar y mostrar en consola
+            const details = { [currentVocalName]: updatedDetails[currentVocalName] };
+            saveDetailsToDatabase(details);
+            console.log(`Intento incorrecto para vocal ${currentVocalName}:`, details[currentVocalName]);
+
+            return updatedDetails;
+        });
+
+        setTimeout(() => {
+            setShowFeedback(false);
+            setUserInput('');
+        }, 1000);
+        return;
+    }
+
+    const progress = ((currentVocal + 1) / vocales.length) * 100;
+    localStorage.setItem(`nivel1_vocales_progress_${player.name}`, currentVocal + 1);
+    onProgressUpdate(progress, false);
+
+    setDetailsByNumber((prevDetails) => {
+        const updatedDetails = { ...prevDetails };
+
+        if (!updatedDetails[currentVocalName]) {
+            updatedDetails[currentVocalName] = { 
+                errors: 0, 
+                time: 0, 
+                resultado: true 
+            };
+        }
+
+        updatedDetails[currentVocalName] = {
+            ...updatedDetails[currentVocalName],
+            time: responseTime,
+            resultado: true
+        };
+
+        // Guardar y mostrar en consola
+        const details = { [currentVocalName]: updatedDetails[currentVocalName] };
+        saveDetailsToDatabase(details);
+        console.log(`Intento correcto para vocal ${currentVocalName}:`, details[currentVocalName]);
+
+        return updatedDetails;
+    });
+
+    if (currentVocal >= 4) {
+        localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5');
+        onProgressUpdate(100, true);
+        showFinalStats();
+        setTimeout(() => {
+            setGameCompleted(true);
+            setShowFeedback(false);
+        }, 2000);
+    } else {
+        setTimeout(() => {
+            setCurrentVocal(prev => prev + 1);
+            setShowFeedback(false);
+            setUserInput('');
+            setStartTime(Date.now());
+            setTimeLeft(10);
+        }, 2000);
+      }
+  };
+
   
   const showFinalStats = () => {
     let totalErrors = 0;
@@ -241,6 +319,69 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return () => window.removeEventListener('keypress', handleKeyPress);
   }, [currentVocal, showInstructions]);
 
+  // Temporizador para cada vocal
+  useEffect(() => {
+    if (showInstructions || gameCompleted || showSolution) return;
+
+    let timeoutId;
+    const timerId = setInterval(() => {
+        setTimeLeft(time => {
+            if (time <= 0) {
+                clearInterval(timerId);
+                setShowSolution(true);
+                
+                const currentVocalName = vocales[currentVocal];
+                setDetailsByNumber((prevDetails) => {
+                    const updatedDetails = { ...prevDetails };
+                    
+                    if (!updatedDetails[currentVocalName]) {
+                        updatedDetails[currentVocalName] = { 
+                            errors: 0, 
+                            time: 10, 
+                            resultado: false 
+                        };
+                    }
+                    
+                    updatedDetails[currentVocalName] = {
+                        ...updatedDetails[currentVocalName],
+                        time: 10,
+                        resultado: false
+                    };
+
+                    // Guardar y mostrar en consola
+                    const details = { [currentVocalName]: updatedDetails[currentVocalName] };
+                    saveDetailsToDatabase(details);
+                    console.log(`Tiempo agotado para vocal ${currentVocalName}:`, details[currentVocalName]);
+
+                    return updatedDetails;
+                });
+                
+                timeoutId = setTimeout(() => {
+                    setShowSolution(false);
+                    
+                    if (currentVocal < 4) {
+                        setCurrentVocal(prev => prev + 1);
+                        setTimeLeft(10);
+                        setStartTime(Date.now());
+                    } else {
+                        localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5');
+                        onProgressUpdate(100, true);
+                        setGameCompleted(true);
+                    }
+                }, 2000);
+                
+                return 0;
+            }
+            return time - 1;
+        });
+    }, 1000);
+
+    return () => {
+        if (timerId) clearInterval(timerId);
+        if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [currentVocal, showInstructions, gameCompleted, showSolution, player.name]);
+
   // Método para iniciar el juego y guardar estado
   const startGame = () => {
     setShowInstructions(false);
@@ -252,6 +393,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     onBack();
   };
 
+  // Renderizar el componente
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 p-6">
       <div className="max-w-4xl mx-auto bg-white bg-opacity-90 rounded-3xl p-8 shadow-2xl">
@@ -275,6 +417,96 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             </span>
           </div>
         </div>
+
+        {!showInstructions && !gameCompleted && (
+          <div className="mb-12">
+            <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6 shadow-lg relative">
+              {/* Título del nivel */}
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 
+                          bg-gradient-to-r from-purple-500 to-pink-500 text-white 
+                          px-6 py-2 rounded-full shadow-lg">
+                <span className="text-lg font-bold">Vocales</span>
+              </div>
+
+              {/* Fases - aquí mostramos las vocales A,E,I,O,U */}
+              <div className="flex justify-between items-center gap-3 mt-4">
+                {vocales.map((vocal, i) => (
+                  <div key={i} className="flex-1">
+                    <div className="relative">
+                      {i < 4 && (
+                        <div className={`absolute top-1/2 left-[60%] right-0 h-2 rounded-full
+                                    ${i < currentVocal 
+                                      ? 'bg-gradient-to-r from-green-400 to-green-500' 
+                                      : 'bg-gray-200'}`}>
+                        </div>
+                      )}
+                      
+                      <div className={`relative z-10 flex flex-col items-center transform 
+                                  transition-all duration-500 ${
+                                    i === currentVocal ? 'scale-110' : 'hover:scale-105'
+                                  }`}>
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center
+                                    shadow-lg transition-all duration-300 border-4
+                                    ${i === currentVocal
+                                      ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 border-yellow-200 animate-pulse'
+                                      : i < currentVocal
+                                      ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-200'
+                                      : 'bg-white border-gray-100'
+                                    }`}>
+                          <span className={`text-2xl font-bold uppercase ${
+                            i === currentVocal
+                              ? 'text-yellow-900'
+                              : i < currentVocal
+                              ? 'text-white'
+                              : 'text-gray-400'
+                          }`}>
+                            {vocal}
+                          </span>
+                        </div>
+                        
+                        {i === currentVocal && (
+                          <div className="absolute -bottom-6">
+                            <span className="text-yellow-500 text-2xl animate-bounce">⭐</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Barra de progreso */}
+              <div className="mt-12">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-semibold text-purple-700">
+                    Tu Progreso
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="px-3 py-1 bg-purple-500 text-white rounded-full text-sm font-bold">
+                      {(currentVocal / 4 * 100).toFixed(0)}%
+                    </div>
+                  </div>
+                </div>
+                <div className="h-6 bg-gray-100 rounded-full overflow-hidden shadow-inner p-1">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500 
+                            transition-all duration-1000 relative"
+                    style={{ width: `${(currentVocal / 4) * 100}%` }}
+                  >
+                    <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
+                    <div className="absolute inset-0 overflow-hidden">
+                      <div className="w-full h-full animate-shimmer 
+                                  bg-gradient-to-r from-transparent via-white to-transparent"
+                          style={{ backgroundSize: '200% 100%' }}>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
 
         {showInstructions ? (
           // Pantalla de instrucciones
@@ -317,27 +549,21 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             <h2 className="text-4xl font-bold text-purple-600 mb-8">
               Encuentra la vocal:
             </h2>
-            
-            {/* Vocal actual 
-            <div className="text-9xl font-bold text-blue-500 animate-bounce uppercase">
-              {vocales[currentVocal]}
-            </div>
-            */}
-
-            {/* Vocal con animal */}
-            <div className="flex items-center justify-center gap-8">
-              {/* Vocal */}
-              <div className="text-9xl font-bold text-blue-500 animate-bounce uppercase">
+      
+            {/* Contenedor principal de la vocal y el animal */}
+            <div className="flex flex-col items-center justify-center gap-4">
+              {/* Vocal - ahora más grande y en la parte superior */}
+              <div className="text-[200px] font-bold text-blue-500 animate-bounce leading-none uppercase">
                 {vocales[currentVocal]}
               </div>
               
-              {/* Animal correspondiente */}
+              {/* Animal correspondiente - ahora más pequeño y debajo */}
               {vocalesConfig[vocales[currentVocal]] && (
-                <div className="flex justify-center">
+                <div className="flex justify-center mt-4">
                   <img 
                     src={vocalesConfig[vocales[currentVocal]].imagen}
                     alt={vocalesConfig[vocales[currentVocal]].nombre}
-                    className="w-64 h-64 object-contain"
+                    className="w-48 h-48 object-contain"
                   />
                 </div>
               )}
@@ -356,6 +582,76 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                   ? successMessages[Math.floor(Math.random() * successMessages.length)]
                   : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]}
               </div>
+            )}
+
+            {/* Mostrar solución cuando se acaba el tiempo */}
+            {showSolution && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div className="bg-white rounded-xl p-6 shadow-2xl transform transition-all">
+                        <h3 className="text-2xl font-bold text-purple-600 mb-4">
+                            ¡Se acabó el tiempo!
+                        </h3>
+                        <p className="text-xl text-gray-600 mb-4">
+                            La respuesta correcta era:
+                        </p>
+                        <img 
+                            src={solutionImages[vocales[currentVocal]]}
+                            alt={`Solución: vocal ${vocales[currentVocal]}`}
+                            className="w-96 h-96 object-contain mx-auto mb-4"
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Temporizador */}
+            {!showInstructions && !gameCompleted && (
+                <div className="absolute bottom-8 right-8">
+                    <div className={`relative group transform transition-all duration-300 ${
+                        timeLeft <= 3 ? 'scale-110' : 'hover:scale-105'
+                    }`}>
+                        <div className={`w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-lg
+                                    relative overflow-hidden ${timeLeft <= 3 ? 'animate-pulse' : ''}`}>
+                            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r="45"
+                                    fill="none"
+                                    stroke={timeLeft <= 3 ? '#FEE2E2' : '#E0E7FF'}
+                                    strokeWidth="8"
+                                    className="opacity-30"
+                                />
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r="45"
+                                    fill="none"
+                                    stroke={timeLeft <= 3 ? '#EF4444' : '#3B82F6'}
+                                    strokeWidth="8"
+                                    strokeLinecap="round"
+                                    strokeDasharray={`${2 * Math.PI * 45}`}
+                                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                                    className="transition-all duration-1000"
+                                />
+                            </svg>
+
+                            <div className={`relative z-10 text-4xl font-bold 
+                                        ${timeLeft <= 3 ? 'text-red-500' : 'text-blue-500'}`}>
+                                {timeLeft}
+                            </div>
+
+                            {timeLeft <= 3 && (
+                                <>
+                                    <div className="absolute inset-0 rounded-full bg-red-500 opacity-20 animate-ping"></div>
+                                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full 
+                                                flex items-center justify-center animate-bounce shadow-lg">
+                                        <span className="text-white text-xs">⚠️</span>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Indicador visual de entrada */}
