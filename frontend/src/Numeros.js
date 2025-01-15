@@ -515,7 +515,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
               ¡Vamos a aprender los números! 🎯
             </h2>
             <p className="text-xl text-gray-600">
-              Busca la tarjeta con el número que te pida y digítalo en el teclado.
+              Inserta la tarjeta del número que ves en pantalla.
             </p>
             <button
               className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
