@@ -515,7 +515,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
               ¡Vamos a aprender las vocales! 🎯
             </h2>
             <p className="text-xl text-gray-600">
-              Busca la tarjeta con la vocal que te pida y digítala en el teclado.
+              Inserta la tarjeta de la vocal que ves en pantalla.
             </p>
             <button
               className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
