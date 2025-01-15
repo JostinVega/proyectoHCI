@@ -565,7 +565,7 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
               ¡Vamos a aprender las formas! 🎯
             </h2>
             <p className="text-xl text-gray-600">
-              Presiona la primera letra de la forma que ves en la pantalla.
+              Inserta la tarjeta de la forma que ves en la pantalla.
             </p>
             <button
               className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
