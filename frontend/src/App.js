@@ -1037,7 +1037,7 @@ const ChangeAvatarScreen = () => {
         player={registeredPlayers[selectedPlayer]}
         onBack={() => setCurrentLevel(null)}
         onSelectPhase={(phase) => setCurrentPhase(phase)}
-        onConfigClick={() => {setShowConfig(true);}}
+        onConfigClick={() => {setShowConfig(true)}}
       />
       )}
       {currentPhase === 'numeros' && !showConfig && (
