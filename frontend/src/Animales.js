@@ -224,32 +224,77 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
   // Verifica si la respuesta del jugador es correcta
   
+  const saveDetailsToDatabase = async ({ section, details }) => {
+    console.log('Datos que se enviarán al backend:', { section, details });
+  
+    try {
+      const response = await fetch('http://localhost:5000/api/game-details', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName: player.name, // Nombre del jugador
+          section,
+          details,
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('Advertencia al guardar detalles:', errorData);
+        return; // Detén aquí si no es un error crítico
+      }
+  
+      console.log('Detalles guardados correctamente en la base de datos');
+    } catch (error) {
+      console.error('Error al guardar detalles:', error);
+    }
+  };
+  
   const checkAnswer = (input) => {
     const currentAnimalNombre = animales[currentAnimal];
     const isRight = input === currentAnimalNombre.charAt(0);
     setIsCorrect(isRight);
     setShowFeedback(true);
   
-    if (!isRight) {
-      // Usar una copia local para acumular errores correctamente
-      setErrorsArray((prevErrors) => {
-        const updatedErrors = [...prevErrors];
-        updatedErrors[currentAnimal] += 1; // Incrementar el error para el animal actual
-        return updatedErrors;
+    const endTime = Date.now();
+    const responseTime = (endTime - startTime) / 1000; // Tiempo de respuesta en segundos
+  
+    // Actualizar los detalles de la respuesta actual
+    setAnimalStats((prevStats) => {
+      const updatedStats = { ...prevStats };
+  
+      // Asegúrate de inicializar correctamente los detalles
+      if (!updatedStats[currentAnimalNombre]) {
+        updatedStats[currentAnimalNombre] = { errors: 0, time: 0, completed: false };
+      }
+  
+      updatedStats[currentAnimalNombre] = {
+        errors: isRight
+          ? updatedStats[currentAnimalNombre].errors // No incrementar errores si es correcto
+          : updatedStats[currentAnimalNombre].errors + 1, // Incrementar errores si es incorrecto
+        time: responseTime,
+        completed: isRight,
+      };
+  
+      // Guardar los detalles en el backend
+      saveDetailsToDatabase({
+        section: 'animales', // Especifica la sección
+        details: {
+          [currentAnimalNombre]: updatedStats[currentAnimalNombre],
+        },
       });
   
-      // Mostrar mensaje de ánimo
-      const randomEncouragement =
-        encouragementMessages[
-          Math.floor(Math.random() * encouragementMessages.length)
-        ];
-      //console.log(randomEncouragement);
-      console.log("Error");
+      return updatedStats;
+    });
   
+    if (!isRight) {
+      console.log('Respuesta incorrecta');
       return; // Salir si la respuesta es incorrecta
     }
   
-    // Calcular progreso
+    // Actualizar progreso si la respuesta es correcta
     const progress = ((currentAnimal + 1) / animales.length) * 100;
     localStorage.setItem(
       `nivel1_animales_progress_${player.name}`,
@@ -257,59 +302,40 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     );
     onProgressUpdate(progress, false);
   
-    // Calcular tiempo de respuesta
-    const endTime = Date.now();
-    const responseTime = (endTime - startTime) / 1000;
-  
-    // Guardar estadísticas del animal actual
-    const animalStatsEntry = {
-      animal: currentAnimalNombre,
-      errors: errorsArray[currentAnimal], // Usar errores del array
-      responseTime
-    };
-    setAnimalStats((prevStats) => [...prevStats, animalStatsEntry]);
-  
     if (currentAnimal === animales.length - 1) {
-      // Si es el último animal, mostrar pantalla de completado
       localStorage.setItem(`nivel1_animales_progress_${player.name}`, '14');
       onProgressUpdate(100, true);
-  
-      // Mostrar estadísticas finales
-      showFinalStats([...animalStats, animalStatsEntry]);
-  
+      showFinalStats();
       setTimeout(() => {
         setGameCompleted(true);
         setShowFeedback(false);
       }, 2000);
     } else {
-      // Continuar al siguiente animal
       setTimeout(() => {
         setCurrentAnimal((prev) => prev + 1);
         setShowFeedback(false);
         setUserInput('');
-        setStartTime(Date.now());
+        setStartTime(Date.now()); // Reiniciar el tiempo de inicio
       }, 2000);
     }
-  };
+  };  
   
-  const showFinalStats = (stats) => {
+  const showFinalStats = () => {
     let totalErrors = 0;
     let totalTime = 0;
   
-    stats.forEach(({ animal, responseTime }, index) => {
-      totalErrors += errorsArray[index]; // Usar errores del array
-      totalTime += responseTime;
+    Object.keys(animalStats).forEach((key) => {
+      const { errors, time } = animalStats[key];
+      totalErrors += errors;
+      totalTime += time;
       console.log(
-        `Animal: ${animal} | Errores: ${errorsArray[index]} | Tiempo de respuesta: ${responseTime}s`
+        `Animal: ${key} | Errores: ${errors} | Tiempo de respuesta: ${time.toFixed(2)}s`
       );
     });
   
     console.log(`Errores totales: ${totalErrors}`);
     console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
-  };
-  
-
-
+  };    
 
   // Configurar el event listener del teclado
   useEffect(() => {

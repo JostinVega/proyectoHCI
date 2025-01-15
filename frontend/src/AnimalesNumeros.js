@@ -239,6 +239,34 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   };
   */
 
+  const saveDetailsToDatabase = async ({ section, details }) => {
+    console.log('Datos que se enviarán al backend:', { section, details });
+  
+    try {
+      const response = await fetch('http://localhost:5000/api/game-details', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName: player.name,
+          section,
+          details,
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('Advertencia al guardar detalles:', errorData);
+        return;
+      }
+  
+      console.log('Detalles guardados correctamente en la base de datos');
+    } catch (error) {
+      console.error('Error al guardar detalles:', error);
+    }
+  };  
+
   const checkAnswer = (input) => {
     if (currentPair >= pairs.length) return;
   
@@ -248,61 +276,86 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   
     // Calcular el tiempo de respuesta
     const endTime = Date.now();
-    const responseTime = (endTime - startTime) / 1000; // Convertir a segundos
+    const responseTime = (endTime - startTime) / 1000; // Tiempo en segundos
   
-    // Registrar el tiempo de respuesta
+    // Actualizar detalles de la respuesta
     setResponseTimes((prevTimes) => [...prevTimes, responseTime]);
   
-    if (!isRight) {
-      setErrorsArray((prevErrors) => {
-        const updatedErrors = [...prevErrors];
-        updatedErrors[currentPair] += 1;
-        return updatedErrors;
+    setErrorsArray((prevErrors) => {
+      const updatedErrors = [...prevErrors];
+      if (!isRight) {
+        updatedErrors[currentPair] += 1; // Incrementar el error para el par actual
+      }
+    
+      // Enviar los detalles al backend con los errores acumulados
+      const currentAnimal = pairs[currentPair].nombre;
+      const errorsForCurrentPair = updatedErrors[currentPair]; // Obtener los errores acumulados para este par
+    
+      saveDetailsToDatabase({
+        section: 'animales-numeros',
+        details: {
+          [currentAnimal]: {
+            errors: errorsForCurrentPair, // Usar el valor actualizado
+            time: (Date.now() - startTime) / 1000, // Tiempo en segundos
+            completed: isRight,
+          },
+        },
       });
+    
+      return updatedErrors; // Actualizar el estado de errores
+    });       
   
-      const randomEncouragement =
-        encouragementMessages[
-          Math.floor(Math.random() * encouragementMessages.length)
-        ];
-      //console.log(randomEncouragement);
-      console.log("Error");
+    const currentAnimal = pairs[currentPair].nombre;
+  
+    // Guardar los detalles en el backend
+    saveDetailsToDatabase({
+      section: 'animales-numeros',
+      details: {
+        [currentAnimal]: {
+          errors: errorsArray[currentPair], // Pasar los errores acumulados hasta ahora
+          time: responseTime,
+          completed: isRight,
+        },
+      },
+    });    
+  
+    if (!isRight) {
+      console.log('Respuesta incorrecta');
       return;
     }
   
-    if (isRight) {
-      if (currentPair === pairs.length - 1) {
-        localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, pairs.length);
-        localStorage.setItem(`nivel2_animales_numeros_completed_${player.name}`, 'true');
+    // Actualizar progreso
+    if (currentPair === pairs.length - 1) {
+      localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, pairs.length);
+      localStorage.setItem(`nivel2_animales_numeros_completed_${player.name}`, 'true');
+      onProgressUpdate(100, true);
   
-        onProgressUpdate(100, true);
+      showFinalStats();
   
-        showFinalStats();
+      setTimeout(() => {
+        setGameCompleted(true);
+        setShowFeedback(false);
+      }, 2000);
+    } else {
+      localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, currentPair + 1);
+      onProgressUpdate(((currentPair + 1) / pairs.length) * 100, false);
   
-        setTimeout(() => {
-          setGameCompleted(true);
-          setShowFeedback(false);
-        }, 2000);
-      } else {
-        localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, currentPair + 1);
-        onProgressUpdate(((currentPair + 1) / pairs.length) * 100, false);
-  
-        setTimeout(() => {
-          setCurrentPair((prev) => prev + 1);
-          setShowFeedback(false);
-          setUserInput('');
-          setStartTime(Date.now()); // Reiniciar el tiempo de inicio para la siguiente pregunta
-        }, 2000);
-      }
+      setTimeout(() => {
+        setCurrentPair((prev) => prev + 1);
+        setShowFeedback(false);
+        setUserInput('');
+        setStartTime(Date.now());
+      }, 2000);
     }
-  };
+  };  
 
   const showFinalStats = () => {
     let totalErrors = 0;
     let totalTime = 0;
   
     errorsArray.forEach((errors, index) => {
-      const time = responseTimes[index] || 0; // Tiempo de respuesta para el par
-      totalErrors += errors;
+      const time = responseTimes[index] || 0; // Tiempo de respuesta para el par actual
+      totalErrors += errors; // Sumar los errores acumulados
       totalTime += time;
       console.log(
         `Animal: ${pairs[index].nombre} (${pairs[index].cantidad}) | Errores: ${errors} | Tiempo de respuesta: ${time.toFixed(2)}s`
@@ -311,10 +364,8 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   
     console.log(`Errores totales: ${totalErrors}`);
     console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
-  };
+  };  
   
-  
-
   // Configurar el event listener del teclado
   useEffect(() => {
     window.addEventListener('keypress', handleKeyPress);

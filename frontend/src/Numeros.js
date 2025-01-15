@@ -10,12 +10,26 @@ import gatito from '../src/images/gatito.png';
 import perrito from '../src/images/perrito.png';
 import oveja from '../src/images/oveja.png';
 
+const numberNames = {
+  0: 'cero',
+  1: 'uno',
+  2: 'dos',
+  3: 'tres',
+  4: 'cuatro',
+  5: 'cinco',
+  6: 'seis',
+  7: 'siete',
+  8: 'ocho',
+  9: 'nueve',
+};
+
 const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   //const [currentNumber, setCurrentNumber] = useState(0);
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [attempts, setAttempts] = useState(0);
+  const [detailsByNumber, setDetailsByNumber] = useState({});
   const [showInstructions, setShowInstructions] = useState(true);
   const [gameCompleted, setGameCompleted] = useState(false);
 
@@ -110,48 +124,81 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   };
   */
 
+  const saveDetailsToDatabase = async ({ section, details }) => {
+    console.log('Datos que se enviarán al backend:', { section, details });
+  
+    try {
+      const response = await fetch('http://localhost:5000/api/game-details', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName: player.name,
+          section,
+          details,
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('Advertencia al guardar detalles:', errorData);
+        return; // Detén aquí si no es un error crítico
+      }
+  
+      console.log('Detalles guardados correctamente en la base de datos');
+    } catch (error) {
+      console.error('Error al guardar detalles:', error);
+    }
+  };  
+  
   const checkAnswer = (input) => {
     const isRight = parseInt(input) === currentNumber;
     setIsCorrect(isRight);
     setShowFeedback(true);
   
-    // Calcular el tiempo de respuesta
     const endTime = Date.now();
-    const responseTime = (endTime - startTime) / 1000; // Tiempo en segundos
+    const responseTime = (endTime - startTime) / 1000;
   
-    // Registrar el tiempo de respuesta
-    setResponseTimes((prevTimes) => [...prevTimes, responseTime]);
+    // Usar `numberNames` para obtener el nombre descriptivo
+    const currentNumberName = numberNames[currentNumber];
   
-    if (!isRight) {
-      setErrorsArray((prevErrors) => {
-        const updatedErrors = [...prevErrors];
-        updatedErrors[currentNumber] += 1;
-        return updatedErrors;
+    setDetailsByNumber((prevDetails) => {
+      const updatedDetails = { ...prevDetails };
+  
+      if (!updatedDetails[currentNumberName]) {
+        updatedDetails[currentNumberName] = { errors: 0, time: 0 };
+      }
+  
+      updatedDetails[currentNumberName] = {
+        ...updatedDetails[currentNumberName],
+        time: responseTime,
+        errors: isRight
+          ? updatedDetails[currentNumberName].errors
+          : updatedDetails[currentNumberName].errors + 1,
+      };
+  
+      // Guardar los detalles en el backend
+      saveDetailsToDatabase({
+        section: 'numbers',
+        details: { [currentNumberName]: updatedDetails[currentNumberName] },
       });
   
-      const randomEncouragement =
-        encouragementMessages[
-          Math.floor(Math.random() * encouragementMessages.length)
-        ];
-      //console.log(randomEncouragement);
-      console.log("Error");
+      return updatedDetails;
+    });
   
+    if (!isRight) {
+      console.log('Respuesta incorrecta');
       return;
     }
   
-    if(isRight){
-      const progress = ((currentNumber + 1) / 10) * 100;
-    localStorage.setItem(
-      `nivel1_numeros_progress_${player.name}`,
-      currentNumber + 1
-    );
+    const progress = ((currentNumber + 1) / 10) * 100;
+    localStorage.setItem(`nivel1_numeros_progress_${player.name}`, currentNumber + 1);
     onProgressUpdate(progress, false);
   
     if (currentNumber === 9) {
       localStorage.setItem(`nivel1_numeros_progress_${player.name}`, '10');
       onProgressUpdate(100, true);
-  
-      showFinalStats();
   
       setTimeout(() => {
         setGameCompleted(true);
@@ -162,30 +209,42 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
         setCurrentNumber((prev) => prev + 1);
         setShowFeedback(false);
         setUserInput('');
-        setAttempts(0);
-        setStartTime(Date.now()); // Reiniciar el tiempo de inicio
+        setStartTime(Date.now());
       }, 2000);
     }
-    }
-  };
+  };  
   
-  const showFinalStats = () => {
-    let totalErrors = 0;
-    let totalTime = 0;
-  
-    errorsArray.forEach((errors, index) => {
-      const time = responseTimes[index] || 0; // Tiempo de respuesta para este número
-      totalErrors += errors;
-      totalTime += time;
-      console.log(
-        `Número: ${index} | Errores: ${errors} | Tiempo de respuesta: ${time.toFixed(2)}s`
-      );
-    });
-  
-    console.log(`Errores totales: ${totalErrors}`);
-    console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
-  };
-  
+  // Función para ordenar los datos basados en el orden de los números
+const getSortedDetails = (details) => {
+  const order = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
+  return Object.keys(details)
+    .sort((a, b) => order.indexOf(a) - order.indexOf(b))
+    .reduce((sorted, key) => {
+      sorted[key] = details[key];
+      return sorted;
+    }, {});
+};
+
+// Mostrar estadísticas finales con los datos ordenados
+const showFinalStats = () => {
+  let totalErrors = 0;
+  let totalTime = 0;
+
+  // Ordenar los detalles antes de procesarlos
+  const sortedDetails = getSortedDetails(detailsByNumber);
+
+  Object.keys(sortedDetails).forEach((key) => {
+    const { errors, time } = sortedDetails[key];
+    totalErrors += errors;
+    totalTime += time;
+    console.log(
+      `Número: ${key} | Errores: ${errors} | Tiempo de respuesta: ${time.toFixed(2)}s`
+    );
+  });
+
+  console.log(`Errores totales: ${totalErrors}`);
+  console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
+};
   
 
   // Al montar el componente, restaurar estado de instrucciones

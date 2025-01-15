@@ -193,28 +193,41 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     const endTime = Date.now();
     const responseTime = (endTime - startTime) / 1000; // Convertir a segundos
   
-    // Registrar el tiempo de respuesta
-    setResponseTimes((prevTimes) => [...prevTimes, responseTime]);
+    // Actualizar los errores si la respuesta es incorrecta
+    setErrorsArray((prevErrors) => {
+      const updatedErrors = [...prevErrors];
+      if (!isRight) {
+        updatedErrors[currentPair] += 1; // Incrementar errores del par actual
+      }
   
-    if (!isRight) {
-      setErrorsArray((prevErrors) => {
-        const updatedErrors = [...prevErrors];
-        updatedErrors[currentPair] += 1;
-        return updatedErrors;
+      // Preparar los datos para enviar al backend
+      const currentAnimal = pairs[currentPair].nombre;
+      const errorsForCurrentPair = updatedErrors[currentPair];
+  
+      saveDetailsToDatabase({
+        section: 'animales-vocales',
+        details: {
+          [currentAnimal]: {
+            errors: errorsForCurrentPair, // Errores acumulados
+            time: responseTime, // Tiempo de respuesta
+            completed: isRight,
+          },
+        },
       });
   
-      const randomEncouragement =
-        encouragementMessages[
-          Math.floor(Math.random() * encouragementMessages.length)
-        ];
-      //console.log(randomEncouragement);
-      console.log("Error");
+      return updatedErrors;
+    });
   
+    // Si la respuesta es incorrecta, mostrar el mensaje y detener el flujo
+    if (!isRight) {
+      console.log("Error registrado para:", pairs[currentPair].nombre);
       return;
     }
   
+    // Si la respuesta es correcta, avanzar al siguiente par o terminar
     if (isRight) {
       if (currentPair === pairs.length - 1) {
+        // Juego completado
         localStorage.setItem(`nivel2_animales_vocales_completed_${player.name}`, 'true');
         localStorage.setItem(`nivel2_animales_vocales_progress_${player.name}`, pairs.length);
   
@@ -227,6 +240,7 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
           setShowFeedback(false);
         }, 2000);
       } else {
+        // Avanzar al siguiente par
         const nextPair = currentPair + 1;
         localStorage.setItem(`nivel2_animales_vocales_progress_${player.name}`, nextPair);
   
@@ -237,12 +251,42 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
           setCurrentPair(nextPair);
           setShowFeedback(false);
           setUserInput('');
-          setStartTime(Date.now()); // Reiniciar el tiempo de inicio para la siguiente pregunta
+          setStartTime(Date.now()); // Reiniciar el tiempo de inicio
         }, 2000);
       }
     }
   };
   
+  // Guardar detalles en la base de datos
+  const saveDetailsToDatabase = async ({ section, details }) => {
+    console.log('Datos que se enviarán al backend:', { section, details });
+  
+    try {
+      const response = await fetch('http://localhost:5000/api/game-details', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName: player.name,
+          section,
+          details,
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('Advertencia al guardar detalles:', errorData);
+        return;
+      }
+  
+      console.log('Detalles guardados correctamente en la base de datos');
+    } catch (error) {
+      console.error('Error al guardar detalles:', error);
+    }
+  };
+  
+  // Mostrar estadísticas finales
   const showFinalStats = () => {
     let totalErrors = 0;
     let totalTime = 0;
@@ -260,9 +304,6 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
   };
   
-  
-  
-
   // Configurar el event listener del teclado
   useEffect(() => {
     window.addEventListener('keypress', handleKeyPress);
