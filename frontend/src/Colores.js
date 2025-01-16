@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
 
+// Importar las imágenes de solución
+import colorceleste from '../src/images/colorceleste.png';
+import colorverde from '../src/images/colorverde.png';
+import colorrosado from '../src/images/colorrosado.png';
+import coloramarillo from '../src/images/coloramarillo.png';
+import colormorado from '../src/images/colormorado.png';
+import colorgris from '../src/images/colorgris.png';
+import colorrojo from '../src/images/colorrojo.png';
+import colormarron from '../src/images/colormarron.png';
+import coloranaranjado from '../src/images/coloranaranjado.png';
+import colorazul from '../src/images/colorazul.png';
+
+
 // Mapa de colores y sus códigos hexadecimales
 const ColorMap = {
   celeste: '#64B5F6',    
@@ -12,6 +25,20 @@ const ColorMap = {
   marron: '#795548',     
   anaranjado: '#FF5722', 
   azul: '#2196F3'        
+};
+
+// Objeto para mapear colores con sus imágenes de solución
+const solutionImages = {
+  'celeste': colorceleste,
+  'verde': colorverde,
+  'rosado': colorrosado,
+  'amarillo': coloramarillo,
+  'morado': colormorado,
+  'gris': colorgris,
+  'rojo': colorrojo,
+  'marron': colormarron,
+  'anaranjado': coloranaranjado,
+  'azul': colorazul
 };
 
 const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
@@ -42,6 +69,9 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return !savedInstructions;
   });
 
+  const [timeLeft, setTimeLeft] = useState(10);
+  const [showSolution, setShowSolution] = useState(false);
+
   // Mensajes de éxito y ánimo
   const successMessages = [
     "¡Excelente trabajo! 🌟",
@@ -58,19 +88,20 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     "¡Vamos a intentarlo una vez más! 🎈"
   ];
 
+  /*
   // Componente para mostrar estrellas al acertar
   const StarBurst = ({ color }) => {
     return (
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {[...Array(40)].map((_, i) => (
+        {[...Array(50)].map((_, i) => (
           <div
             key={i}
             className="absolute"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 30 - 40}%`, // Empiezan desde arriba de la pantalla
-              animation: `fallingStar ${2 + Math.random() * 3}s linear forwards`,
-              animationDelay: `${Math.random() * 1}s`,
+              animation: `fallingStar ${4 + Math.random() * 5}s linear forwards`, // Aumenté la duración de 2-3s a 4-5s
+              animationDelay: `${Math.random() * 2}s`,
             }}
           >
             <div
@@ -103,6 +134,51 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     );
   };
 
+  */
+
+
+  const StarBurst = ({ color }) => {
+    return (
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        {[...Array(50)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `-5%`,
+              animation: `starFall ${3 + Math.random() * 2}s linear forwards`,
+              animationDelay: `${Math.random() * 1}s`,
+            }}
+          >
+            <div
+              style={{
+                background: ColorMap[color],
+                width: `${15 + Math.random() * 25}px`,  // Aumentado de 8-20px a 15-40px
+                height: `${15 + Math.random() * 25}px`, // Aumentado de 8-20px a 15-40px
+                clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+                boxShadow: `0 0 15px ${ColorMap[color]}`, // Aumentado el brillo también
+                opacity: 0.8 + Math.random() * 0.2,
+              }}
+            />
+          </div>
+        ))}
+        <style>{`
+          @keyframes starFall {
+            from {
+              transform: translateY(0) translateX(0) rotate(0deg);
+              opacity: 1;
+            }
+            to {
+              transform: translateY(${window.innerHeight + 100}px) translateX(${Math.random() * 100 - 50}px) rotate(360deg);
+              opacity: 0;
+            }
+          }
+        `}</style>
+      </div>
+    );
+  };
+  
   // Componente para mostrar colores en una animación de arcoíris
   const RainbowDisplay = () => {
     return (
@@ -179,45 +255,6 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   }, []);
 
-  /*
-  // Verifica si la respuesta es correcta
-  const checkAnswer = (input) => {
-    const currentColorNombre = colores[currentColor];
-    const isRight = input === currentColorNombre.charAt(0);
-    setIsCorrect(isRight);
-    setShowFeedback(true);
-
-    if (isRight) {
-      // Calcular progreso
-      const progress = ((currentColor + 1) / colores.length) * 100;
-      
-      // Guardar progreso en localStorage
-      localStorage.setItem(`nivel1_colores_progress_${player.name}`, currentColor + 1);
-
-      // Comunicar progreso
-      onProgressUpdate(progress, false);
-
-      if (currentColor === colores.length - 1) {
-        // Si es el último color, mostrar pantalla de completado
-        localStorage.setItem(`nivel1_colores_progress_${player.name}`, '10'); 
-        
-        onProgressUpdate(100, true);
-
-        setTimeout(() => {
-          setGameCompleted(true);
-          setShowFeedback(false);
-        }, 2000);
-      } else {
-        setTimeout(() => {
-          setCurrentColor(prev => prev + 1);
-          setShowFeedback(false);
-          setUserInput('');
-        }, 2000);
-      }
-    }
-  };
-  */
-
   const saveDetailsToDatabase = async ({ section, details }) => {
     try {
       const response = await fetch('http://localhost:5000/api/game-details', {
@@ -244,6 +281,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   };  
 
+  /*
   const checkAnswer = (input) => {
     const currentColorNombre = colores[currentColor];
     const isRight = input === currentColorNombre.charAt(0);
@@ -311,6 +349,104 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }, 2000);
     }
   };  
+  */
+
+  const checkAnswer = (input) => {
+    if (showFeedback || showSolution || showInstructions || gameCompleted || isAnimating) return;
+
+    const currentColorNombre = colores[currentColor];
+    const isRight = input === currentColorNombre.charAt(0);
+    setIsCorrect(isRight);
+    setShowFeedback(true);
+
+    
+    if (!isRight) {
+        setColorStats((prevStats) => {
+            const updatedStats = { ...prevStats };
+            
+            if (!updatedStats[currentColorNombre]) {
+                updatedStats[currentColorNombre] = { 
+                    errors: 0, 
+                    time: 0, 
+                    resultado: false 
+                };
+            }
+            
+            updatedStats[currentColorNombre] = {
+                ...updatedStats[currentColorNombre],
+                errors: updatedStats[currentColorNombre].errors + 1,
+                resultado: false
+            };
+
+            saveDetailsToDatabase({
+                section: 'colores',
+                details: { [currentColorNombre]: updatedStats[currentColorNombre] }
+            });
+
+            console.log(`Intento incorrecto para color ${currentColorNombre}:`, updatedStats[currentColorNombre]);
+
+            return updatedStats;
+        });
+
+        setTimeout(() => {
+            setShowFeedback(false);
+            setUserInput('');
+        }, 1000);
+        return;
+    }
+
+    const endTime = Date.now();
+    const responseTime = Math.min((endTime - startTime) / 1000, 10);
+
+    const progress = ((currentColor + 1) / colores.length) * 100;
+    localStorage.setItem(`nivel1_colores_progress_${player.name}`, currentColor + 1);
+    onProgressUpdate(progress, false);
+
+    setColorStats((prevStats) => {
+        const updatedStats = { ...prevStats };
+
+        if (!updatedStats[currentColorNombre]) {
+            updatedStats[currentColorNombre] = { 
+                errors: 0, 
+                time: 0, 
+                resultado: true 
+            };
+        }
+
+        updatedStats[currentColorNombre] = {
+            ...updatedStats[currentColorNombre],
+            time: responseTime,
+            resultado: true
+        };
+
+        saveDetailsToDatabase({
+            section: 'colores',
+            details: { [currentColorNombre]: updatedStats[currentColorNombre] }
+        });
+
+        console.log(`Intento correcto para color ${currentColorNombre}:`, updatedStats[currentColorNombre]);
+
+        return updatedStats;
+    });
+
+    if (currentColor >= colores.length - 1) {
+        localStorage.setItem(`nivel1_colores_progress_${player.name}`, '10');
+        onProgressUpdate(100, true);
+        showFinalStats();
+        setTimeout(() => {
+            setGameCompleted(true);
+            setShowFeedback(false);
+        }, 2000);
+    } else {
+        setTimeout(() => {
+            setCurrentColor(prev => prev + 1);
+            setShowFeedback(false);
+            setUserInput('');
+            setStartTime(Date.now());
+            setTimeLeft(10);
+        }, 2000);
+    }
+};
   
   const showFinalStats = () => {
     let totalErrors = 0;
@@ -343,6 +479,70 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     window.addEventListener('keypress', handleKeyPress);
     return () => window.removeEventListener('keypress', handleKeyPress);
   }, [currentColor, showInstructions, isAnimating]);
+
+  useEffect(() => {
+    if (showInstructions || gameCompleted || showSolution || isAnimating) return;
+
+    let timeoutId;
+    const timerId = setInterval(() => {
+        setTimeLeft(time => {
+            if (time <= 0) {
+                clearInterval(timerId);
+                setShowSolution(true);
+                
+                const currentColorNombre = colores[currentColor];
+                setColorStats((prevStats) => {
+                    const updatedStats = { ...prevStats };
+                    
+                    if (!updatedStats[currentColorNombre]) {
+                        updatedStats[currentColorNombre] = { 
+                            errors: 0, 
+                            time: 10, 
+                            resultado: false 
+                        };
+                    }
+                    
+                    updatedStats[currentColorNombre] = {
+                        ...updatedStats[currentColorNombre],
+                        time: 10,
+                        resultado: false
+                    };
+
+                    saveDetailsToDatabase({
+                        section: 'colores',
+                        details: { [currentColorNombre]: updatedStats[currentColorNombre] }
+                    });
+
+                    console.log(`Tiempo agotado para color ${currentColorNombre}:`, updatedStats[currentColorNombre]);
+
+                    return updatedStats;
+                });
+                
+                timeoutId = setTimeout(() => {
+                    setShowSolution(false);
+                    
+                    if (currentColor < colores.length - 1) {
+                        setCurrentColor(prev => prev + 1);
+                        setTimeLeft(10);
+                        setStartTime(Date.now());
+                    } else {
+                        localStorage.setItem(`nivel1_colores_progress_${player.name}`, '10');
+                        onProgressUpdate(100, true);
+                        setGameCompleted(true);
+                    }
+                }, 2000);
+                
+                return 0;
+            }
+            return time - 1;
+        });
+    }, 1000);
+
+    return () => {
+        if (timerId) clearInterval(timerId);
+        if (timeoutId) clearTimeout(timeoutId);
+    };
+}, [currentColor, showInstructions, gameCompleted, showSolution, isAnimating, player.name]);
 
   // Método para iniciar el juego y guardar estado
   const startGame = () => {
@@ -379,13 +579,167 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
           </div>
         </div>
 
+        {!showInstructions && !gameCompleted && (
+          <div className="mb-12">
+              <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6 shadow-lg relative">
+                  {/* Título del nivel */}
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 
+                              bg-gradient-to-r from-purple-500 to-pink-500 text-white 
+                              px-6 py-2 rounded-full shadow-lg">
+                      <span className="text-lg font-bold">Colores</span>
+                  </div>
+
+                  {/* Fases */}
+                  <div className="flex justify-between items-center gap-3 mt-4">
+                      {colores.map((color, i) => (
+                          <div key={i} className="flex-1">
+                              <div className="relative">
+                                  {i < colores.length - 1 && (
+                                      <div className={`absolute top-1/2 left-[60%] right-0 h-2 rounded-full
+                                                  ${i < currentColor 
+                                                      ? 'bg-gradient-to-r from-green-400 to-green-500' 
+                                                      : 'bg-gray-200'}`}>
+                                      </div>
+                                  )}
+                                  
+                                  <div className={`relative z-10 flex flex-col items-center transform 
+                                              transition-all duration-500 ${
+                                                  i === currentColor ? 'scale-110' : 'hover:scale-105'
+                                              }`}>
+                                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center
+                                                  shadow-lg transition-all duration-300 border-4
+                                                  ${i === currentColor
+                                                      ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 border-yellow-200 animate-pulse'
+                                                      : i < currentColor
+                                                      ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-200'
+                                                      : 'bg-white border-gray-100'
+                                                  }`}>
+                                          <div
+                                              className="w-10 h-10 rounded-full"
+                                              style={{ backgroundColor: ColorMap[color] }}
+                                          />
+                                      </div>
+                                      
+                                      {i === currentColor && (
+                                          <div className="absolute -bottom-6">
+                                              <span className="text-yellow-500 text-2xl animate-bounce">⭐</span>
+                                          </div>
+                                      )}
+                                  </div>
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+
+                  {/* Barra de progreso */}
+                  <div className="mt-12">
+                      <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-semibold text-purple-700">
+                              Tu Progreso
+                          </span>
+                          <div className="flex items-center gap-2">
+                              <div className="px-3 py-1 bg-purple-500 text-white rounded-full text-sm font-bold">
+                                  {(currentColor / (colores.length - 1) * 100).toFixed(0)}%
+                              </div>
+                          </div>
+                      </div>
+                      <div className="h-6 bg-gray-100 rounded-full overflow-hidden shadow-inner p-1">
+                          <div
+                              className="h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500 
+                                      transition-all duration-1000 relative"
+                              style={{ width: `${(currentColor / (colores.length - 1)) * 100}%` }}
+                          >
+                              <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
+                              <div className="absolute inset-0 overflow-hidden">
+                                  <div className="w-full h-full animate-shimmer 
+                                            bg-gradient-to-r from-transparent via-white to-transparent"
+                                        style={{ backgroundSize: '200% 100%' }}>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              {/* Mostrar solución cuando se acaba el tiempo */}
+            {showSolution && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                    <div className="bg-white rounded-xl p-6 shadow-2xl transform transition-all">
+                        <h3 className="text-2xl font-bold text-purple-600 mb-4">
+                            ¡Se acabó el tiempo!
+                        </h3>
+                        <p className="text-xl text-gray-600 mb-4">
+                            La respuesta correcta era:
+                        </p>
+                        <img 
+                            src={solutionImages[colores[currentColor]]}
+                            alt={`Solución: color ${colores[currentColor]}`}
+                            className="w-96 h-96 object-contain mx-auto mb-4"
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Temporizador */}
+            {!showInstructions && !gameCompleted && (
+                <div className="absolute bottom-8 right-8">
+                    <div className={`relative group transform transition-all duration-300 ${
+                        timeLeft <= 3 ? 'scale-110' : 'hover:scale-105'
+                    }`}>
+                        <div className={`w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-lg
+                                    relative overflow-hidden ${timeLeft <= 3 ? 'animate-pulse' : ''}`}>
+                            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r="45"
+                                    fill="none"
+                                    stroke={timeLeft <= 3 ? '#FEE2E2' : '#E0E7FF'}
+                                    strokeWidth="8"
+                                    className="opacity-30"
+                                />
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r="45"
+                                    fill="none"
+                                    stroke={timeLeft <= 3 ? '#EF4444' : '#3B82F6'}
+                                    strokeWidth="8"
+                                    strokeLinecap="round"
+                                    strokeDasharray={`${2 * Math.PI * 45}`}
+                                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                                    className="transition-all duration-1000"
+                                />
+                            </svg>
+
+                            <div className={`relative z-10 text-4xl font-bold 
+                                        ${timeLeft <= 3 ? 'text-red-500' : 'text-blue-500'}`}>
+                                {timeLeft}
+                            </div>
+
+                            {timeLeft <= 3 && (
+                                <>
+                                    <div className="absolute inset-0 rounded-full bg-red-500 opacity-20 animate-ping"></div>
+                                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full 
+                                                flex items-center justify-center animate-bounce shadow-lg">
+                                        <span className="text-white text-xs">⚠️</span>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+          </div>
+      )}
+
         {showInstructions ? (
           <div className="text-center space-y-6">
             <h2 className="text-3xl font-bold text-purple-600">
               ¡Vamos a aprender los colores! 🎨
             </h2>
             <p className="text-xl text-gray-600">
-              Presiona la primera letra del color que se destaca en el arcoíris.
+              Inserta la tarjeta del color que se destaca en el arcoíris.
             </p>
             <button
               className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
@@ -419,14 +773,14 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             </h2>
             
             <div className="flex justify-center items-end mb-24 relative">
-              <RainbowDisplay />
-              {isCorrect && showFeedback && (
-                <StarBurst color={colores[currentColor]} />
-              )}
+                <RainbowDisplay />
+                {isCorrect && showFeedback && !isAnimating && (
+                    <StarBurst color={colores[currentColor]} />
+                )}
             </div>
 
             <p className="text-2xl text-gray-600">
-              {!isAnimating && `Presiona la primera letra de ${colores[currentColor]}`}
+              {!isAnimating && `Inserta la tarjeta del color ${colores[currentColor]}`}
             </p>
 
             {showFeedback && !isAnimating && (
