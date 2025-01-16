@@ -1,7 +1,25 @@
 import React, { useState, useEffect } from 'react';
 
+import solrojo from '../src/images/colorrojo.png';
+import solamarillo from '../src/images/coloramarillo.png';
+import solazul from '../src/images/colorazul.png';
+import solmorado from '../src/images/colormorado.png';
+import solverde from '../src/images/colorverde.png';
+import solrosado from '../src/images/colorrosado.png';
+import solanaranjado from '../src/images/coloranaranjado.png';
+
 const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
+  // Objeto para mapear colores con sus imágenes de solución
+  const solutionImages = {
+    'rojo': solrojo,
+    'amarillo': solamarillo,
+    'azul': solazul,
+    'morado': solmorado,
+    'verde': solverde,
+    'rosado': solrosado,
+    'anaranjado': solanaranjado
+  };
 
   // Datos de los pares color-forma
   const pairs = [
@@ -47,12 +65,9 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [gameCompleted, setGameCompleted] = useState(false);
-  //const [showInstructions, setShowInstructions] = useState(true);
-
   const [errorsArray, setErrorsArray] = useState(new Array(pairs.length).fill(0)); // Errores por forma
   const [responseTimes, setResponseTimes] = useState([]); // Tiempos de respuesta por forma
   const [startTime, setStartTime] = useState(Date.now()); // Tiempo de inicio de la pregunta actual
-
   const [currentPair, setCurrentPair] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel2_colores_formas_progress_${player.name}`);
     const completedStatus = localStorage.getItem(`nivel2_colores_formas_completed_${player.name}`);
@@ -80,6 +95,9 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     const savedInstructions = localStorage.getItem(`nivel2_colores_formas_instructions_${player.name}`);
     return !savedInstructions;
   });
+
+  const [timeLeft, setTimeLeft] = useState(10);
+  const [showSolution, setShowSolution] = useState(false);
 
    // SVG Components con animaciones más divertidas y amigables para niños
    const shapes = {
@@ -206,43 +224,6 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   /*
   const checkAnswer = (input) => {
     const isRight = input === pairs[currentPair].inicial;
-    setIsCorrect(isRight);
-    setShowFeedback(true);
-  
-    if (isRight) {
-      if (currentPair === pairs.length - 1) {
-        // Marcar como completado y guardar estado final
-        localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
-        localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
-        
-        // Comunicar 100% de progreso
-        onProgressUpdate(100, true);
-  
-        setTimeout(() => {
-          setGameCompleted(true);
-          setShowFeedback(false);
-        }, 2000);
-      } else {
-        // Guardar progreso parcial
-        const nextPair = currentPair + 1;
-        localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, nextPair);
-        
-        // Calcular y comunicar progreso
-        const progress = ((nextPair) / pairs.length) * 100;
-        onProgressUpdate(progress, false);
-  
-        setTimeout(() => {
-          setCurrentPair(nextPair);
-          setShowFeedback(false);
-          setUserInput('');
-        }, 2000);
-      }
-    }
-  };
-  */
-
-  const checkAnswer = (input) => {
-    const isRight = input === pairs[currentPair].inicial;
     const responseTime = Date.now() - startTime; // Calcular tiempo de respuesta
     setIsCorrect(isRight);
     setShowFeedback(true);
@@ -325,7 +306,98 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
         }, 2000);
       }
     }
-  };  
+  }; 
+  */
+ 
+  const checkAnswer = (input) => {
+    if (showFeedback || showSolution || showInstructions || gameCompleted) return;
+
+    const isRight = input === pairs[currentPair].inicial;
+    setIsCorrect(isRight);
+    setShowFeedback(true);
+
+    const endTime = Date.now();
+    const responseTime = Math.min((endTime - startTime) / 1000, 10);
+    const currentFormaColor = `${pairs[currentPair].forma}-${pairs[currentPair].color}`;
+
+    if (!isRight) {
+        setErrorsArray(prevErrors => {
+            const updatedErrors = [...prevErrors];
+            updatedErrors[currentPair] += 1;
+
+            saveDetailsToDatabase({
+                section: 'colores-formas',
+                details: {
+                    [currentFormaColor]: {
+                        errors: updatedErrors[currentPair],
+                        time: responseTime,
+                        resultado: false
+                    }
+                }
+            });
+
+            console.log(`Intento incorrecto para ${currentFormaColor}:`, {
+                errors: updatedErrors[currentPair],
+                time: responseTime,
+                resultado: false
+            });
+
+            return updatedErrors;
+        });
+
+        setTimeout(() => {
+            setShowFeedback(false);
+            setUserInput('');
+        }, 1000);
+        return;
+    }
+
+    setErrorsArray(prevErrors => {
+        const currentErrors = prevErrors[currentPair];
+        
+        saveDetailsToDatabase({
+            section: 'colores-formas',
+            details: {
+                [currentFormaColor]: {
+                    errors: currentErrors,
+                    time: responseTime,
+                    resultado: true
+                }
+            }
+        });
+
+        console.log(`Intento correcto para ${currentFormaColor}:`, {
+            errors: currentErrors,
+            time: responseTime,
+            resultado: true
+        });
+
+        return prevErrors;
+    });
+
+    if (currentPair === pairs.length - 1) {
+        localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
+        localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
+        onProgressUpdate(100, true);
+        showFinalStats();
+
+        setTimeout(() => {
+            setGameCompleted(true);
+            setShowFeedback(false);
+        }, 2000);
+    } else {
+        localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, currentPair + 1);
+        onProgressUpdate(((currentPair + 1) / pairs.length) * 100, false);
+
+        setTimeout(() => {
+            setCurrentPair(prev => prev + 1);
+            setShowFeedback(false);
+            setUserInput('');
+            setStartTime(Date.now());
+            setTimeLeft(10);
+        }, 2000);
+    }
+  };
   
   // Guardar detalles en el backend
   const saveDetailsToDatabase = async ({ section, details }) => {
@@ -355,7 +427,68 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       console.error('Error al guardar detalles:', error);
     }
   };
-  
+
+  useEffect(() => {
+    if (showInstructions || gameCompleted || showSolution) return;
+
+    let timeoutId;
+    const timerId = setInterval(() => {
+        setTimeLeft(time => {
+            if (time <= 0) {
+                clearInterval(timerId);
+                setShowSolution(true);
+                
+                const currentFormaColor = `${pairs[currentPair].forma}-${pairs[currentPair].color}`;
+                setErrorsArray(prevErrors => {
+                    const currentErrors = prevErrors[currentPair];
+                    
+                    saveDetailsToDatabase({
+                        section: 'colores-formas',
+                        details: {
+                            [currentFormaColor]: {
+                                errors: currentErrors,
+                                time: 10,
+                                resultado: false
+                            }
+                        }
+                    });
+
+                    console.log(`Tiempo agotado para ${currentFormaColor}:`, {
+                        errors: currentErrors,
+                        time: 10,
+                        resultado: false
+                    });
+
+                    return prevErrors;
+                });
+                
+                timeoutId = setTimeout(() => {
+                    setShowSolution(false);
+                    
+                    if (currentPair < pairs.length - 1) {
+                        setCurrentPair(prev => prev + 1);
+                        setTimeLeft(10);
+                        setStartTime(Date.now());
+                    } else {
+                        localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
+                        localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
+                        onProgressUpdate(100, true);
+                        setGameCompleted(true);
+                    }
+                }, 2000);
+                
+                return 0;
+            }
+            return time - 1;
+        });
+    }, 1000);
+
+    return () => {
+        if (timerId) clearInterval(timerId);
+        if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [currentPair, showInstructions, gameCompleted, showSolution, player.name]);
+
   // Mostrar estadísticas finales
   const showFinalStats = () => {
     let totalErrors = 0;
@@ -495,6 +628,170 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             </div>
           </div>
 
+          {!showInstructions && !gameCompleted && (
+          <div className="mb-12">
+              <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6 shadow-lg relative">
+                  {/* Título del nivel */}
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 
+                              bg-gradient-to-r from-purple-500 to-pink-500 text-white 
+                              px-6 py-2 rounded-full shadow-lg">
+                      <span className="text-lg font-bold">Colores y Formas</span>
+                  </div>
+
+                  {/* Fases */}
+                  <div className="flex justify-between items-center gap-3 mt-4 flex-wrap">
+                      {pairs.map((pair, i) => (
+                          <div key={i} className="flex-1 min-w-[3rem] max-w-[4rem] mb-4">
+                              <div className="relative">
+                                  {i < pairs.length - 1 && (
+                                      <div className={`absolute top-1/2 left-[60%] right-0 h-2 rounded-full
+                                                  ${i < currentPair 
+                                                      ? 'bg-gradient-to-r from-green-400 to-green-500' 
+                                                      : 'bg-gray-200'}`}>
+                                      </div>
+                                  )}
+                                  
+                                  <div className={`relative z-10 flex flex-col items-center transform 
+                                              transition-all duration-500 ${
+                                                  i === currentPair ? 'scale-110' : 'hover:scale-105'
+                                              }`}>
+                                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center
+                                                  shadow-lg transition-all duration-300 border-4
+                                                  ${i === currentPair
+                                                      ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 border-yellow-200 animate-pulse'
+                                                      : i < currentPair
+                                                      ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-200'
+                                                      : 'bg-white border-gray-100'
+                                                  }`}>
+                                          <div className="w-full h-full flex items-center justify-center">
+                                              {React.cloneElement(shapes[pair.forma](), {
+                                                  className: 'w-6 h-6',
+                                                  children: React.Children.map(shapes[pair.forma]().props.children, child =>
+                                                      React.cloneElement(child, {
+                                                          fill: i === currentPair
+                                                              ? '#9333EA'
+                                                              : i < currentPair
+                                                              ? '#FFFFFF'
+                                                              : '#6B7280'
+                                                      })
+                                                  )
+                                              })}
+                                          </div>
+                                      </div>
+                                      
+                                      {i === currentPair && (
+                                          <div className="absolute -bottom-6">
+                                              <span className="text-yellow-500 text-2xl animate-bounce">⭐</span>
+                                          </div>
+                                      )}
+                                  </div>
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+
+                  {/* Barra de progreso */}
+                  <div className="mt-12">
+                      <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-semibold text-purple-700">
+                              Tu Progreso
+                          </span>
+                          <div className="flex items-center gap-2">
+                              <div className="px-3 py-1 bg-purple-500 text-white rounded-full text-sm font-bold">
+                                  {(currentPair / (pairs.length - 1) * 100).toFixed(0)}%
+                              </div>
+                          </div>
+                      </div>
+                      <div className="h-6 bg-gray-100 rounded-full overflow-hidden shadow-inner p-1">
+                          <div
+                              className="h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500 
+                                      transition-all duration-1000 relative"
+                              style={{ width: `${(currentPair / (pairs.length - 1)) * 100}%` }}
+                          >
+                              <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
+                              <div className="absolute inset-0 overflow-hidden">
+                                  <div className="w-full h-full animate-shimmer 
+                                            bg-gradient-to-r from-transparent via-white to-transparent"
+                                        style={{ backgroundSize: '200% 100%' }}>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* Mostrar solución cuando se acaba el tiempo */}
+      {showSolution && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+              <div className="bg-white rounded-xl p-6 shadow-2xl transform transition-all">
+                  <h3 className="text-2xl font-bold text-purple-600 mb-4">
+                      ¡Se acabó el tiempo!
+                  </h3>
+                  <p className="text-xl text-gray-600 mb-4">
+                      La respuesta correcta era:
+                  </p>
+                  <img 
+                      src={solutionImages[pairs[currentPair].color]}
+                      alt={`Solución: color ${pairs[currentPair].color}`}
+                      className="w-96 h-96 object-contain mx-auto mb-4"
+                  />
+              </div>
+          </div>
+      )}
+
+      {/* Temporizador */}
+      {!showInstructions && !gameCompleted && (
+          <div className="absolute bottom-8 right-8">
+              <div className={`relative group transform transition-all duration-300 ${
+                  timeLeft <= 3 ? 'scale-110' : 'hover:scale-105'
+              }`}>
+                  <div className={`w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-lg
+                              relative overflow-hidden ${timeLeft <= 3 ? 'animate-pulse' : ''}`}>
+                      <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                          <circle
+                              cx="50"
+                              cy="50"
+                              r="45"
+                              fill="none"
+                              stroke={timeLeft <= 3 ? '#FEE2E2' : '#E0E7FF'}
+                              strokeWidth="8"
+                              className="opacity-30"
+                          />
+                          <circle
+                              cx="50"
+                              cy="50"
+                              r="45"
+                              fill="none"
+                              stroke={timeLeft <= 3 ? '#EF4444' : '#3B82F6'}
+                              strokeWidth="8"
+                              strokeLinecap="round"
+                              strokeDasharray={`${2 * Math.PI * 45}`}
+                              strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                              className="transition-all duration-1000"
+                          />
+                      </svg>
+
+                      <div className={`relative z-10 text-4xl font-bold 
+                                  ${timeLeft <= 3 ? 'text-red-500' : 'text-blue-500'}`}>
+                          {timeLeft}
+                      </div>
+
+                      {timeLeft <= 3 && (
+                          <>
+                              <div className="absolute inset-0 rounded-full bg-red-500 opacity-20 animate-ping"></div>
+                              <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full 
+                                          flex items-center justify-center animate-bounce shadow-lg">
+                                  <span className="text-white text-xs">⚠️</span>
+                              </div>
+                          </>
+                      )}
+                  </div>
+              </div>
+          </div>
+      )}
+
           {showInstructions ? (
             <div className="text-center space-y-6">
               <h2 className="text-3xl font-bold text-purple-600">
@@ -546,7 +843,7 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
               <div className="mt-8">
                 <div className="text-2xl text-gray-600 mb-4">
-                  Presiona la primera letra del color
+                Inserta la tarjeta que coincide con el color de la figura mostrada en pantalla.
                 </div>
                 <div className="text-4xl font-bold text-purple-600">
                   Tu respuesta: <span className="text-6xl uppercase">{userInput}</span>
