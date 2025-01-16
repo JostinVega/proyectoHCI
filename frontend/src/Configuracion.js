@@ -4,6 +4,24 @@ const Configuracion = ({ player, onBack, onEditProfile, onLogout, onShowProgress
   // Calcula el progreso (esto es un ejemplo, ajusta según tus necesidades)
   //const progress = 67; // Porcentaje de progreso
 
+   // Validación temprana
+   if (!player) {
+    // Si no hay jugador, podrías redirigir o mostrar un mensaje de error
+    return (
+      <div className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 p-6">
+        <div className="text-center text-red-500 text-2xl">
+          Error: No se ha seleccionado un jugador
+        </div>
+        <button 
+          onClick={onBack}
+          className="mx-auto block bg-pink-500 text-white px-4 py-2 rounded-full mt-4"
+        >
+          Volver
+        </button>
+      </div>
+    );
+  }
+  
   const calcularProgresoGeneral = () => {
     // Obtener progreso de Nivel 1
     const progresoNivel1 = JSON.parse(localStorage.getItem(`nivel1_progress_${player.name}`) || '{"totalProgress": 0}').totalProgress;

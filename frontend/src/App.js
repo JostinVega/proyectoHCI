@@ -1215,8 +1215,11 @@ const ChangeAvatarScreen = () => {
           onLogout={() => {
             setShowConfig(false);
             setShowProgress(false);
+            setShowEditProfile(false);
             setCurrentScreen('login');
             setSelectedPlayer(null);
+            setCurrentLevel(null);
+            setCurrentPhase(null);
           }}
         />
       )}
