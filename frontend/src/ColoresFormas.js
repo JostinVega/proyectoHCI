@@ -96,7 +96,15 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return !savedInstructions;
   });
 
-  const [timeLeft, setTimeLeft] = useState(10);
+  //const [timeLeft, setTimeLeft] = useState(10);
+
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+    return tiempos['colores-formas'] || 10;
+  });
+
+  const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+
   const [showSolution, setShowSolution] = useState(false);
 
    // SVG Components con animaciones más divertidas y amigables para niños
@@ -394,7 +402,10 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             setShowFeedback(false);
             setUserInput('');
             setStartTime(Date.now());
-            setTimeLeft(10);
+            //setTimeLeft(10);
+            // Obtener el tiempo configurado
+            const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+            setTimeLeft(tiempos['colores-formas'] || 10);
         }, 2000);
     }
   };
@@ -447,7 +458,7 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                         details: {
                             [currentFormaColor]: {
                                 errors: currentErrors,
-                                time: 10,
+                                time: timeLeft,
                                 resultado: false
                             }
                         }
@@ -455,7 +466,7 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
                     console.log(`Tiempo agotado para ${currentFormaColor}:`, {
                         errors: currentErrors,
-                        time: 10,
+                        time: timeLeft,
                         resultado: false
                     });
 
@@ -467,7 +478,10 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                     
                     if (currentPair < pairs.length - 1) {
                         setCurrentPair(prev => prev + 1);
-                        setTimeLeft(10);
+                        //setTimeLeft(10);
+                        // Obtener el tiempo configurado
+                        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+                        setTimeLeft(tiempos['animales-vocales'] || 10);
                         setStartTime(Date.now());
                     } else {
                         localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
@@ -768,7 +782,8 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                               strokeWidth="8"
                               strokeLinecap="round"
                               strokeDasharray={`${2 * Math.PI * 45}`}
-                              strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                              //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                              strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/(tiempos?.['colores-formas'] || 10))}
                               className="transition-all duration-1000"
                           />
                       </svg>
