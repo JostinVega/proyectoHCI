@@ -40,11 +40,20 @@ const Tiempo = ({ player, onBack, onConfigClick }) => {
         figuras: tiemposNivel1.figuras,
         animales: tiemposNivel1.animales,
         colores: tiemposNivel1.colores
-      };
+    };
     
     localStorage.setItem(`tiempos_nivel1_${player.name}`, JSON.stringify(tiemposNivel1Formato));
     //localStorage.setItem(`tiempos_nivel1_${player.name}`, JSON.stringify(tiemposNivel1));
-    localStorage.setItem(`tiempos_nivel2_${player.name}`, JSON.stringify(tiemposNivel2));
+
+    // Formato para Nivel 2
+    const tiemposNivel2Formato = {
+        'animales-numeros': tiemposNivel2['animales-numeros'],
+        'animales-vocales': tiemposNivel2['animales-vocales'],
+        'colores-formas': tiemposNivel2['colores-formas']
+    };
+
+    localStorage.setItem(`tiempos_nivel2_${player.name}`, JSON.stringify(tiemposNivel2Formato));
+    
     localStorage.setItem(`tiempos_nivel3_${player.name}`, JSON.stringify(tiemposNivel3));
     // Mostrar algún tipo de confirmación
     alert('¡Tiempos guardados correctamente!');
