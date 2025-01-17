@@ -53,8 +53,16 @@ const Tiempo = ({ player, onBack, onConfigClick }) => {
     };
 
     localStorage.setItem(`tiempos_nivel2_${player.name}`, JSON.stringify(tiemposNivel2Formato));
-    
-    localStorage.setItem(`tiempos_nivel3_${player.name}`, JSON.stringify(tiemposNivel3));
+
+     // Formato para Nivel 3
+     const tiemposNivel3Formato = {
+        'patitos': tiemposNivel3.patitos,
+        'cerditos': tiemposNivel3.cerditos
+    };
+
+    localStorage.setItem(`tiempos_nivel3_${player.name}`, JSON.stringify(tiemposNivel3Formato));
+
+    //localStorage.setItem(`tiempos_nivel3_${player.name}`, JSON.stringify(tiemposNivel3));
     // Mostrar algún tipo de confirmación
     alert('¡Tiempos guardados correctamente!');
   };

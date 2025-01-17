@@ -29,7 +29,14 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
   
   const [tiempoInicio, setTiempoInicio] = useState(null);
 
-  const [timeLeft, setTimeLeft] = useState(10);
+  //const [timeLeft, setTimeLeft] = useState(10);
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel3_${player.name}`)) || {};
+    return tiempos[animalSeleccionado ? `${animalSeleccionado}s` : 'patitos'] || 10;
+  });
+  
+  const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel3_${player.name}`)) || {};
+
   const [showSolution, setShowSolution] = useState(false);
 
   // Objeto para mapear números con sus imágenes de solución
@@ -237,6 +244,8 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
     setGameCompleted(false);
     generarNuevaCantidad();
     setTiempoInicio(Date.now()); // Inicia el tiempo
+    const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel3_${player.name}`)) || {};
+    setTimeLeft(tiempos[`${animal}s`] || 10);
   };  
 
   /*
@@ -392,7 +401,9 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
       setUserInput('');
       if (cantidadesCompletadas.length + 1 < 9) {
         generarNuevaCantidad();
-        setTimeLeft(10);
+        //setTimeLeft(10);
+        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel3_${player.name}`)) || {};
+        setTimeLeft(tiempos[`${animalSeleccionado}s`] || 10);
       }
     }, 2000);
   };
@@ -467,7 +478,9 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
             setShowSolution(false);
             if (!gameCompleted) {
               generarNuevaCantidad();
-              setTimeLeft(10);
+              //setTimeLeft(10);
+              const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel3_${player.name}`)) || {};
+              setTimeLeft(tiempos[`${animalSeleccionado}s`] || 10);
             }
           }, 2000);
           
@@ -882,7 +895,8 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
                     strokeWidth="8"
                     strokeLinecap="round"
                     strokeDasharray={`${2 * Math.PI * 45}`}
-                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                    //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/(tiempos?.[`${animalSeleccionado}s`] || 10))}
                     className="transition-all duration-1000"
                   />
                 </svg>
