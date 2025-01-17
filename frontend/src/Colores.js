@@ -69,7 +69,15 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return !savedInstructions;
   });
 
-  const [timeLeft, setTimeLeft] = useState(10);
+  //const [timeLeft, setTimeLeft] = useState(10);
+
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+    return tiempos.colores || 10; // 10 es el valor por defecto si no hay tiempo configurado
+  });
+
+  const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+
   const [showSolution, setShowSolution] = useState(false);
 
   // Mensajes de éxito y ánimo
@@ -443,7 +451,9 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             setShowFeedback(false);
             setUserInput('');
             setStartTime(Date.now());
-            setTimeLeft(10);
+            //setTimeLeft(10);
+            const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+            setTimeLeft(tiempos.colores || 10);
         }, 2000);
     }
 };
@@ -523,7 +533,10 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                     
                     if (currentColor < colores.length - 1) {
                         setCurrentColor(prev => prev + 1);
-                        setTimeLeft(10);
+                        //setTimeLeft(10);
+                        // Obtener el tiempo configurado
+                        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+                        setTimeLeft(tiempos.colores || 10);
                         setStartTime(Date.now());
                     } else {
                         localStorage.setItem(`nivel1_colores_progress_${player.name}`, '10');
@@ -707,7 +720,8 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                                     strokeWidth="8"
                                     strokeLinecap="round"
                                     strokeDasharray={`${2 * Math.PI * 45}`}
-                                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                                    //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/(tiempos?.colores || 10))}
                                     className="transition-all duration-1000"
                                 />
                             </svg>
