@@ -41,6 +41,35 @@ const Configuracion = ({ player, onBack, onEditProfile, onLogout, onShowProgress
 
   const progress = calcularProgresoGeneral();
 
+  const levelConfigs = [
+    {
+      emoji: "1️⃣",
+      bgClass: "bg-yellow-50",
+      barClass: "bg-yellow-500",
+      title: "Nivel 1",
+      progress: JSON.parse(localStorage.getItem(`nivel1_progress_${player.name}`) || '{"totalProgress": 0}').totalProgress
+    },
+    {
+      emoji: "2️⃣",
+      bgClass: "bg-blue-50",
+      barClass: "bg-blue-500",
+      title: "Nivel 2",
+      progress: JSON.parse(localStorage.getItem(`nivel2_progress_${player.name}`) || '{"totalProgress": 0}').totalProgress
+    },
+    {
+      emoji: "3️⃣",
+      bgClass: "bg-green-50",
+      barClass: "bg-green-500",
+      title: "Nivel 3",
+      progress: (() => {
+        const datos = JSON.parse(localStorage.getItem(`nivel3_progress_${player.name}`) || '{"patitos":[],"cerditos":[]}');
+        const progresoPatitos = (datos.patitos?.length || 0) * (100/9);
+        const progresoCerditos = (datos.cerditos?.length || 0) * (100/9);
+        return ((progresoPatitos + progresoCerditos) / 2).toFixed(1);
+      })()
+    }
+  ];
+  
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 p-6">
       <div className="max-w-4xl mx-auto bg-white bg-opacity-90 rounded-3xl p-8 shadow-2xl">

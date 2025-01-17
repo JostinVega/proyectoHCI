@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
 const Tiempo = ({ player, onBack, onConfigClick }) => {
+    const [showAlert, setShowAlert] = useState(false);
+
   // Estados para los tiempos de cada fase
   const [tiemposNivel1, setTiemposNivel1] = useState({
     numeros: 10,
@@ -64,7 +66,8 @@ const Tiempo = ({ player, onBack, onConfigClick }) => {
 
     //localStorage.setItem(`tiempos_nivel3_${player.name}`, JSON.stringify(tiemposNivel3));
     // Mostrar algún tipo de confirmación
-    alert('¡Tiempos guardados correctamente!');
+    //alert('¡Tiempos guardados correctamente!');
+    setShowAlert(true);
   };
 
   // Renderizar configuración del Nivel 1
@@ -365,6 +368,29 @@ const Tiempo = ({ player, onBack, onConfigClick }) => {
             💾 Guardar Cambios
           </button>
         </div>
+
+        {/* Alerta personalizada */}
+        {showAlert && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 transform animate-[fadeIn_0.3s]">
+            <div className="text-center">
+                <div className="text-5xl mb-4">🎉</div>
+                <h3 className="text-2xl font-bold text-purple-600 mb-2">
+                ¡Cambios Guardados!
+                </h3>
+                <p className="text-gray-600 mb-6">
+                Los tiempos se han actualizado correctamente para {player?.name}
+                </p>
+                <button
+                onClick={() => setShowAlert(false)}
+                className="bg-green-500 hover:bg-green-600 text-white font-bold px-6 py-2 rounded-lg transform hover:scale-105 transition-all duration-300"
+                >
+                ¡Entendido!
+                </button>
+            </div>
+            </div>
+        </div>
+        )}
       </div>
     </div>
   );
