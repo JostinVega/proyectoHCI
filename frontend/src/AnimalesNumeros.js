@@ -464,7 +464,7 @@ useEffect(() => {
                       details: {
                           [currentAnimal]: {
                               errors: currentErrors,
-                              time: 10,
+                              time: timeLeft,
                               resultado: false
                           }
                       }
@@ -472,7 +472,7 @@ useEffect(() => {
 
                   console.log(`Tiempo agotado para ${currentAnimal}:`, {
                       errors: currentErrors,
-                      time: 10,
+                      time: timeLeft,
                       resultado: false
                   });
 

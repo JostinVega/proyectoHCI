@@ -123,7 +123,14 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     return !savedInstructions;
   });
 
-  const [timeLeft, setTimeLeft] = useState(10);
+  //const [timeLeft, setTimeLeft] = useState(10);
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+    return tiempos['animales-vocales'] || 10; // 10 es el valor por defecto
+  });
+
+  const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+
   const [showSolution, setShowSolution] = useState(false);
 
   // Agregar después de la definición de estados
@@ -323,7 +330,10 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
             setShowFeedback(false);
             setUserInput('');
             setStartTime(Date.now());
-            setTimeLeft(10);
+            //setTimeLeft(10);
+            // Obtener el tiempo configurado
+            const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+            setTimeLeft(tiempos['animales-vocales'] || 10);
         }, 2000);
     }
   };
@@ -376,7 +386,7 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
                         details: {
                             [currentAnimal]: {
                                 errors: currentErrors,
-                                time: 10,
+                                time: timeLeft,
                                 resultado: false
                             }
                         }
@@ -384,7 +394,7 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
 
                     console.log(`Tiempo agotado para ${currentAnimal}:`, {
                         errors: currentErrors,
-                        time: 10,
+                        time: timeLeft,
                         resultado: false
                     });
 
@@ -396,7 +406,10 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
                     
                     if (currentPair < pairs.length - 1) {
                         setCurrentPair(prev => prev + 1);
-                        setTimeLeft(10);
+                        //setTimeLeft(10);
+                        // Obtener el tiempo configurado
+                        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+                        setTimeLeft(tiempos['animales-vocales'] || 10);
                         setStartTime(Date.now());
                     } else {
                         localStorage.setItem(`nivel2_animales_vocales_completed_${player.name}`, pairs.length);
@@ -632,7 +645,8 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
                               strokeWidth="8"
                               strokeLinecap="round"
                               strokeDasharray={`${2 * Math.PI * 45}`}
-                              strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                              //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                              strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/(tiempos?.['animales-vocales'] || 10))}
                               className="transition-all duration-1000"
                           />
                       </svg>
