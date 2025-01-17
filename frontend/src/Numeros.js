@@ -71,7 +71,14 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   });
 
   //Mostrar temporizador
-  const [timeLeft, setTimeLeft] = useState(10); // 10 segundos por fase
+  //const [timeLeft, setTimeLeft] = useState(10); // 10 segundos por fase
+
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+    return tiempos.numeros || 10; // 10 es el valor por defecto si no hay tiempo configurado
+  });
+
+  const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
 
   // Mostrar solución
   const [showSolution, setShowSolution] = useState(false);
@@ -244,7 +251,9 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             setShowFeedback(false);
             setUserInput('');
             setStartTime(Date.now());
-            setTimeLeft(10);
+            //setTimeLeft(10);
+            const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+            setTimeLeft(tiempos.numeros || 10);
         }, 2000);
 
         return () => clearTimeout(transitionTimeout);
@@ -324,7 +333,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                     
                     updatedDetails[currentNumberName] = {
                         ...updatedDetails[currentNumberName],
-                        time: 10,
+                        time: timeLeft,
                         resultado: false
                     };
 
@@ -345,7 +354,9 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                     
                     if (currentNumber < 9) {
                         setCurrentNumber(prev => prev + 1);
-                        setTimeLeft(10);
+                        //setTimeLeft(10);
+                        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+                        setTimeLeft(tiempos.numeros || 10);
                         setStartTime(Date.now());
                     } else {
                         localStorage.setItem(`nivel1_numeros_progress_${player.name}`, '10');
@@ -647,7 +658,8 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                         strokeWidth="8"
                         strokeLinecap="round"
                         strokeDasharray={`${2 * Math.PI * 45}`}
-                        strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                        //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                        strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/(tiempos?.numeros || 10))}
                         className="transition-all duration-1000"
                       />
                     </svg>
