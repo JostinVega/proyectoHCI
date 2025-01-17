@@ -170,8 +170,15 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return !savedInstructions;
   });
 
-  const [timeLeft, setTimeLeft] = useState(10);
+  //const [timeLeft, setTimeLeft] = useState(10);
+  // Por esta nueva inicialización
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+    return tiempos.animales || 10; // 10 es el valor por defecto si no hay tiempo configurado
+  });
   const [showSolution, setShowSolution] = useState(false);
+
+  const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
 
   // Mensajes de éxito para respuestas correctas
   const successMessages = [
@@ -401,7 +408,10 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             setShowFeedback(false);
             setUserInput('');
             setStartTime(Date.now());
-            setTimeLeft(10);
+            //setTimeLeft(10);
+            // Obtener el tiempo configurado
+            const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+            setTimeLeft(tiempos.animales || 10);
         }, 2000);
     }
   };
@@ -429,6 +439,7 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return () => window.removeEventListener('keypress', handleKeyPress);
   }, [currentAnimal, showInstructions]);
 
+  //Temporizador
   useEffect(() => {
     if (showInstructions || gameCompleted || showSolution) return;
 
@@ -446,7 +457,7 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                     if (!updatedStats[currentAnimalNombre]) {
                         updatedStats[currentAnimalNombre] = { 
                             errors: 0, 
-                            time: 10, 
+                            time: timeLeft, 
                             resultado: false 
                         };
                     }
@@ -470,7 +481,10 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                     
                     if (currentAnimal < animales.length - 1) {
                         setCurrentAnimal(prev => prev + 1);
-                        setTimeLeft(10);
+                        //setTimeLeft(10);
+                        // Obtener el tiempo configurado
+                        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+                        setTimeLeft(tiempos.animales || 10);
                         setStartTime(Date.now());
                     } else {
                         localStorage.setItem(`nivel1_animales_progress_${player.name}`, '14');
@@ -728,7 +742,8 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                                     strokeWidth="8"
                                     strokeLinecap="round"
                                     strokeDasharray={`${2 * Math.PI * 45}`}
-                                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                                    //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/(tiempos?.animales || 10))}
                                     className="transition-all duration-1000"
                                 />
                             </svg>

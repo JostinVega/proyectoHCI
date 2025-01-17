@@ -15,6 +15,7 @@ import AnimalesVocales from './AnimalesVocales';
 import ColoresFormas from './ColoresFormas';
 import Nivel3 from './Nivel3';
 import Progreso from './Progreso';
+import Tiempo from './Tiempo';
 
 const KidsGameUI = () => {
   
@@ -44,6 +45,9 @@ const KidsGameUI = () => {
   const [showEditProfile, setShowEditProfile] = useState(false); //Editar el perfil
 
   const [showProgress, setShowProgress] = useState(false); //Progreso
+
+  const [showTimeConfig, setShowTimeConfig] = useState(false);
+
 
   /**
    * Array de emojis que representan los avatares disponibles para los jugadores.
@@ -1206,17 +1210,20 @@ const ChangeAvatarScreen = () => {
       />
       )}
       
-      {showConfig && !showEditProfile && !showProgress && (
+      {showConfig && !showEditProfile && !showProgress && !showTimeConfig && (
         <Configuracion 
           player={registeredPlayers[selectedPlayer]}
           onBack={() => setShowConfig(false)}
           onEditProfile={() => setShowEditProfile(true)}
           onShowProgress={() => setShowProgress(true)}
+          onShowTimeConfig={() => setShowTimeConfig(true)} 
           onLogout={() => {
             setShowConfig(false);
             setShowProgress(false);
             setShowEditProfile(false);
+            setShowTimeConfig(false); 
             setCurrentScreen('login');
+            setShowTimeConfig(false);
             setSelectedPlayer(null);
             setCurrentLevel(null);
             setCurrentPhase(null);
@@ -1254,6 +1261,26 @@ const ChangeAvatarScreen = () => {
         />
       )}
 
+    {showTimeConfig && (
+      console.log('Intentando renderizar Tiempo', {
+        showTimeConfig,
+        showConfig,
+        showEditProfile,
+        showProgress,
+        player: registeredPlayers[selectedPlayer]
+      }),
+      <Tiempo
+        player={registeredPlayers[selectedPlayer]}
+        onBack={() => {
+          setShowTimeConfig(false);
+          setShowConfig(true);
+        }}
+        onConfigClick={() => {
+          setShowTimeConfig(false);
+          setShowConfig(true);
+        }}
+      />
+    )}
       
       {showSuccessModal && <SuccessModal />}
       {showUpdateSuccessModal && <UpdateSuccessModal />}

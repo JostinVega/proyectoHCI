@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Configuracion = ({ player, onBack, onEditProfile, onLogout, onShowProgress }) => {
+const Configuracion = ({ player, onBack, onEditProfile, onLogout, onShowProgress,onShowTimeConfig }) => {
   // Calcula el progreso (esto es un ejemplo, ajusta según tus necesidades)
   //const progress = 67; // Porcentaje de progreso
 
@@ -148,6 +148,7 @@ const Configuracion = ({ player, onBack, onEditProfile, onLogout, onShowProgress
             className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-6
                      rounded-xl transform hover:scale-105 transition-all duration-300 shadow-lg
                      flex items-center justify-center space-x-2"
+            onClick={onShowTimeConfig}
           >
             <span>⚙️</span>
             <span>Configuración</span>
