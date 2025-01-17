@@ -102,7 +102,14 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return !savedInstructions;
   });
 
-  const [timeLeft, setTimeLeft] = useState(10); // Temporizador de 10 segundos
+  //const [timeLeft, setTimeLeft] = useState(10); // Temporizador de 10 segundos
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+    return tiempos.figuras || 10; // 10 es el valor por defecto si no hay tiempo configurado
+  });
+
+  const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+
   const [showSolution, setShowSolution] = useState(false);
 
   // Mensajes de felicitación aleatorios
@@ -338,7 +345,10 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             setShowFeedback(false);
             setUserInput('');
             setStartTime(Date.now());
-            setTimeLeft(10);
+            //setTimeLeft(10);
+            // Obtener el tiempo configurado
+            const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+            setTimeLeft(tiempos.figuras || 10);
         }, 2000);
     }
   };
@@ -358,12 +368,12 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                     const updatedDetails = { ...prevDetails };
                     
                     if (!updatedDetails[currentFormaNombre]) {
-                        updatedDetails[currentFormaNombre] = { errors: 0, time: 10, resultado: false };
+                        updatedDetails[currentFormaNombre] = { errors: 0, time: timeLeft, resultado: false };
                     }
                     
                     updatedDetails[currentFormaNombre] = {
                         ...updatedDetails[currentFormaNombre],
-                        time: 10,
+                        time: timeLeft,
                         resultado: false
                     };
 
@@ -382,7 +392,10 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                     
                     if (currentForma < formas.length - 1) {
                         setCurrentForma(prev => prev + 1);
-                        setTimeLeft(10);
+                        //setTimeLeft(10);
+                        // Obtener el tiempo configurado
+                        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+                        setTimeLeft(tiempos.figuras || 10);
                         setStartTime(Date.now());
                     } else {
                         localStorage.setItem(`nivel1_figuras_progress_${player.name}`, '7');
@@ -666,7 +679,8 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                                     strokeWidth="8"
                                     strokeLinecap="round"
                                     strokeDasharray={`${2 * Math.PI * 45}`}
-                                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                                    //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/(tiempos?.figuras || 10))}
                                     className="transition-all duration-1000"
                                 />
                             </svg>
