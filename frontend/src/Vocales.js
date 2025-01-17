@@ -51,7 +51,14 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   });
 
   // Temporizador para cada vocal
-  const [timeLeft, setTimeLeft] = useState(10);
+  //const [timeLeft, setTimeLeft] = useState(10);
+
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+    return tiempos.vocales || 10; // 10 es el valor por defecto si no hay tiempo configurado
+  });
+  
+  const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
 
   // Mostrar solución después de agotar el tiempo
   const [showSolution, setShowSolution] = useState(false);
@@ -290,7 +297,10 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             setShowFeedback(false);
             setUserInput('');
             setStartTime(Date.now());
-            setTimeLeft(10);
+            //setTimeLeft(10);
+            // Obtener el tiempo configurado
+            const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+            setTimeLeft(tiempos.vocales || 10);
         }, 2000);
       }
   };
@@ -337,14 +347,14 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                     if (!updatedDetails[currentVocalName]) {
                         updatedDetails[currentVocalName] = { 
                             errors: 0, 
-                            time: 10, 
+                            time: timeLeft, 
                             resultado: false 
                         };
                     }
                     
                     updatedDetails[currentVocalName] = {
                         ...updatedDetails[currentVocalName],
-                        time: 10,
+                        time: timeLeft,
                         resultado: false
                     };
 
@@ -361,7 +371,10 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                     
                     if (currentVocal < 4) {
                         setCurrentVocal(prev => prev + 1);
-                        setTimeLeft(10);
+                        //setTimeLeft(10);
+                        // Obtener el tiempo configurado
+                        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+                        setTimeLeft(tiempos.vocales || 10);
                         setStartTime(Date.now());
                     } else {
                         localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5');
@@ -630,7 +643,8 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                                     strokeWidth="8"
                                     strokeLinecap="round"
                                     strokeDasharray={`${2 * Math.PI * 45}`}
-                                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                                    //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/(tiempos?.vocales || 10))}
                                     className="transition-all duration-1000"
                                 />
                             </svg>
