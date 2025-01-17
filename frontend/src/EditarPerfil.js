@@ -81,11 +81,13 @@ const EditarPerfil = ({ player, onBack, onUpdate }) => {
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              disabled
+              readOnly
+              //onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full text-xl p-4 border-4 border-purple-300 rounded-2xl 
                        focus:border-purple-500 focus:ring-4 focus:ring-purple-200"
               placeholder="¿Cómo te llamas?"
-              required
+              //required
             />
           </div>
 
@@ -161,18 +163,18 @@ const EditarPerfil = ({ player, onBack, onUpdate }) => {
           <div className="flex justify-center space-x-4 pt-6">
             <button
               type="button"
-              className="bg-gray-500 hover:bg-gray-600 text-white text-xl font-bold py-4 px-8
-                       rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
+              className="bg-pink-500 hover:bg-pink-600 text-white text-2xl font-bold py-4 px-8
+                      rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
               onClick={onBack}
             >
-              Cancelar
+              ← Cancelar
             </button>
             <button
               type="submit"
-              className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
-                       rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
+              className="bg-blue-500 hover:bg-blue-600 text-white text-2xl font-bold py-4 px-8
+                      rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
             >
-              Actualizar
+              Actualizar ✨
             </button>
           </div>
         </form>

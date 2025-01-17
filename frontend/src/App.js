@@ -64,16 +64,16 @@ const KidsGameUI = () => {
    */
   const backgroundColors = [
     'bg-pastel-blue',        // #AEC6CF
-    'bg-pastel-green',       // #77DD77
-    'bg-pastel-yellow',      // #FFECB3
-    'bg-pastel-purple',      // #D6A2E8
-    'bg-pastel-pink',        // #FFB7C5
-    'bg-pastel-red',         // #FF6961
-    'bg-pastel-indigo',      // #C3B1E1
-    'bg-pastel-orange',      // #FFDAC1
-    'bg-pastel-teal',        // #AFE4E0
-    'bg-light-sky-blue',     // #87CEFA
-    'bg-peach-puff',         // #FFDAB9
+    //'bg-pastel-green',       // #77DD77
+    //'bg-pastel-yellow',      // #FFECB3
+    //'bg-pastel-purple',      // #D6A2E8
+    //'bg-pastel-pink',        // #FFB7C5
+    //'bg-pastel-red',         // #FF6961
+    //'bg-pastel-indigo',      // #C3B1E1
+    //'bg-pastel-orange',      // #FFDAC1
+    //'bg-pastel-teal',        // #AFE4E0
+    //'bg-light-sky-blue',     // #87CEFA
+    //'bg-peach-puff',         // #FFDAB9
   ];
 
    /**
@@ -732,11 +732,15 @@ const KidsGameUI = () => {
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              //onChange={(e) => setFormData({...formData, name: e.target.value})}
+              readOnly
+              disabled
+              //className="w-full text-xl p-4 border-4 border-purple-300 rounded-2xl 
+                      //focus:border-purple-500 focus:ring-4 focus:ring-purple-200"
               className="w-full text-xl p-4 border-4 border-purple-300 rounded-2xl 
-                      focus:border-purple-500 focus:ring-4 focus:ring-purple-200"
+              bg-gray-100 cursor-not-allowed opacity-75 select-none pointer-events-none"
               placeholder="¿Cómo te llamas?"
-              required
+              //required
             />
           </div>
 
