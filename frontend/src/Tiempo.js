@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 const Tiempo = ({ player, onBack, onConfigClick }) => {
     const [showAlert, setShowAlert] = useState(false);
@@ -22,6 +23,11 @@ const Tiempo = ({ player, onBack, onConfigClick }) => {
     patitos: 10,
     cerditos: 10
   });
+
+  // Agregar después de const [showAlert, setShowAlert] = useState(false);
+  const [showNivel1, setShowNivel1] = useState(true);
+  const [showNivel2, setShowNivel2] = useState(true);
+  const [showNivel3, setShowNivel3] = useState(true);
 
   // Cargar tiempos guardados al iniciar
   useEffect(() => {
@@ -70,260 +76,283 @@ const Tiempo = ({ player, onBack, onConfigClick }) => {
     setShowAlert(true);
   };
 
-  // Renderizar configuración del Nivel 1
+  const CollapsibleHeader = ({ title, isOpen, onToggle }) => (
+    <div 
+        className="flex items-center justify-between cursor-pointer bg-purple-100 p-4 rounded-t-xl"
+        onClick={onToggle}
+    >
+        <h3 className="text-xl font-bold text-purple-600">{title}</h3>
+        <div className="bg-white w-8 h-8 rounded-full shadow-md flex items-center justify-center">
+            <span className="text-purple-600 text-xl font-bold">
+                {isOpen ? '▾' : '▸'}
+            </span>
+        </div>
+    </div>
+);
+  
   const renderConfigNivel1 = () => (
-    <div className="bg-white bg-opacity-90 rounded-xl p-4 mb-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xl font-bold text-purple-600">Nivel 1: Aprendizaje Básico</h3>
-      </div>
-      
-      <div className="space-y-4">
-      {Object.entries(tiemposNivel1).map(([fase, tiempo]) => (
-        <div key={fase} className="bg-gray-50 hover:bg-gray-100 transition-colors duration-300 rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-                <div className="text-2xl bg-white p-3 rounded-full shadow-md">
-                {fase === 'numeros' ? '🔢' : 
-                fase === 'vocales' ? '📝' : 
-                fase === 'figuras' ? '⭐' : 
-                fase === 'animales' ? '🦁' : '🎨'}
+    <div className="bg-white bg-opacity-90 rounded-xl mb-4 overflow-hidden">
+        <CollapsibleHeader 
+            title="Nivel 1: Aprendizaje Básico"
+            isOpen={showNivel1}
+            onToggle={() => setShowNivel1(!showNivel1)}
+        />
+        
+        {showNivel1 && (
+            <div className="p-4 space-y-4">
+                {Object.entries(tiemposNivel1).map(([fase, tiempo]) => (
+                    <div key={fase} className="bg-gray-50 hover:bg-gray-100 transition-colors duration-300 rounded-lg p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="text-2xl bg-white p-3 rounded-full shadow-md">
+                        {fase === 'numeros' ? '🔢' : 
+                        fase === 'vocales' ? '📝' : 
+                        fase === 'figuras' ? '⭐' : 
+                        fase === 'animales' ? '🦁' : '🎨'}
+                        </div>
+                        <div>
+                        <span className="text-gray-700 capitalize text-lg font-semibold block">
+                            {fase}
+                        </span>
+                        <span className="text-gray-500 text-sm">
+                            Tiempo límite para completar
+                        </span>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button 
+                        onClick={() => {
+                            const newValue = Math.max(1, tiempo - 1);
+                            setTiemposNivel1({...tiemposNivel1, [fase]: newValue});
+                        }}
+                        className="bg-purple-100 hover:bg-purple-200 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors duration-300"
+                        >
+                        -
+                        </button>
+                        <div className="bg-white px-4 py-2 rounded-lg shadow-sm min-w-[80px] text-center">
+                        <span className="text-2xl font-bold text-purple-600">{tiempo}</span>
+                        <span className="text-gray-500 text-sm ml-1">seg</span>
+                        </div>
+                        <button 
+                        onClick={() => {
+                            const newValue = Math.min(20, tiempo + 1);
+                            setTiemposNivel1({...tiemposNivel1, [fase]: newValue});
+                        }}
+                        className="bg-purple-100 hover:bg-purple-200 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors duration-300"
+                        >
+                        +
+                        </button>
+                    </div>
+                    </div>
+                    <div className="relative">
+                    <input
+                        type="range"
+                        min="1"
+                        max="20"
+                        value={tiempo}
+                        onChange={(e) => setTiemposNivel1({...tiemposNivel1, [fase]: parseInt(e.target.value)})}
+                        className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer 
+                                focus:outline-none focus:ring-2 focus:ring-purple-300
+                                [&::-webkit-slider-thumb]:appearance-none
+                                [&::-webkit-slider-thumb]:w-6
+                                [&::-webkit-slider-thumb]:h-6
+                                [&::-webkit-slider-thumb]:rounded-full
+                                [&::-webkit-slider-thumb]:bg-purple-600
+                                [&::-webkit-slider-thumb]:cursor-pointer
+                                [&::-webkit-slider-thumb]:transition-all
+                                [&::-webkit-slider-thumb]:duration-150
+                                [&::-webkit-slider-thumb]:hover:bg-purple-700
+                                [&::-webkit-slider-thumb]:hover:scale-110"
+                    />
+                    <div className="absolute -bottom-6 left-0 right-0 flex justify-between px-1 text-xs text-gray-400">
+                        <span>1s</span>
+                        <span>5s</span>
+                        <span>10s</span>
+                        <span>15s</span>
+                        <span>20s</span>
+                    </div>
+                    </div>
                 </div>
-                <div>
-                <span className="text-gray-700 capitalize text-lg font-semibold block">
-                    {fase}
-                </span>
-                <span className="text-gray-500 text-sm">
-                    Tiempo límite para completar
-                </span>
-                </div>
+                ))}
             </div>
-            <div className="flex items-center gap-2">
-                <button 
-                onClick={() => {
-                    const newValue = Math.max(1, tiempo - 1);
-                    setTiemposNivel1({...tiemposNivel1, [fase]: newValue});
-                }}
-                className="bg-purple-100 hover:bg-purple-200 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors duration-300"
-                >
-                -
-                </button>
-                <div className="bg-white px-4 py-2 rounded-lg shadow-sm min-w-[80px] text-center">
-                <span className="text-2xl font-bold text-purple-600">{tiempo}</span>
-                <span className="text-gray-500 text-sm ml-1">seg</span>
-                </div>
-                <button 
-                onClick={() => {
-                    const newValue = Math.min(20, tiempo + 1);
-                    setTiemposNivel1({...tiemposNivel1, [fase]: newValue});
-                }}
-                className="bg-purple-100 hover:bg-purple-200 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors duration-300"
-                >
-                +
-                </button>
-            </div>
-            </div>
-            <div className="relative">
-            <input
-                type="range"
-                min="1"
-                max="20"
-                value={tiempo}
-                onChange={(e) => setTiemposNivel1({...tiemposNivel1, [fase]: parseInt(e.target.value)})}
-                className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer 
-                        focus:outline-none focus:ring-2 focus:ring-purple-300
-                        [&::-webkit-slider-thumb]:appearance-none
-                        [&::-webkit-slider-thumb]:w-6
-                        [&::-webkit-slider-thumb]:h-6
-                        [&::-webkit-slider-thumb]:rounded-full
-                        [&::-webkit-slider-thumb]:bg-purple-600
-                        [&::-webkit-slider-thumb]:cursor-pointer
-                        [&::-webkit-slider-thumb]:transition-all
-                        [&::-webkit-slider-thumb]:duration-150
-                        [&::-webkit-slider-thumb]:hover:bg-purple-700
-                        [&::-webkit-slider-thumb]:hover:scale-110"
-            />
-            <div className="absolute -bottom-6 left-0 right-0 flex justify-between px-1 text-xs text-gray-400">
-                <span>1s</span>
-                <span>5s</span>
-                <span>10s</span>
-                <span>15s</span>
-                <span>20s</span>
-            </div>
-            </div>
-        </div>
-        ))}
-      </div>
+        )}
     </div>
-  );
+);
 
-  // Renderizar configuración del Nivel 2
   const renderConfigNivel2 = () => (
-    <div className="bg-white bg-opacity-90 rounded-xl p-4 mb-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xl font-bold text-purple-600">Nivel 2: Relaciones</h3>
-      </div>
-      
-      <div className="space-y-4">
-      {Object.entries(tiemposNivel2).map(([fase, tiempo]) => (
-        <div key={fase} className="bg-gray-50 hover:bg-gray-100 transition-colors duration-300 rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-                <div className="text-2xl bg-white p-3 rounded-full shadow-md">
-                {fase === 'animales-numeros' ? '🦁1️⃣' : 
-                fase === 'animales-vocales' ? '🐘A' : '🎨⭕'}
-                </div>
-                <div>
-                <span className="text-gray-700 text-lg font-semibold block">
-                    {fase === 'animales-numeros' ? 'Animales y Números' :
-                    fase === 'animales-vocales' ? 'Animales y Vocales' : 
-                    'Colores y Formas'}
-                </span>
-                <span className="text-gray-500 text-sm">
-                    Tiempo límite para completar
-                </span>
-                </div>
+    <div className="bg-white bg-opacity-90 rounded-xl mb-4 overflow-hidden">
+        <CollapsibleHeader 
+            title="Nivel 2: Relaciones"
+            isOpen={showNivel2}
+            onToggle={() => setShowNivel2(!showNivel2)}
+        />
+        
+        {showNivel2 && (
+            <div className="p-4 space-y-4">
+                {Object.entries(tiemposNivel2).map(([fase, tiempo]) => (
+                    <div key={fase} className="bg-gray-50 hover:bg-gray-100 transition-colors duration-300 rounded-lg p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="text-2xl bg-purple-100 p-3 rounded-full shadow-md">
+                                    {fase === 'animales-numeros' ? '🦁1️⃣' : 
+                                    fase === 'animales-vocales' ? '🐘A' : '🎨⭕'}
+                                </div>
+                                <div>
+                                    <span className="text-gray-700 text-lg font-semibold block">
+                                        {fase === 'animales-numeros' ? 'Animales y Números' :
+                                        fase === 'animales-vocales' ? 'Animales y Vocales' : 
+                                        'Colores y Formas'}
+                                    </span>
+                                    <span className="text-gray-500 text-sm">
+                                        Tiempo límite para completar
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => {
+                                        const newValue = Math.max(1, tiempo - 1);
+                                        setTiemposNivel2({...tiemposNivel2, [fase]: newValue});
+                                    }}
+                                    className="bg-purple-100 hover:bg-purple-200 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors duration-300"
+                                >
+                                    -
+                                </button>
+                                <div className="bg-white-100 px-4 py-2 rounded-lg shadow-md min-w-[80px] text-center">
+                                    <span className="text-2xl font-bold text-purple-600">{tiempo}</span>
+                                    <span className="text-gray-500 text-sm ml-1">seg</span>
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        const newValue = Math.min(20, tiempo + 1);
+                                        setTiemposNivel2({...tiemposNivel2, [fase]: newValue});
+                                    }}
+                                    className="bg-purple-100 hover:bg-purple-200 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors duration-300 shadow-md"
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <input
+                                type="range"
+                                min="1"
+                                max="20"
+                                value={tiempo}
+                                onChange={(e) => setTiemposNivel2({...tiemposNivel2, [fase]: parseInt(e.target.value)})}
+                                className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer 
+                                        focus:outline-none focus:ring-2 focus:ring-purple-300
+                                        [&::-webkit-slider-thumb]:appearance-none
+                                        [&::-webkit-slider-thumb]:w-6
+                                        [&::-webkit-slider-thumb]:h-6
+                                        [&::-webkit-slider-thumb]:rounded-full
+                                        [&::-webkit-slider-thumb]:bg-purple-600
+                                        [&::-webkit-slider-thumb]:cursor-pointer
+                                        [&::-webkit-slider-thumb]:transition-all
+                                        [&::-webkit-slider-thumb]:duration-150
+                                        [&::-webkit-slider-thumb]:hover:bg-purple-700
+                                        [&::-webkit-slider-thumb]:hover:scale-110"
+                            />
+                            <div className="absolute -bottom-6 left-0 right-0 flex justify-between px-1 text-xs text-gray-400">
+                                <span>1s</span>
+                                <span>5s</span>
+                                <span>10s</span>
+                                <span>15s</span>
+                                <span>20s</span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
             </div>
-            <div className="flex items-center gap-2">
-                <button 
-                onClick={() => {
-                    const newValue = Math.max(1, tiempo - 1);
-                    setTiemposNivel2({...tiemposNivel2, [fase]: newValue});
-                }}
-                className="bg-purple-100 hover:bg-purple-200 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors duration-300"
-                >
-                -
-                </button>
-                <div className="bg-white px-4 py-2 rounded-lg shadow-sm min-w-[80px] text-center">
-                <span className="text-2xl font-bold text-purple-600">{tiempo}</span>
-                <span className="text-gray-500 text-sm ml-1">seg</span>
-                </div>
-                <button 
-                onClick={() => {
-                    const newValue = Math.min(20, tiempo + 1);
-                    setTiemposNivel2({...tiemposNivel2, [fase]: newValue});
-                }}
-                className="bg-purple-100 hover:bg-purple-200 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors duration-300"
-                >
-                +
-                </button>
-            </div>
-            </div>
-            <div className="relative">
-            <input
-                type="range"
-                min="1"
-                max="20"
-                value={tiempo}
-                onChange={(e) => setTiemposNivel2({...tiemposNivel2, [fase]: parseInt(e.target.value)})}
-                className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer 
-                        focus:outline-none focus:ring-2 focus:ring-purple-300
-                        [&::-webkit-slider-thumb]:appearance-none
-                        [&::-webkit-slider-thumb]:w-6
-                        [&::-webkit-slider-thumb]:h-6
-                        [&::-webkit-slider-thumb]:rounded-full
-                        [&::-webkit-slider-thumb]:bg-purple-600
-                        [&::-webkit-slider-thumb]:cursor-pointer
-                        [&::-webkit-slider-thumb]:transition-all
-                        [&::-webkit-slider-thumb]:duration-150
-                        [&::-webkit-slider-thumb]:hover:bg-purple-700
-                        [&::-webkit-slider-thumb]:hover:scale-110"
-            />
-            <div className="absolute -bottom-6 left-0 right-0 flex justify-between px-1 text-xs text-gray-400">
-                <span>1s</span>
-                <span>5s</span>
-                <span>10s</span>
-                <span>15s</span>
-                <span>20s</span>
-            </div>
-            </div>
-        </div>
-        ))}
-      </div>
+        )}
     </div>
   );
 
-  // Renderizar configuración del Nivel 3
   const renderConfigNivel3 = () => (
-    <div className="bg-white bg-opacity-90 rounded-xl p-4 mb-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xl font-bold text-purple-600">Nivel 3: Conteo</h3>
-      </div>
-      
-      <div className="space-y-4">
-      {Object.entries(tiemposNivel3).map(([fase, tiempo]) => (
-        <div key={fase} className="bg-gray-50 hover:bg-gray-100 transition-colors duration-300 rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-                <div className="text-2xl bg-white p-3 rounded-full shadow-md">
-                {fase === 'patitos' ? '🦆' : '🐷'}
-                </div>
-                <div>
-                <span className="text-gray-700 capitalize text-lg font-semibold block">
-                    {fase === 'patitos' ? 'Patitos' : 'Cerditos'}
-                </span>
-                <span className="text-gray-500 text-sm">
-                    Tiempo límite para completar
-                </span>
-                </div>
+    <div className="bg-white bg-opacity-90 rounded-xl mb-4 overflow-hidden">
+        <CollapsibleHeader 
+            title="Nivel 3: Conteo"
+            isOpen={showNivel3}
+            onToggle={() => setShowNivel3(!showNivel3)}
+        />
+        
+        {showNivel3 && (
+            <div className="p-4 space-y-4">
+                {Object.entries(tiemposNivel3).map(([fase, tiempo]) => (
+                    <div key={fase} className="bg-gray-50 hover:bg-gray-100 transition-colors duration-300 rounded-lg p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="text-2xl bg-white p-3 rounded-full shadow-md">
+                                    {fase === 'patitos' ? '🦆' : '🐷'}
+                                </div>
+                                <div>
+                                    <span className="text-gray-700 capitalize text-lg font-semibold block">
+                                        {fase === 'patitos' ? 'Patitos' : 'Cerditos'}
+                                    </span>
+                                    <span className="text-gray-500 text-sm">
+                                        Tiempo límite para completar
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => {
+                                        const newValue = Math.max(1, tiempo - 1);
+                                        setTiemposNivel3({...tiemposNivel3, [fase]: newValue});
+                                    }}
+                                    className="bg-purple-100 hover:bg-purple-200 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors duration-300"
+                                >
+                                    -
+                                </button>
+                                <div className="bg-white px-4 py-2 rounded-lg shadow-sm min-w-[80px] text-center">
+                                    <span className="text-2xl font-bold text-purple-600">{tiempo}</span>
+                                    <span className="text-gray-500 text-sm ml-1">seg</span>
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        const newValue = Math.min(20, tiempo + 1);
+                                        setTiemposNivel3({...tiemposNivel3, [fase]: newValue});
+                                    }}
+                                    className="bg-purple-100 hover:bg-purple-200 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors duration-300"
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <input
+                                type="range"
+                                min="1"
+                                max="20"
+                                value={tiempo}
+                                onChange={(e) => setTiemposNivel3({...tiemposNivel3, [fase]: parseInt(e.target.value)})}
+                                className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer 
+                                        focus:outline-none focus:ring-2 focus:ring-purple-300
+                                        [&::-webkit-slider-thumb]:appearance-none
+                                        [&::-webkit-slider-thumb]:w-6
+                                        [&::-webkit-slider-thumb]:h-6
+                                        [&::-webkit-slider-thumb]:rounded-full
+                                        [&::-webkit-slider-thumb]:bg-purple-600
+                                        [&::-webkit-slider-thumb]:cursor-pointer
+                                        [&::-webkit-slider-thumb]:transition-all
+                                        [&::-webkit-slider-thumb]:duration-150
+                                        [&::-webkit-slider-thumb]:hover:bg-purple-700
+                                        [&::-webkit-slider-thumb]:hover:scale-110"
+                            />
+                            <div className="absolute -bottom-6 left-0 right-0 flex justify-between px-1 text-xs text-gray-400">
+                                <span>1s</span>
+                                <span>5s</span>
+                                <span>10s</span>
+                                <span>15s</span>
+                                <span>20s</span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
             </div>
-            <div className="flex items-center gap-2">
-                <button 
-                onClick={() => {
-                    const newValue = Math.max(1, tiempo - 1);
-                    setTiemposNivel3({...tiemposNivel3, [fase]: newValue});
-                }}
-                className="bg-purple-100 hover:bg-purple-200 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors duration-300"
-                >
-                -
-                </button>
-                <div className="bg-white px-4 py-2 rounded-lg shadow-sm min-w-[80px] text-center">
-                <span className="text-2xl font-bold text-purple-600">{tiempo}</span>
-                <span className="text-gray-500 text-sm ml-1">seg</span>
-                </div>
-                <button 
-                onClick={() => {
-                    const newValue = Math.min(20, tiempo + 1);
-                    setTiemposNivel3({...tiemposNivel3, [fase]: newValue});
-                }}
-                className="bg-purple-100 hover:bg-purple-200 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors duration-300"
-                >
-                +
-                </button>
-            </div>
-            </div>
-            <div className="relative">
-            <input
-                type="range"
-                min="1"
-                max="20"
-                value={tiempo}
-                onChange={(e) => setTiemposNivel3({...tiemposNivel3, [fase]: parseInt(e.target.value)})}
-                className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer 
-                        focus:outline-none focus:ring-2 focus:ring-purple-300
-                        [&::-webkit-slider-thumb]:appearance-none
-                        [&::-webkit-slider-thumb]:w-6
-                        [&::-webkit-slider-thumb]:h-6
-                        [&::-webkit-slider-thumb]:rounded-full
-                        [&::-webkit-slider-thumb]:bg-purple-600
-                        [&::-webkit-slider-thumb]:cursor-pointer
-                        [&::-webkit-slider-thumb]:transition-all
-                        [&::-webkit-slider-thumb]:duration-150
-                        [&::-webkit-slider-thumb]:hover:bg-purple-700
-                        [&::-webkit-slider-thumb]:hover:scale-110"
-            />
-            <div className="absolute -bottom-6 left-0 right-0 flex justify-between px-1 text-xs text-gray-400">
-                <span>1s</span>
-                <span>5s</span>
-                <span>10s</span>
-                <span>15s</span>
-                <span>20s</span>
-            </div>
-            </div>
-        </div>
-        ))}
-      </div>
+        )}
     </div>
-  );
+);
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 p-6">
