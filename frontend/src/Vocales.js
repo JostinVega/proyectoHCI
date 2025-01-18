@@ -63,6 +63,8 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   // Mostrar solución después de agotar el tiempo
   const [showSolution, setShowSolution] = useState(false);
 
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  
   // Configuración de cada vocal con su imagen y nombre
   const vocalesConfig = {
     'a': { imagen: abejita, nombre: 'abejita' },
@@ -215,6 +217,14 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
     const isRight = input === vocales[currentVocal];
     setIsCorrect(isRight);
+
+    // Selecciona el mensaje una sola vez
+    setFeedbackMessage(
+      isRight
+        ? successMessages[Math.floor(Math.random() * successMessages.length)]
+        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+    );
+    
     setShowFeedback(true);
 
     const endTime = Date.now();
@@ -588,12 +598,21 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             </p>
 
             {/* Retroalimentación */}
+            {/* 
             {showFeedback && (
               <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
                           animate-bounce`}>
                 {isCorrect 
                   ? successMessages[Math.floor(Math.random() * successMessages.length)]
                   : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]}
+              </div>
+            )}
+            */}
+
+            {showFeedback && (
+              <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
+                              animate-bounce`}>
+                {feedbackMessage}
               </div>
             )}
 

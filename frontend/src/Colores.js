@@ -80,6 +80,8 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
   const [showSolution, setShowSolution] = useState(false);
 
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+
   // Mensajes de éxito y ánimo
   const successMessages = [
     "¡Excelente trabajo! 🌟",
@@ -365,6 +367,14 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     const currentColorNombre = colores[currentColor];
     const isRight = input === currentColorNombre.charAt(0);
     setIsCorrect(isRight);
+
+    // Selecciona el mensaje una sola vez
+    setFeedbackMessage(
+      isRight
+        ? successMessages[Math.floor(Math.random() * successMessages.length)]
+        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+    );
+
     setShowFeedback(true);
 
     
@@ -797,12 +807,20 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
               {!isAnimating && `Inserta la tarjeta del color ${colores[currentColor]}`}
             </p>
 
+            {/*
             {showFeedback && !isAnimating && (
               <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
                           animate-bounce`}>
                 {isCorrect 
                   ? successMessages[Math.floor(Math.random() * successMessages.length)]
                   : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]}
+              </div>
+            )}*/}
+
+            {showFeedback && !isAnimating && (
+              <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
+                              animate-bounce`}>
+                {feedbackMessage}
               </div>
             )}
 

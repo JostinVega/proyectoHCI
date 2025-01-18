@@ -178,6 +178,8 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   });
   const [showSolution, setShowSolution] = useState(false);
 
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+
   const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
 
   // Mensajes de éxito para respuestas correctas
@@ -327,6 +329,14 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     const currentAnimalNombre = animales[currentAnimal];
     const isRight = input === currentAnimalNombre.charAt(0);
     setIsCorrect(isRight);
+
+    // Selecciona el mensaje una sola vez
+    setFeedbackMessage(
+      isRight
+        ? successMessages[Math.floor(Math.random() * successMessages.length)]
+        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+    );
+
     setShowFeedback(true);
 
     const endTime = Date.now();
@@ -687,12 +697,20 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             </p>
 
             {/* Retroalimentación */}
+            {/*
             {showFeedback && (
               <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
                           animate-bounce`}>
                 {isCorrect 
                   ? successMessages[Math.floor(Math.random() * successMessages.length)]
                   : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]}
+              </div>
+            )}*/}
+
+            {showFeedback && (
+              <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
+                              animate-bounce`}>
+                {feedbackMessage}
               </div>
             )}
 

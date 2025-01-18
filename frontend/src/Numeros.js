@@ -83,6 +83,8 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   // Mostrar solución
   const [showSolution, setShowSolution] = useState(false);
   
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+
   // Mensajes de felicitación
   const successMessages = [
     "¡Excelente trabajo! 🌟",
@@ -113,6 +115,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     9: { imagen: oveja, cantidad: 9, nombre: 'oveja' }
   };
 
+  /*
   // Maneja la entrada de teclado
   const handleKeyPress = (e) => {
     if (showInstructions) return;
@@ -123,6 +126,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     setUserInput(e.key);
     checkAnswer(e.key);
   };
+  */
 
   const saveDetailsToDatabase = async ({ section, details }) => {
     console.log('Datos que se enviarán al backend:', { section, details });
@@ -159,6 +163,14 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
     const isRight = parseInt(input) === currentNumber;
     setIsCorrect(isRight);
+
+    // Selecciona el mensaje una sola vez
+    setFeedbackMessage(
+      isRight
+        ? successMessages[Math.floor(Math.random() * successMessages.length)]
+        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+    );
+
     setShowFeedback(true);
   
     const endTime = Date.now();
@@ -259,6 +271,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
         return () => clearTimeout(transitionTimeout);
     }
 };
+
   // Función para ordenar los datos basados en el orden de los números
   const getSortedDetails = (details) => {
     const order = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
@@ -618,6 +631,8 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             </p>
 
             {/* Retroalimentación */}
+
+            {/*
             {showFeedback && (
               <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
                             animate-bounce`}>
@@ -625,7 +640,15 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                   ? successMessages[Math.floor(Math.random() * successMessages.length)]
                   : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]}
               </div>
+            )}*/}
+
+            {showFeedback && (
+              <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
+                              animate-bounce`}>
+                {feedbackMessage}
+              </div>
             )}
+
 
             {/* Indicador visual de entrada */}
             <div className="mt-8 text-gray-500">

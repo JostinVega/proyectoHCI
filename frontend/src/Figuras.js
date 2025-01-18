@@ -112,6 +112,8 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
   const [showSolution, setShowSolution] = useState(false);
 
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+
   // Mensajes de felicitación aleatorios
   const successMessages = [
     "¡Excelente trabajo! 🌟",
@@ -267,6 +269,14 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     const currentFormaNombre = formas[currentForma];
     const isRight = input === currentFormaNombre.charAt(0);
     setIsCorrect(isRight);
+
+    // Selecciona el mensaje una sola vez
+    setFeedbackMessage(
+      isRight
+        ? successMessages[Math.floor(Math.random() * successMessages.length)]
+        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+    );
+
     setShowFeedback(true);
 
     const endTime = Date.now();
@@ -624,12 +634,20 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
             </p>
 
             {/* Retroalimentación */}
+            {/*
             {showFeedback && (
               <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
                           animate-bounce`}>
                 {isCorrect 
                   ? successMessages[Math.floor(Math.random() * successMessages.length)]
                   : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]}
+              </div>
+            )}*/}
+
+            {showFeedback && (
+              <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
+                              animate-bounce`}>
+                {feedbackMessage}
               </div>
             )}
 
