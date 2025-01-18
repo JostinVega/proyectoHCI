@@ -39,6 +39,8 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
 
   const [showSolution, setShowSolution] = useState(false);
 
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+
   // Objeto para mapear números con sus imágenes de solución
   const solutionImages = {
     1: soluno,
@@ -330,6 +332,14 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
   
     const isRight = parseInt(input) === cantidadActual;
     setIsCorrect(isRight);
+
+    // Selecciona el mensaje una sola vez
+    setFeedbackMessage(
+      isRight
+        ? successMessages[Math.floor(Math.random() * successMessages.length)]
+        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+    );
+
     setShowFeedback(true);
   
     if (tiempoInicio) {
@@ -814,12 +824,21 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
         </div>
         <div>
           <div className="text-4xl font-bold text-purple-600">Tu respuesta: {userInput}</div>
+          {/*
           {showFeedback && (
             <div className={`mt-4 text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
                             animate-bounce`}>
               {isCorrect ? successMessages[Math.floor(Math.random() * successMessages.length)] : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]}
             </div>
           )}
+          */}
+          {showFeedback && (
+              <div className={`mt-8 text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
+                              animate-bounce`}>
+                {feedbackMessage}
+              </div>
+          )}
+
         </div>
       </div>
     );
