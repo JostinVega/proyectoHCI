@@ -133,6 +133,8 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
 
   const [showSolution, setShowSolution] = useState(false);
 
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+
   // Agregar después de la definición de estados
   useEffect(() => {
     if (currentPair >= pairs.length) {
@@ -250,6 +252,14 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     
     const isRight = input === pairs[currentPair].vocal;
     setIsCorrect(isRight);
+
+    // Selecciona el mensaje una sola vez
+    setFeedbackMessage(
+      isRight
+        ? successMessages[Math.floor(Math.random() * successMessages.length)]
+        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+    );
+
     setShowFeedback(true);
 
     const endTime = Date.now();
@@ -738,7 +748,8 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
                     Tu respuesta: <span className="text-6xl uppercase">{userInput}</span>
                   </div>
                 </div>
-        
+
+                {/*
                 {showFeedback && (
                   <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
                               animate-bounce`}>
@@ -747,6 +758,14 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
                       : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]}
                   </div>
                 )}
+                */}
+
+              {showFeedback && (
+                <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
+                                animate-bounce`}>
+                  {feedbackMessage}
+                </div>
+              )}
               </>
             )}
         

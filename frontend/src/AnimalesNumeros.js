@@ -175,6 +175,8 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
 
   const [showSolution, setShowSolution] = useState(false);
   
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  
   // Al inicio del componente, después de la definición de pairs
   useEffect(() => {
     if (currentPair >= pairs.length) {
@@ -346,6 +348,14 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
 
     const isRight = parseInt(input) === pairs[currentPair].cantidad;
     setIsCorrect(isRight);
+
+    // Selecciona el mensaje una sola vez
+    setFeedbackMessage(
+      isRight
+        ? successMessages[Math.floor(Math.random() * successMessages.length)]
+        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+    );
+
     setShowFeedback(true);
 
     const endTime = Date.now();
@@ -822,12 +832,20 @@ useEffect(() => {
               </div>
             </div>
 
+            {/*
             {showFeedback && (
               <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
                           animate-bounce`}>
                 {isCorrect 
                   ? successMessages[Math.floor(Math.random() * successMessages.length)]
                   : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]}
+              </div>
+            )}*/}
+
+            {showFeedback && (
+              <div className={`text-2xl font-bold ${isCorrect ? 'text-green-500' : 'text-red-500'} 
+                              animate-bounce`}>
+                {feedbackMessage}
               </div>
             )}
 
