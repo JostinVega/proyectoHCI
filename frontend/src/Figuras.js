@@ -6,7 +6,9 @@ import figuraestrella from '../src/images/figuraestrella.png';
 import figuracorazon from '../src/images/figuracorazon.png';
 import figuraluna from '../src/images/figuraluna.png';
 
-import React, { useState, useEffect } from 'react';
+import time from '../src/sounds/time.mp3';
+
+import React, { useState, useEffect, useRef } from 'react';
 
 // SVG Component for each shape
 const Shapes = {
@@ -113,6 +115,8 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [showSolution, setShowSolution] = useState(false);
 
   const [feedbackMessage, setFeedbackMessage] = useState('');
+
+  const audioRef = useRef(null);
 
   // Mensajes de felicitación aleatorios
   const successMessages = [
@@ -366,9 +370,26 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   useEffect(() => {
     if (showInstructions || gameCompleted || showSolution) return;
 
+    // Crear el elemento de audio si no existe
+    if (!audioRef.current) {
+      audioRef.current = new Audio(time);
+      audioRef.current.loop = true;
+    }
+
     let timeoutId;
     const timerId = setInterval(() => {
         setTimeLeft(time => {
+
+            // Manejar el audio cuando el tiempo es bajo
+            if (time <= 3 && time > 0) {
+              audioRef.current.play().catch(error => {
+                  console.log("Error al reproducir el audio:", error);
+              });
+            } else if (time > 3 || time <= 0) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
+
             if (time <= 0) {
                 clearInterval(timerId);
                 setShowSolution(true);
@@ -423,6 +444,10 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return () => {
         if (timerId) clearInterval(timerId);
         if (timeoutId) clearTimeout(timeoutId);
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+      }
     };
   }, [currentForma, showInstructions, gameCompleted, showSolution, player.name]);
   

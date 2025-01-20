@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // Importar imágenes para las vocales y soluciones
 import abejita from '../src/images/abejita.gif';
@@ -13,6 +13,8 @@ import vocale from '../src/images/vocale.png';
 import vocali from '../src/images/vocali.png';
 import vocalo from '../src/images/vocalo.png';
 import vocalu from '../src/images/vocalu.png';
+
+import time from '../src/sounds/time.mp3';
 
 // Objeto para mapear vocales con sus imágenes de solución
 const solutionImages = {
@@ -65,6 +67,8 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
   const [feedbackMessage, setFeedbackMessage] = useState('');
   
+  const audioRef = useRef(null);
+
   // Configuración de cada vocal con su imagen y nombre
   const vocalesConfig = {
     'a': { imagen: abejita, nombre: 'abejita' },
@@ -343,9 +347,25 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   useEffect(() => {
     if (showInstructions || gameCompleted || showSolution) return;
 
+    // Crear el elemento de audio si no existe
+    if (!audioRef.current) {
+      audioRef.current = new Audio(time);
+      audioRef.current.loop = true;
+    }
+
     let timeoutId;
     const timerId = setInterval(() => {
         setTimeLeft(time => {
+
+            // Manejar el audio cuando el tiempo es bajo
+            if (time <= 3 && time > 0) {
+              audioRef.current.play().catch(error => {
+                  console.log("Error al reproducir el audio:", error);
+              });
+            } else if (time > 3 || time <= 0) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
             if (time <= 0) {
                 clearInterval(timerId);
                 setShowSolution(true);
@@ -402,6 +422,10 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return () => {
         if (timerId) clearInterval(timerId);
         if (timeoutId) clearTimeout(timeoutId);
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+      }
     };
   }, [currentVocal, showInstructions, gameCompleted, showSolution, player.name]);
 

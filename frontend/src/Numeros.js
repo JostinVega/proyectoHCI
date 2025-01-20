@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // Importación de imágenes
 import pajarito from '../src/images/pajarito.png';
@@ -22,6 +22,8 @@ import numero7 from '../src/images/numero7.png';
 import numero8 from '../src/images/numero8.png';
 import numero9 from '../src/images/numero9.png';
 
+// Audio para el temporizador
+import time from '../src/sounds/time.mp3';
 
 // Objeto para mapear números con nombres 
 const numberNames = {
@@ -85,6 +87,9 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   
   const [feedbackMessage, setFeedbackMessage] = useState('');
 
+  //Referencia para el audio
+  const audioRef = useRef(null);
+  
   // Mensajes de felicitación
   const successMessages = [
     "¡Excelente trabajo! 🌟",
@@ -327,9 +332,26 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     // Si estamos en instrucciones o el juego está completado, no hacer nada
     if (showInstructions || gameCompleted || showSolution) return;
 
+    // Crear el elemento de audio si no existe
+    if (!audioRef.current) {
+      audioRef.current = new Audio(time);
+      audioRef.current.loop = true;
+    }
+
     let timeoutId;
     const timerId = setInterval(() => {
         setTimeLeft(time => {
+
+            // Manejar el audio cuando el tiempo es bajo
+            if (time <= 3 && time > 0) {
+              audioRef.current.play().catch(error => {
+                  console.log("Error al reproducir el audio:", error);
+              });
+            } else if (time > 3 || time <= 0) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
+
             // Si el tiempo llega a 0
             if (time <= 0) {
                 clearInterval(timerId);
@@ -341,7 +363,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                     const updatedDetails = { ...prevDetails };
                     
                     if (!updatedDetails[currentNumberName]) {
-                        updatedDetails[currentNumberName] = { errors: 0, time: 10, resultado: false };
+                        updatedDetails[currentNumberName] = { errors: 0, time: timeLeft, resultado: false };
                     }
                     
                     updatedDetails[currentNumberName] = {
@@ -388,6 +410,10 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return () => {
         if (timerId) clearInterval(timerId);
         if (timeoutId) clearTimeout(timeoutId);
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+      }
     };
 }, [currentNumber, showInstructions, gameCompleted, showSolution, player.name]);
 

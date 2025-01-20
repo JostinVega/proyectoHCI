@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // Importar las imágenes de solución
 import colorceleste from '../src/images/colorceleste.png';
@@ -12,6 +12,7 @@ import colormarron from '../src/images/colormarron.png';
 import coloranaranjado from '../src/images/coloranaranjado.png';
 import colorazul from '../src/images/colorazul.png';
 
+import time from '../src/sounds/time.mp3';
 
 // Mapa de colores y sus códigos hexadecimales
 const ColorMap = {
@@ -81,6 +82,8 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [showSolution, setShowSolution] = useState(false);
 
   const [feedbackMessage, setFeedbackMessage] = useState('');
+
+  const audioRef = useRef(null);
 
   // Mensajes de éxito y ánimo
   const successMessages = [
@@ -503,9 +506,23 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   useEffect(() => {
     if (showInstructions || gameCompleted || showSolution || isAnimating) return;
 
+     // Crear el elemento de audio si no existe
+     if (!audioRef.current) {
+      audioRef.current = new Audio(time);
+      audioRef.current.loop = true;
+    }
     let timeoutId;
     const timerId = setInterval(() => {
         setTimeLeft(time => {
+            // Manejar el audio cuando el tiempo es bajo
+            if (time <= 3 && time > 0) {
+              audioRef.current.play().catch(error => {
+                  console.log("Error al reproducir el audio:", error);
+              });
+            } else if (time > 3 || time <= 0) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
             if (time <= 0) {
                 clearInterval(timerId);
                 setShowSolution(true);
@@ -517,14 +534,14 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
                     if (!updatedStats[currentColorNombre]) {
                         updatedStats[currentColorNombre] = { 
                             errors: 0, 
-                            time: 10, 
+                            time: timeLeft, 
                             resultado: false 
                         };
                     }
                     
                     updatedStats[currentColorNombre] = {
                         ...updatedStats[currentColorNombre],
-                        time: 10,
+                        time: timeLeft,
                         resultado: false
                     };
 
@@ -564,6 +581,10 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return () => {
         if (timerId) clearInterval(timerId);
         if (timeoutId) clearTimeout(timeoutId);
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        }
     };
 }, [currentColor, showInstructions, gameCompleted, showSolution, isAnimating, player.name]);
 

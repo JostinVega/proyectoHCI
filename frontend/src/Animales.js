@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import pajarito from '../src/images/pajarito.png';
 import tortuga from '../src/images/tortuga.png';
@@ -30,6 +30,8 @@ import animelefante from '../src/images/elefante.png';
 import animiguana from '../src/images/iguana.png';
 import animoso from '../src/images/oso.png';
 import animunicornio from '../src/images/unicornio.png';
+
+import time from '../src/sounds/time.mp3';
 
 // Diccionario de componentes para representar animales como emojis
 /* 
@@ -181,6 +183,8 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [feedbackMessage, setFeedbackMessage] = useState('');
 
   const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+
+  const audioRef = useRef(null);
 
   // Mensajes de éxito para respuestas correctas
   const successMessages = [
@@ -453,9 +457,26 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   useEffect(() => {
     if (showInstructions || gameCompleted || showSolution) return;
 
+    // Crear el elemento de audio si no existe
+    if (!audioRef.current) {
+      audioRef.current = new Audio(time);
+      audioRef.current.loop = true;
+    }
+
     let timeoutId;
     const timerId = setInterval(() => {
         setTimeLeft(time => {
+
+            // Manejar el audio cuando el tiempo es bajo
+            if (time <= 3 && time > 0) {
+              audioRef.current.play().catch(error => {
+                  console.log("Error al reproducir el audio:", error);
+              });
+            } else if (time > 3 || time <= 0) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
+
             if (time <= 0) {
                 clearInterval(timerId);
                 setShowSolution(true);
@@ -512,6 +533,10 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return () => {
         if (timerId) clearInterval(timerId);
         if (timeoutId) clearTimeout(timeoutId);
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        }
     };
   }, [currentAnimal, showInstructions, gameCompleted, showSolution, player.name]);
 
