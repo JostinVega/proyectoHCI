@@ -22,6 +22,8 @@ import solocho from '../src/images/numero8.png';
 import solnueve from '../src/images/numero9.png';
 
 import time from '../src/sounds/time.mp3';
+import success from '../src/sounds/success.mp3';
+import encouragement from '../src/sounds/encouragement.mp3';
 
 const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
@@ -181,6 +183,8 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   const [feedbackMessage, setFeedbackMessage] = useState('');
   
   const audioRef = useRef(null);
+  const successAudioRef = useRef(null);
+  const encouragementAudioRef = useRef(null);
 
   // Al inicio del componente, después de la definición de pairs
   useEffect(() => {
@@ -347,6 +351,36 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
 
   */
 
+  // Función para reproducir audio de manera confiable
+  const playAudio = async (audioRef) => {
+    try {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        await new Promise(resolve => setTimeout(resolve, 50));
+        await audioRef.current.play();
+      }
+    } catch (error) {
+      console.log("Error al reproducir audio:", error);
+    }
+  };
+
+  // Inicializar los audios de feedback
+  useEffect(() => {
+    successAudioRef.current = new Audio(success);
+    encouragementAudioRef.current = new Audio(encouragement);
+    return () => {
+      if (successAudioRef.current) {
+        successAudioRef.current.pause();
+        successAudioRef.current.currentTime = 0;
+      }
+      if (encouragementAudioRef.current) {
+        encouragementAudioRef.current.pause();
+        encouragementAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
   const checkAnswer = (input) => {
     if (showFeedback || showSolution || showInstructions || gameCompleted) return;
     if (currentPair >= pairs.length) return;
@@ -354,6 +388,13 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     const isRight = parseInt(input) === pairs[currentPair].cantidad;
     setIsCorrect(isRight);
 
+     // Reproducir el audio correspondiente
+     if (isRight) {
+      playAudio(successAudioRef);
+    } else {
+      playAudio(encouragementAudioRef);
+    }
+    
     // Selecciona el mensaje una sola vez
     setFeedbackMessage(
       isRight

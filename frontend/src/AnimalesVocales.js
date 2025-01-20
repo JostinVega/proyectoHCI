@@ -12,6 +12,8 @@ import solo from '../src/images/vocalo.png';
 import solu from '../src/images/vocalu.png';
 
 import time from '../src/sounds/time.mp3';
+import success from '../src/sounds/success.mp3';
+import encouragement from '../src/sounds/encouragement.mp3';
 
 import React, { useState, useEffect, useRef } from 'react';
 
@@ -139,6 +141,8 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   const [feedbackMessage, setFeedbackMessage] = useState('');
 
   const audioRef = useRef(null);
+  const successAudioRef = useRef(null);
+  const encouragementAudioRef = useRef(null);
 
   // Agregar después de la definición de estados
   useEffect(() => {
@@ -252,11 +256,48 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   };
   */
 
+   // Función para reproducir audio de manera confiable
+   const playAudio = async (audioRef) => {
+    try {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        await new Promise(resolve => setTimeout(resolve, 50));
+        await audioRef.current.play();
+      }
+    } catch (error) {
+      console.log("Error al reproducir audio:", error);
+    }
+  };
+
+  // Inicializar los audios de feedback
+  useEffect(() => {
+    successAudioRef.current = new Audio(success);
+    encouragementAudioRef.current = new Audio(encouragement);
+    return () => {
+      if (successAudioRef.current) {
+        successAudioRef.current.pause();
+        successAudioRef.current.currentTime = 0;
+      }
+      if (encouragementAudioRef.current) {
+        encouragementAudioRef.current.pause();
+        encouragementAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
   const checkAnswer = (input) => {
     if (showFeedback || showSolution || showInstructions || gameCompleted) return;
     
     const isRight = input === pairs[currentPair].vocal;
     setIsCorrect(isRight);
+
+    // Reproducir el audio correspondiente
+    if (isRight) {
+      playAudio(successAudioRef);
+    } else {
+      playAudio(encouragementAudioRef);
+    }
 
     // Selecciona el mensaje una sola vez
     setFeedbackMessage(
