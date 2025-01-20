@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import solrojo from '../src/images/colorrojo.png';
 import solamarillo from '../src/images/coloramarillo.png';
@@ -7,6 +7,8 @@ import solmorado from '../src/images/colormorado.png';
 import solverde from '../src/images/colorverde.png';
 import solrosado from '../src/images/colorrosado.png';
 import solanaranjado from '../src/images/coloranaranjado.png';
+
+import time from '../src/sounds/time.mp3';
 
 const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
@@ -108,6 +110,8 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [showSolution, setShowSolution] = useState(false);
 
   const [feedbackMessage, setFeedbackMessage] = useState('');
+
+  const audioRef = useRef(null);
 
    // SVG Components con animaciones más divertidas y amigables para niños
    const shapes = {
@@ -452,9 +456,25 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   useEffect(() => {
     if (showInstructions || gameCompleted || showSolution) return;
 
+    // Crear el elemento de audio si no existe
+    if (!audioRef.current) {
+      audioRef.current = new Audio(time);
+      audioRef.current.loop = true;
+    }
+
     let timeoutId;
     const timerId = setInterval(() => {
         setTimeLeft(time => {
+
+            // Manejar el audio cuando el tiempo es bajo
+            if (time <= 3 && time > 0) {
+              audioRef.current.play().catch(error => {
+                  console.log("Error al reproducir el audio:", error);
+              });
+            } else if (time > 3 || time <= 0) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
             if (time <= 0) {
                 clearInterval(timerId);
                 setShowSolution(true);
@@ -510,6 +530,10 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return () => {
         if (timerId) clearInterval(timerId);
         if (timeoutId) clearTimeout(timeoutId);
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+        }
     };
   }, [currentPair, showInstructions, gameCompleted, showSolution, player.name]);
 
