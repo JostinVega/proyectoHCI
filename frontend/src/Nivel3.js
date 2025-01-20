@@ -17,6 +17,7 @@ import solnueve from '../src/images/numero9.png';
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
+import completed from '../src/sounds/completed.mp3';
 
 const Nivel3 = ({ player, onBack, onConfigClick }) => {
   const [animalSeleccionado, setAnimalSeleccionado] = useState(null);
@@ -49,6 +50,7 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
   const audioRef = useRef(null);
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
+  const completedAudioRef = useRef(null);
 
   // Objeto para mapear números con sus imágenes de solución
   const solutionImages = {
@@ -259,84 +261,6 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
     setTimeLeft(tiempos[`${animal}s`] || 10);
   };  
 
-  /*
-  const checkAnswer = (input) => {
-    const isRight = parseInt(input) === cantidadActual; // Verifica si la respuesta es correcta
-    setIsCorrect(isRight);
-    setShowFeedback(true);
-
-    if (tiempoInicio) {
-      const tiempoRespuesta = (Date.now() - tiempoInicio) / 1000; // Calcula el tiempo de respuesta
-      const currentStats = animalSeleccionado === 'patito' ? patitosStats : cerditosStats;
-
-      // Actualiza las estadísticas del número actual
-      const updatedStats = {
-        ...currentStats,
-        [cantidadActual]: {
-          errores: currentStats[cantidadActual]?.errores || 0,
-          attempts: currentStats[cantidadActual]?.attempts || 0,
-          tiempo: currentStats[cantidadActual]?.tiempo || 0,
-        },
-      };
-
-      // Incrementar intentos (siempre, ya que es un intento)
-      updatedStats[cantidadActual].attempts += 1;
-
-      // Si la respuesta es incorrecta, incrementar errores
-      if (!isRight) {
-        updatedStats[cantidadActual].errores += 1;
-      } else {
-        // Si es correcta, acumular tiempo
-        updatedStats[cantidadActual].tiempo += tiempoRespuesta;
-      }
-
-      // Actualiza el estado correspondiente
-      if (animalSeleccionado === 'patito') {
-        setPatitosStats(updatedStats);
-      } else {
-        setCerditosStats(updatedStats);
-      }
-
-      console.log(
-        `Animal: ${animalSeleccionado}, Número: ${cantidadActual}, ` +
-          `Intentos: ${updatedStats[cantidadActual].attempts}, ` +
-          `Errores: ${updatedStats[cantidadActual].errores}, ` +
-          `Tiempo acumulado: ${updatedStats[cantidadActual].tiempo.toFixed(2)}s`
-      );
-    }
-
-    // Manejo de respuesta correcta o incorrecta
-    if (isRight) {
-      const cantidadesCompletadas = animalSeleccionado === 'patito' ? cantidadesCompletadasPatitos : cantidadesCompletadasCerditos;
-      const updateList = animalSeleccionado === 'patito' ? setCantidadesCompletadasPatitos : setCantidadesCompletadasCerditos;
-
-      if (!cantidadesCompletadas.includes(cantidadActual)) {
-        updateList((prev) => [...prev, cantidadActual]);
-
-        if (cantidadesCompletadas.length + 1 >= 9) {
-          setGameCompleted(true);
-        }
-      }
-
-      // Generar nueva cantidad tras un acierto
-      setTimeout(() => {
-        setShowFeedback(false);
-        setUserInput('');
-        if (cantidadesCompletadas.length + 1 < 9) {
-          generarNuevaCantidad();
-        }
-      }, 2000);
-    } else {
-      // Solo espera cuando es incorrecto
-      setTimeout(() => {
-        setShowFeedback(false);
-        setUserInput('');
-      }, 1500);
-    }
-  };
-  */
-
-
   // Función para reproducir audio de manera confiable
   const playAudio = async (audioRef) => {
     try {
@@ -355,6 +279,7 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
   useEffect(() => {
     successAudioRef.current = new Audio(success);
     encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed); 
     return () => {
       if (successAudioRef.current) {
         successAudioRef.current.pause();
@@ -363,6 +288,10 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
       if (encouragementAudioRef.current) {
         encouragementAudioRef.current.pause();
         encouragementAudioRef.current.currentTime = 0;
+      }
+      if (completedAudioRef.current) {
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
       }
     };
   }, []);
@@ -379,7 +308,7 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
     } else {
       playAudio(encouragementAudioRef);
     }
-    
+
     // Selecciona el mensaje una sola vez
     setFeedbackMessage(
       isRight
@@ -450,6 +379,13 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
       updateList(prev => [...prev, cantidadActual]);
       if (cantidadesCompletadas.length + 1 >= 9) {
         setGameCompleted(true);
+        
+        // Reproducir sonido de completado
+        if (completedAudioRef.current) {
+          completedAudioRef.current.play().catch(error => {
+            console.log("Error al reproducir audio de completado:", error);
+          });
+        }
       }
     }
   
@@ -604,6 +540,7 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
     return () => window.removeEventListener('keypress', handleKeyPress);
   }, [animalSeleccionado, cantidadActual, showFeedback]);
 
+  /*
   const handleBack = () => {
     if (animalSeleccionado) {
       setAnimalSeleccionado(null);
@@ -611,6 +548,19 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
       onBack();
     }
   };  
+  */
+
+  const handleBack = () => {
+    if (animalSeleccionado) {
+      if (completedAudioRef.current) {
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
+      }
+      setAnimalSeleccionado(null);
+    } else {
+      onBack();
+    }
+  };
 
   const renderProgressBar = () => {
     const totalNumbersPerAnimal = 9;
@@ -766,7 +716,15 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
           <button
             className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
                      rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-            onClick={() => setAnimalSeleccionado(null)}
+            onClick={() => {
+              // Reproducir sonido de completado
+              if (completedAudioRef.current) {
+                completedAudioRef.current.play().catch(error => {
+                  console.log("Error al reproducir audio de completado:", error);
+                });
+              }
+              setAnimalSeleccionado(null);
+            }}
           >
             Volver al menú
           </button>
