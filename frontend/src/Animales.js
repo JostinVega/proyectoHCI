@@ -32,6 +32,8 @@ import animoso from '../src/images/oso.png';
 import animunicornio from '../src/images/unicornio.png';
 
 import time from '../src/sounds/time.mp3';
+import success from '../src/sounds/success.mp3';
+import encouragement from '../src/sounds/encouragement.mp3';
 
 // Diccionario de componentes para representar animales como emojis
 /* 
@@ -185,6 +187,8 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
 
   const audioRef = useRef(null);
+  const successAudioRef = useRef(null);
+  const encouragementAudioRef = useRef(null);
 
   // Mensajes de éxito para respuestas correctas
   const successMessages = [
@@ -327,6 +331,36 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   };  
   */
 
+   // Función para reproducir audio de manera confiable
+   const playAudio = async (audioRef) => {
+    try {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        await new Promise(resolve => setTimeout(resolve, 50));
+        await audioRef.current.play();
+      }
+    } catch (error) {
+      console.log("Error al reproducir audio:", error);
+    }
+  };
+
+  // Inicializar los audios de feedback
+  useEffect(() => {
+    successAudioRef.current = new Audio(success);
+    encouragementAudioRef.current = new Audio(encouragement);
+    return () => {
+      if (successAudioRef.current) {
+        successAudioRef.current.pause();
+        successAudioRef.current.currentTime = 0;
+      }
+      if (encouragementAudioRef.current) {
+        encouragementAudioRef.current.pause();
+        encouragementAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
   const checkAnswer = (input) => {
     if (showFeedback || showSolution || showInstructions || gameCompleted) return;
 
@@ -340,6 +374,13 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
         ? successMessages[Math.floor(Math.random() * successMessages.length)]
         : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
     );
+
+    // Reproducir el audio correspondiente
+    if (isRight) {
+      playAudio(successAudioRef);
+    } else {
+      playAudio(encouragementAudioRef);
+    }
 
     setShowFeedback(true);
 

@@ -24,6 +24,8 @@ import numero9 from '../src/images/numero9.png';
 
 // Audio para el temporizador
 import time from '../src/sounds/time.mp3';
+import success from '../src/sounds/success.mp3';
+import encouragement from '../src/sounds/encouragement.mp3';
 
 // Objeto para mapear números con nombres 
 const numberNames = {
@@ -89,7 +91,9 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
   //Referencia para el audio
   const audioRef = useRef(null);
-  
+  const successAudioRef = useRef(null);
+  const encouragementAudioRef = useRef(null);
+
   // Mensajes de felicitación
   const successMessages = [
     "¡Excelente trabajo! 🌟",
@@ -106,6 +110,22 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     "¡No te rindas! Estás muy cerca ⭐",
     "¡Vamos a intentarlo una vez más! 🎈"
   ];
+
+   // Inicializar los audios de feedback
+   useEffect(() => {
+    successAudioRef.current = new Audio(success);
+    encouragementAudioRef.current = new Audio(encouragement);
+    return () => {
+      if (successAudioRef.current) {
+        successAudioRef.current.pause();
+        successAudioRef.current.currentTime = 0;
+      }
+      if (encouragementAudioRef.current) {
+        encouragementAudioRef.current.pause();
+        encouragementAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
 
   // Configuración de los animales que acompañan cada número
   const animalesConfig = {
@@ -161,6 +181,22 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   };  
   
+  // Función para reproducir audio de manera confiable
+  const playAudio = async (audioRef) => {
+    try {
+      if (audioRef.current) {
+        // Reiniciar el audio antes de reproducirlo
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        // Esperar un momento pequeño antes de reproducir
+        await new Promise(resolve => setTimeout(resolve, 50));
+        await audioRef.current.play();
+      }
+    } catch (error) {
+      console.log("Error al reproducir audio:", error);
+    }
+  };
+
   // Verifica la respuesta del usuario
   const checkAnswer = (input) => {
     // Si ya hay una transición en progreso, no hacer nada
@@ -169,6 +205,13 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     const isRight = parseInt(input) === currentNumber;
     setIsCorrect(isRight);
 
+    // Reproducir el audio correspondiente usando la nueva función
+    if (isRight) {
+      playAudio(successAudioRef);
+    } else {
+      playAudio(encouragementAudioRef);
+    }
+    
     // Selecciona el mensaje una sola vez
     setFeedbackMessage(
       isRight
@@ -222,6 +265,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
 
     // Si la respuesta es correcta
+
     const progress = ((currentNumber + 1) / 10) * 100;
     localStorage.setItem(`nivel1_numeros_progress_${player.name}`, currentNumber + 1);
     onProgressUpdate(progress, false);

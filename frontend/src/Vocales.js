@@ -15,6 +15,8 @@ import vocalo from '../src/images/vocalo.png';
 import vocalu from '../src/images/vocalu.png';
 
 import time from '../src/sounds/time.mp3';
+import success from '../src/sounds/success.mp3';
+import encouragement from '../src/sounds/encouragement.mp3';
 
 // Objeto para mapear vocales con sus imágenes de solución
 const solutionImages = {
@@ -68,6 +70,8 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [feedbackMessage, setFeedbackMessage] = useState('');
   
   const audioRef = useRef(null);
+  const successAudioRef = useRef(null);
+  const encouragementAudioRef = useRef(null);
 
   // Configuración de cada vocal con su imagen y nombre
   const vocalesConfig = {
@@ -215,6 +219,36 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   };
   */
 
+  // Función para reproducir audio de manera confiable
+  const playAudio = async (audioRef) => {
+    try {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        await new Promise(resolve => setTimeout(resolve, 50));
+        await audioRef.current.play();
+      }
+    } catch (error) {
+      console.log("Error al reproducir audio:", error);
+    }
+  };
+
+   // Inicializar los audios de feedback
+   useEffect(() => {
+    successAudioRef.current = new Audio(success);
+    encouragementAudioRef.current = new Audio(encouragement);
+    return () => {
+      if (successAudioRef.current) {
+        successAudioRef.current.pause();
+        successAudioRef.current.currentTime = 0;
+      }
+      if (encouragementAudioRef.current) {
+        encouragementAudioRef.current.pause();
+        encouragementAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
   // Verificar respuesta del usuario
   const checkAnswer = (input) => {
     if (showFeedback || showSolution || showInstructions || gameCompleted) return;
@@ -222,13 +256,20 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     const isRight = input === vocales[currentVocal];
     setIsCorrect(isRight);
 
+    // Reproducir el audio correspondiente
+    if (isRight) {
+      playAudio(successAudioRef);
+    } else {
+      playAudio(encouragementAudioRef);
+    }
+    
     // Selecciona el mensaje una sola vez
     setFeedbackMessage(
       isRight
         ? successMessages[Math.floor(Math.random() * successMessages.length)]
         : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
     );
-    
+
     setShowFeedback(true);
 
     const endTime = Date.now();
@@ -342,6 +383,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     window.addEventListener('keypress', handleKeyPress);
     return () => window.removeEventListener('keypress', handleKeyPress);
   }, [currentVocal, showInstructions]);
+
 
   // Temporizador para cada vocal
   useEffect(() => {
