@@ -9,6 +9,7 @@ import figuraluna from '../src/images/figuraluna.png';
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
+import completed from '../src/sounds/completed.mp3';
 
 import React, { useState, useEffect, useRef } from 'react';
 
@@ -121,6 +122,7 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const audioRef = useRef(null);
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
+  const completedAudioRef = useRef(null);
 
   // Mensajes de felicitación aleatorios
   const successMessages = [
@@ -192,84 +194,6 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       console.error('Error al guardar detalles:', error);
     }
   };
-  
-  /*
-  const checkAnswer = (input) => {
-    const currentFormaNombre = formas[currentForma];
-    const isRight = input === currentFormaNombre.charAt(0);
-    setIsCorrect(isRight);
-    setShowFeedback(true);
-  
-    // Calcular el tiempo de respuesta
-    const endTime = Date.now();
-    const responseTime = (endTime - startTime) / 1000;
-  
-    // Actualizar los detalles de la respuesta actual
-    setDetailsByNumber((prevDetails) => {
-      const updatedDetails = { ...prevDetails };
-  
-      // Usa el nombre de la forma como clave
-      if (!updatedDetails[currentFormaNombre]) {
-        updatedDetails[currentFormaNombre] = { errors: 0, time: 0 };
-      }
-  
-      updatedDetails[currentFormaNombre] = {
-        ...updatedDetails[currentFormaNombre],
-        time: responseTime,
-        errors: isRight
-          ? updatedDetails[currentFormaNombre].errors
-          : updatedDetails[currentFormaNombre].errors + 1,
-      };
-  
-     // Guardar los detalles en el backend
-    saveDetailsToDatabase({
-      section: 'figuras', // Especifica la sección
-      details: {
-        [currentFormaNombre]: updatedDetails[currentFormaNombre], // Usa el nombre de la forma como clave
-      },
-    });
-
-      return updatedDetails;
-    });
-  
-    if (!isRight) {
-      setErrorsArray((prevErrors) => {
-        const updatedErrors = [...prevErrors];
-        updatedErrors[currentForma] += 1;
-        return updatedErrors;
-      });
-  
-      console.log("Error");
-      return;
-    }
-  
-    const progress = ((currentForma + 1) / formas.length) * 100;
-    localStorage.setItem(
-      `nivel1_figuras_progress_${player.name}`,
-      currentForma + 1
-    );
-    onProgressUpdate(progress, false);
-  
-    if (currentForma === formas.length - 1) {
-      localStorage.setItem(`nivel1_figuras_progress_${player.name}`, '7');
-      onProgressUpdate(100, true);
-  
-      showFinalStats();
-  
-      setTimeout(() => {
-        setGameCompleted(true);
-        setShowFeedback(false);
-      }, 2000);
-    } else {
-      setTimeout(() => {
-        setCurrentForma((prev) => prev + 1);
-        setShowFeedback(false);
-        setUserInput('');
-        setStartTime(Date.now());
-      }, 2000);
-    }
-  };  
-  */
 
    // Función para reproducir audio de manera confiable
    const playAudio = async (audioRef) => {
@@ -289,6 +213,7 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   useEffect(() => {
     successAudioRef.current = new Audio(success);
     encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed);
     return () => {
       if (successAudioRef.current) {
         successAudioRef.current.pause();
@@ -297,6 +222,10 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       if (encouragementAudioRef.current) {
         encouragementAudioRef.current.pause();
         encouragementAudioRef.current.currentTime = 0;
+      }
+      if (completedAudioRef.current) { 
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
       }
     };
   }, []);
@@ -314,7 +243,7 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     } else {
       playAudio(encouragementAudioRef);
     }
-    
+
     // Selecciona el mensaje una sola vez
     setFeedbackMessage(
       isRight
@@ -387,13 +316,21 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     });
 
     if (currentForma >= formas.length - 1) {
-        localStorage.setItem(`nivel1_figuras_progress_${player.name}`, '7');
-        onProgressUpdate(100, true);
-        showFinalStats();
-        setTimeout(() => {
-            setGameCompleted(true);
-            setShowFeedback(false);
-        }, 2000);
+      localStorage.setItem(`nivel1_figuras_progress_${player.name}`, '7');
+      onProgressUpdate(100, true);
+      
+      // Reproducir sonido de completado
+      if (completedAudioRef.current) {
+        completedAudioRef.current.play().catch(error => {
+          console.log("Error al reproducir audio de completado:", error);
+        });
+      }
+    
+      showFinalStats();
+      setTimeout(() => {
+        setGameCompleted(true);
+        setShowFeedback(false);
+      }, 2000);
     } else {
         setTimeout(() => {
             setCurrentForma(prev => prev + 1);

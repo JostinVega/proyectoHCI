@@ -34,6 +34,7 @@ import animunicornio from '../src/images/unicornio.png';
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
+import completed from '../src/sounds/completed.mp3';
 
 // Diccionario de componentes para representar animales como emojis
 /* 
@@ -189,6 +190,7 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const audioRef = useRef(null);
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
+  const completedAudioRef = useRef(null);
 
   // Mensajes de éxito para respuestas correctas
   const successMessages = [
@@ -261,76 +263,6 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   };
   
-  /*
-  const checkAnswer = (input) => {
-    const currentAnimalNombre = animales[currentAnimal];
-    const isRight = input === currentAnimalNombre.charAt(0);
-    setIsCorrect(isRight);
-    setShowFeedback(true);
-  
-    const endTime = Date.now();
-    const responseTime = (endTime - startTime) / 1000; // Tiempo de respuesta en segundos
-  
-    // Actualizar los detalles de la respuesta actual
-    setAnimalStats((prevStats) => {
-      const updatedStats = { ...prevStats };
-  
-      // Asegúrate de inicializar correctamente los detalles
-      if (!updatedStats[currentAnimalNombre]) {
-        updatedStats[currentAnimalNombre] = { errors: 0, time: 0, completed: false };
-      }
-  
-      updatedStats[currentAnimalNombre] = {
-        errors: isRight
-          ? updatedStats[currentAnimalNombre].errors // No incrementar errores si es correcto
-          : updatedStats[currentAnimalNombre].errors + 1, // Incrementar errores si es incorrecto
-        time: responseTime,
-        completed: isRight,
-      };
-  
-      // Guardar los detalles en el backend
-      saveDetailsToDatabase({
-        section: 'animales', // Especifica la sección
-        details: {
-          [currentAnimalNombre]: updatedStats[currentAnimalNombre],
-        },
-      });
-  
-      return updatedStats;
-    });
-  
-    if (!isRight) {
-      console.log('Respuesta incorrecta');
-      return; // Salir si la respuesta es incorrecta
-    }
-  
-    // Actualizar progreso si la respuesta es correcta
-    const progress = ((currentAnimal + 1) / animales.length) * 100;
-    localStorage.setItem(
-      `nivel1_animales_progress_${player.name}`,
-      currentAnimal + 1
-    );
-    onProgressUpdate(progress, false);
-  
-    if (currentAnimal === animales.length - 1) {
-      localStorage.setItem(`nivel1_animales_progress_${player.name}`, '14');
-      onProgressUpdate(100, true);
-      showFinalStats();
-      setTimeout(() => {
-        setGameCompleted(true);
-        setShowFeedback(false);
-      }, 2000);
-    } else {
-      setTimeout(() => {
-        setCurrentAnimal((prev) => prev + 1);
-        setShowFeedback(false);
-        setUserInput('');
-        setStartTime(Date.now()); // Reiniciar el tiempo de inicio
-      }, 2000);
-    }
-  };  
-  */
-
    // Función para reproducir audio de manera confiable
    const playAudio = async (audioRef) => {
     try {
@@ -349,6 +281,7 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   useEffect(() => {
     successAudioRef.current = new Audio(success);
     encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed); 
     return () => {
       if (successAudioRef.current) {
         successAudioRef.current.pause();
@@ -357,6 +290,10 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       if (encouragementAudioRef.current) {
         encouragementAudioRef.current.pause();
         encouragementAudioRef.current.currentTime = 0;
+      }
+      if (completedAudioRef.current) { 
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
       }
     };
   }, []);
@@ -452,6 +389,14 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     if (currentAnimal >= animales.length - 1) {
         localStorage.setItem(`nivel1_animales_progress_${player.name}`, '14');
         onProgressUpdate(100, true);
+
+        // Reproducir sonido de completado
+        if (completedAudioRef.current) {
+          completedAudioRef.current.play().catch(error => {
+            console.log("Error al reproducir audio de completado:", error);
+          });
+        }
+
         showFinalStats();
         setTimeout(() => {
             setGameCompleted(true);

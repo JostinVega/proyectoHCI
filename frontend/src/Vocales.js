@@ -17,6 +17,7 @@ import vocalu from '../src/images/vocalu.png';
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
+import completed from '../src/sounds/completed.mp3';
 
 // Objeto para mapear vocales con sus imágenes de solución
 const solutionImages = {
@@ -72,6 +73,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const audioRef = useRef(null);
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
+  const completedAudioRef = useRef(null);
 
   // Configuración de cada vocal con su imagen y nombre
   const vocalesConfig = {
@@ -153,71 +155,6 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       console.error('Error al guardar detalles:', error);
     }
   };
-  
-  /*
-  const checkAnswer = (input) => {
-    const isRight = input === vocales[currentVocal];
-    setIsCorrect(isRight);
-    setShowFeedback(true);
-  
-    // Calcular el tiempo de respuesta
-    const endTime = Date.now();
-    const responseTime = (endTime - startTime) / 1000; // Convertir a segundos
-  
-    // Actualizar los detalles de la respuesta actual
-    setDetailsByNumber((prevDetails) => {
-      const updatedDetails = { ...prevDetails };
-  
-      // Asegúrate de inicializar los detalles correctamente
-      if (!updatedDetails[currentVocal]) {
-        updatedDetails[currentVocal] = { errors: 0, time: 0 };
-      }
-  
-      updatedDetails[currentVocal] = {
-        ...updatedDetails[currentVocal],
-        time: responseTime, // Sobreescribe el tiempo en vez de acumular
-        errors: isRight ? updatedDetails[currentVocal].errors : updatedDetails[currentVocal].errors + 1, // Incrementa solo si es incorrecto
-      };
-  
-      // Envía los detalles al backend
-      saveDetailsToDatabase({ [vocales[currentVocal]]: updatedDetails[currentVocal] });
-      
-      return updatedDetails;
-    });
-  
-    if (!isRight) {
-      console.log('Respuesta incorrecta');
-      return;
-    }
-  
-    // Actualizar progreso si la respuesta es correcta
-    const progress = ((currentVocal + 1) / vocales.length) * 100;
-    localStorage.setItem(
-      `nivel1_vocales_progress_${player.name}`,
-      currentVocal + 1
-    );
-    onProgressUpdate(progress, false);
-  
-    // Finalizar o pasar al siguiente número
-    if (currentVocal === vocales.length - 1) {
-      localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5');
-      onProgressUpdate(100, true);
-      showFinalStats();
-      setTimeout(() => {
-        setGameCompleted(true);
-        setShowFeedback(false);
-      }, 2000);
-    } else {
-      setTimeout(() => {
-        setCurrentVocal((prev) => prev + 1);
-        setShowFeedback(false);
-        setUserInput('');
-        setAttempts(0);
-        setStartTime(Date.now()); // Reiniciar el tiempo de inicio para la siguiente vocal
-      }, 2000);
-    }
-  };
-  */
 
   // Función para reproducir audio de manera confiable
   const playAudio = async (audioRef) => {
@@ -237,6 +174,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
    useEffect(() => {
     successAudioRef.current = new Audio(success);
     encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed);
     return () => {
       if (successAudioRef.current) {
         successAudioRef.current.pause();
@@ -245,6 +183,10 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       if (encouragementAudioRef.current) {
         encouragementAudioRef.current.pause();
         encouragementAudioRef.current.currentTime = 0;
+      }
+      if (completedAudioRef.current) { 
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
       }
     };
   }, []);
@@ -262,7 +204,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     } else {
       playAudio(encouragementAudioRef);
     }
-    
+
     // Selecciona el mensaje una sola vez
     setFeedbackMessage(
       isRight
@@ -339,13 +281,21 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     });
 
     if (currentVocal >= 4) {
-        localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5');
-        onProgressUpdate(100, true);
-        showFinalStats();
-        setTimeout(() => {
-            setGameCompleted(true);
-            setShowFeedback(false);
-        }, 2000);
+      localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5');
+      onProgressUpdate(100, true);
+      
+      // Reproducir sonido de completado
+      if (completedAudioRef.current) {
+        completedAudioRef.current.play().catch(error => {
+          console.log("Error al reproducir audio de completado:", error);
+        });
+      }
+    
+      showFinalStats();
+      setTimeout(() => {
+        setGameCompleted(true);
+        setShowFeedback(false);
+      }, 2000);
     } else {
         setTimeout(() => {
             setCurrentVocal(prev => prev + 1);

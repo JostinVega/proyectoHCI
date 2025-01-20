@@ -26,6 +26,7 @@ import numero9 from '../src/images/numero9.png';
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
+import completed from '../src/sounds/completed.mp3';
 
 // Objeto para mapear números con nombres 
 const numberNames = {
@@ -93,6 +94,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const audioRef = useRef(null);
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
+  const completedAudioRef = useRef(null);
 
   // Mensajes de felicitación
   const successMessages = [
@@ -197,6 +199,26 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   };
 
+  useEffect(() => {
+    successAudioRef.current = new Audio(success);
+    encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed); // Añadir esta línea
+    return () => {
+      if (successAudioRef.current) {
+        successAudioRef.current.pause();
+        successAudioRef.current.currentTime = 0;
+      }
+      if (encouragementAudioRef.current) {
+        encouragementAudioRef.current.pause();
+        encouragementAudioRef.current.currentTime = 0;
+      }
+      if (completedAudioRef.current) { // Añadir esta verificación
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
   // Verifica la respuesta del usuario
   const checkAnswer = (input) => {
     // Si ya hay una transición en progreso, no hacer nada
@@ -211,7 +233,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     } else {
       playAudio(encouragementAudioRef);
     }
-    
+
     // Selecciona el mensaje una sola vez
     setFeedbackMessage(
       isRight
@@ -297,12 +319,21 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     if (currentNumber >= 9) {
       localStorage.setItem(`nivel1_numeros_progress_${player.name}`, '10');
       onProgressUpdate(100, true);
-
+    
+      // Reproducir sonido de completado
+      if (completedAudioRef.current) {
+        completedAudioRef.current.play().catch(error => {
+          console.log("Error al reproducir audio de completado:", error);
+        });
+      }
+    
+      showFinalStats();
+    
       const completionTimeout = setTimeout(() => {
-          setGameCompleted(true);
-          setShowFeedback(false);
+        setGameCompleted(true);
+        setShowFeedback(false);
       }, 2000);
-
+    
       return () => clearTimeout(completionTimeout);
     } else {
         
