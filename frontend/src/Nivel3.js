@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+
 import patito from '../src/images/patito.png';
 import cerdito from '../src/images/cerdito.png';
 
@@ -12,6 +13,8 @@ import solseis from '../src/images/numero6.png';
 import solsiete from '../src/images/numero7.png';
 import solocho from '../src/images/numero8.png';
 import solnueve from '../src/images/numero9.png';
+
+import time from '../src/sounds/time.mp3';
 
 const Nivel3 = ({ player, onBack, onConfigClick }) => {
   const [animalSeleccionado, setAnimalSeleccionado] = useState(null);
@@ -40,6 +43,8 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
   const [showSolution, setShowSolution] = useState(false);
 
   const [feedbackMessage, setFeedbackMessage] = useState('');
+
+  const audioRef = useRef(null);
 
   // Objeto para mapear números con sus imágenes de solución
   const solutionImages = {
@@ -449,9 +454,26 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
   useEffect(() => {
     if (!animalSeleccionado || gameCompleted || showSolution) return;
   
+    // Asegurarnos de que el audio está inicializado
+    if (!audioRef.current) {
+      audioRef.current = new Audio(time);
+      audioRef.current.loop = true;
+    }
+
     let timeoutId;
     const timerId = setInterval(() => {
       setTimeLeft(time => {
+
+         // Manejar el audio cuando el tiempo es bajo
+         if (time <= 3 && time > 0) {
+          audioRef.current.play().catch(error => {
+            console.log("Error al reproducir el audio:", error);
+          });
+        } else if (time > 3 || time <= 0) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        }
+
         if (time <= 0) {
           clearInterval(timerId);
           setShowSolution(true);
@@ -503,6 +525,10 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
     return () => {
       if (timerId) clearInterval(timerId);
       if (timeoutId) clearTimeout(timeoutId);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
     };
   }, [animalSeleccionado, gameCompleted, showSolution]);
 
