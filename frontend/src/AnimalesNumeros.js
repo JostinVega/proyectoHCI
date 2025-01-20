@@ -24,6 +24,7 @@ import solnueve from '../src/images/numero9.png';
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
+import completed from '../src/sounds/completed.mp3';
 
 const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
@@ -185,7 +186,8 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   const audioRef = useRef(null);
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
-
+  const completedAudioRef = useRef(null);
+  
   // Al inicio del componente, después de la definición de pairs
   useEffect(() => {
     if (currentPair >= pairs.length) {
@@ -394,7 +396,7 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     } else {
       playAudio(encouragementAudioRef);
     }
-    
+
     // Selecciona el mensaje una sola vez
     setFeedbackMessage(
       isRight

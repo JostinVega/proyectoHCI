@@ -14,6 +14,7 @@ import solu from '../src/images/vocalu.png';
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
+import completed from '../src/sounds/completed.mp3';
 
 import React, { useState, useEffect, useRef } from 'react';
 
@@ -143,6 +144,7 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   const audioRef = useRef(null);
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
+  const completedAudioRef = useRef(null);
 
   // Agregar después de la definición de estados
   useEffect(() => {
@@ -274,6 +276,7 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   useEffect(() => {
     successAudioRef.current = new Audio(success);
     encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed); 
     return () => {
       if (successAudioRef.current) {
         successAudioRef.current.pause();
@@ -282,6 +285,10 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
       if (encouragementAudioRef.current) {
         encouragementAudioRef.current.pause();
         encouragementAudioRef.current.currentTime = 0;
+      }
+      if (completedAudioRef.current) { // Añadir esta verificación
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
       }
     };
   }, []);
@@ -371,6 +378,14 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
         localStorage.setItem(`nivel2_animales_vocales_completed_${player.name}`, 'true');
         localStorage.setItem(`nivel2_animales_vocales_progress_${player.name}`, pairs.length);
         onProgressUpdate(100, true);
+
+        // Reproducir sonido de completado
+        if (completedAudioRef.current) {
+          completedAudioRef.current.play().catch(error => {
+            console.log("Error al reproducir audio de completado:", error);
+          });
+        }
+
         showFinalStats();
 
         setTimeout(() => {

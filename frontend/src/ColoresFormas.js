@@ -11,6 +11,7 @@ import solanaranjado from '../src/images/coloranaranjado.png';
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
+import completed from '../src/sounds/completed.mp3';
 
 const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
@@ -116,6 +117,7 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const audioRef = useRef(null);
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
+  const completedAudioRef = useRef(null);
 
    // SVG Components con animaciones más divertidas y amigables para niños
    const shapes = {
@@ -345,6 +347,7 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   useEffect(() => {
     successAudioRef.current = new Audio(success);
     encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed); 
     return () => {
       if (successAudioRef.current) {
         successAudioRef.current.pause();
@@ -353,6 +356,10 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       if (encouragementAudioRef.current) {
         encouragementAudioRef.current.pause();
         encouragementAudioRef.current.currentTime = 0;
+      }
+      if (completedAudioRef.current) { 
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
       }
     };
   }, []);
@@ -442,6 +449,14 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
         localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
         localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
         onProgressUpdate(100, true);
+
+        // Reproducir sonido de completado
+        if (completedAudioRef.current) {
+          completedAudioRef.current.play().catch(error => {
+            console.log("Error al reproducir audio de completado:", error);
+          });
+        }
+
         showFinalStats();
 
         setTimeout(() => {
