@@ -29,6 +29,7 @@ const Tiempo = ({ player, onBack, onConfigClick }) => {
   const [showNivel2, setShowNivel2] = useState(true);
   const [showNivel3, setShowNivel3] = useState(true);
 
+  /*
   // Cargar tiempos guardados al iniciar
   useEffect(() => {
     const tiempos1 = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || tiemposNivel1;
@@ -39,7 +40,50 @@ const Tiempo = ({ player, onBack, onConfigClick }) => {
     setTiemposNivel2(tiempos2);
     setTiemposNivel3(tiempos3);
   }, [player.name]);
+  */
 
+  // UseEffect para cargar tiempos desde Firebase
+  useEffect(() => {
+    const cargarTiempos = async () => {
+      try {
+        // Intentar cargar desde Firebase primero
+        const response = await fetch(`http://localhost:5000/api/tiempos/${player.name}`);
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          setTiemposNivel1(data.data.nivel1 || tiemposNivel1);
+          setTiemposNivel2(data.data.nivel2 || tiemposNivel2);
+          setTiemposNivel3(data.data.nivel3 || tiemposNivel3);
+        } else {
+          // Si no hay datos en Firebase, cargar desde localStorage
+          const tiempos1 = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || tiemposNivel1;
+          const tiempos2 = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || tiemposNivel2;
+          const tiempos3 = JSON.parse(localStorage.getItem(`tiempos_nivel3_${player.name}`)) || tiemposNivel3;
+          
+          setTiemposNivel1(tiempos1);
+          setTiemposNivel2(tiempos2);
+          setTiemposNivel3(tiempos3);
+        }
+      } catch (error) {
+        console.error('Error al cargar tiempos:', error);
+        // En caso de error, cargar desde localStorage
+        const tiempos1 = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || tiemposNivel1;
+        const tiempos2 = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || tiemposNivel2;
+        const tiempos3 = JSON.parse(localStorage.getItem(`tiempos_nivel3_${player.name}`)) || tiemposNivel3;
+        
+        setTiemposNivel1(tiempos1);
+        setTiemposNivel2(tiempos2);
+        setTiemposNivel3(tiempos3);
+      }
+    };
+  
+    if (player?.name) {
+      cargarTiempos();
+    }
+  }, [player?.name]);
+  
+
+  /*
   // Función para guardar los tiempos
   const guardarTiempos = () => {
     const tiemposNivel1Formato = {
@@ -69,12 +113,39 @@ const Tiempo = ({ player, onBack, onConfigClick }) => {
     };
 
     localStorage.setItem(`tiempos_nivel3_${player.name}`, JSON.stringify(tiemposNivel3Formato));
-
-    //localStorage.setItem(`tiempos_nivel3_${player.name}`, JSON.stringify(tiemposNivel3));
-    // Mostrar algún tipo de confirmación
-    //alert('¡Tiempos guardados correctamente!');
     setShowAlert(true);
-  };
+  };*/
+
+    // Función para guardar los tiempos
+    const guardarTiempos = async () => {
+        try {
+          // Guardar en Firebase
+          const response = await fetch(`http://localhost:5000/api/tiempos/${player.name}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tiemposNivel1,
+              tiemposNivel2,
+              tiemposNivel3
+            })
+          });
+      
+          if (!response.ok) {
+            throw new Error('Error al guardar tiempos');
+          }
+      
+          // Guardar en localStorage también
+          localStorage.setItem(`tiempos_nivel1_${player.name}`, JSON.stringify(tiemposNivel1));
+          localStorage.setItem(`tiempos_nivel2_${player.name}`, JSON.stringify(tiemposNivel2));
+          localStorage.setItem(`tiempos_nivel3_${player.name}`, JSON.stringify(tiemposNivel3));
+      
+          setShowAlert(true);
+        } catch (error) {
+          console.error('Error al guardar tiempos:', error);
+        }
+      };
 
   const CollapsibleHeader = ({ title, isOpen, onToggle }) => (
     <div 

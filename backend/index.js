@@ -163,6 +163,7 @@ app.put('/api/progress/:name', async (req, res) => {
     res.status(500).json({ error: 'Error al guardar el progreso.' });
   }
 });
+
 /*
 // Endpoint para guardar los detalles del juego en Firestore
 app.put('/api/game-details', async (req, res) => {
@@ -223,518 +224,6 @@ app.put('/api/game-details', async (req, res) => {
   } catch (error) {
     console.error('Error al guardar los detalles:', error);
     res.status(500).json({ error: 'Error al guardar los detalles en la base de datos.' });
-  }
-});
-
-*/
-
-/*
-app.put('/api/game-details', async (req, res) => {
-  const { playerName, details, section } = req.body;
-  if (!playerName || !details || !section) {
-    return res.status(400).json({ error: 'Faltan datos requeridos' });
-  }
-  try {
-    const playerRef = db.collection('gameDetails').doc(playerName);
-    
-    // Obtener el documento actual
-    const doc = await playerRef.get();
-    let currentData = doc.exists ? doc.data() : {};
-    
-    // Inicializar la estructura si no existe
-    if (!currentData[section]) {
-      currentData[section] = {
-        attempts: {},
-        currentAttempt: 0,
-        currentNumberInAttempt: 0
-      };
-    }
-
-    // Obtener el intento actual y el número actual
-    const currentAttempt = Math.floor(currentData[section].currentNumberInAttempt / 10);
-    const numberInAttempt = currentData[section].currentNumberInAttempt % 10;
-
-    // Validación del orden de números
-    const targetNumber = Object.keys(details)[0];
-    const numberOrder = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
-    const targetNumberIndex = numberOrder.indexOf(targetNumber);
-    
-    if (targetNumberIndex > numberInAttempt) {
-      return res.status(400).json({
-        success: false,
-        error: 'No se pueden guardar números fuera de secuencia'
-      });
-    }
-
-    // Si no existe el intento actual, inicializarlo
-    if (!currentData[section].attempts[`attempt_${currentAttempt}`]) {
-      currentData[section].attempts[`attempt_${currentAttempt}`] = {
-        details: {
-          cero: null,
-          uno: null,
-          dos: null,
-          tres: null,
-          cuatro: null,
-          cinco: null,
-          seis: null,
-          siete: null,
-          ocho: null,
-          nueve: null
-        },
-        timestamp: new Date().toISOString(),
-        totalErrors: 0,
-        totalTime: 0,
-        completed: false
-      };
-    }
-
-    // Actualizar los detalles del número actual
-    const currentAttemptData = currentData[section].attempts[`attempt_${currentAttempt}`];
-    
-    // Calcular nuevos totales
-    let totalErrors = 0;
-    let totalTime = 0;
-    const updatedDetails = {
-      ...currentAttemptData.details,
-      [Object.keys(details)[0]]: Object.values(details)[0]
-    };
-
-    // Calcular totales del intento actual
-    Object.values(updatedDetails).forEach(detail => {
-      if (detail) {
-        totalErrors += detail.errors || 0;
-        totalTime += detail.time || 0;
-      }
-    });
-
-    // Verificar si el intento está completo (todos los números tienen datos)
-    //const isComplete = numberOrder.every(num => updatedDetails[num] !== null);
-
-    // Verificar si este es el último número del intento (9)
-    const isLastNumber = numberInAttempt === 9;
-    let isComplete = currentAttemptData.completed; // Mantener el valor anterior por defecto
-
-    if (isLastNumber) {
-      // Solo verificar completed cuando es el último número
-      isComplete = numberOrder.every(num => {
-        const detail = updatedDetails[num];
-        return detail && (detail.resultado === true || detail.resultado === false);
-      });
-    }
-
-    const updateData = {
-      [section]: {
-        ...currentData[section],
-        attempts: {
-          ...currentData[section].attempts,
-          [`attempt_${currentAttempt}`]: {
-            details: updatedDetails,
-            timestamp: currentAttemptData.timestamp,
-            totalErrors: totalErrors,
-            totalTime: totalTime,
-            completed: isComplete
-          }
-        },
-        currentNumberInAttempt: currentData[section].currentNumberInAttempt + 1
-      }
-    };
-
-    // Actualizar el documento
-    await playerRef.set(updateData, { merge: true });
-
-    res.status(200).json({ 
-      success: true, 
-      message: 'Datos guardados exitosamente'
-    });
-  } catch (error) {
-    console.error('Error al guardar datos:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error al guardar los datos'
-    });
-  }
-});
-*/
-//no ocrea un nuevo intento si esta incompleto
-/*
-app.put('/api/game-details', async (req, res) => {
-  const { playerName, details, section } = req.body;
-  if (!playerName || !details || !section) {
-    return res.status(400).json({ error: 'Faltan datos requeridos' });
-  }
-  try {
-    const playerRef = db.collection('gameDetails').doc(playerName);
-    
-    // Obtener el documento actual
-    const doc = await playerRef.get();
-    let currentData = doc.exists ? doc.data() : {};
-    
-    // Inicializar la estructura si no existe
-    if (!currentData[section]) {
-      currentData[section] = {
-        attempts: {},
-        currentAttempt: 0,
-        currentNumberInAttempt: 0
-      };
-    }
-
-    // Obtener el intento actual y el número actual
-    const currentAttempt = Math.floor(currentData[section].currentNumberInAttempt / 10);
-    const numberInAttempt = currentData[section].currentNumberInAttempt % 10;
-
-    // Validación del orden de números
-    const targetNumber = Object.keys(details)[0];
-    const numberOrder = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
-    const targetNumberIndex = numberOrder.indexOf(targetNumber);
-    
-    // Verificar si estamos empezando un nuevo intento
-    if (currentData[section].attempts[`attempt_${currentAttempt}`] && 
-        targetNumberIndex < numberInAttempt) {
-      // Si intentamos un número anterior, incrementar el intento
-      currentData[section].currentAttempt = currentAttempt + 1;
-      currentData[section].currentNumberInAttempt = targetNumberIndex;
-    }
-
-    // Actualizar el intento actual después de la verificación
-    const updatedCurrentAttempt = Math.floor(currentData[section].currentNumberInAttempt / 10);
-
-    // Si no existe el intento actual, inicializarlo
-    if (!currentData[section].attempts[`attempt_${updatedCurrentAttempt}`]) {
-      currentData[section].attempts[`attempt_${updatedCurrentAttempt}`] = {
-        details: {
-          cero: null,
-          uno: null,
-          dos: null,
-          tres: null,
-          cuatro: null,
-          cinco: null,
-          seis: null,
-          siete: null,
-          ocho: null,
-          nueve: null
-        },
-        timestamp: new Date().toISOString(),
-        totalErrors: 0,
-        totalTime: 0,
-        completed: false
-      };
-    }
-
-    // Obtener datos del intento actual
-    const currentAttemptData = currentData[section].attempts[`attempt_${updatedCurrentAttempt}`];
-    
-    // Calcular nuevos totales
-    let totalErrors = 0;
-    let totalTime = 0;
-    const updatedDetails = {
-      ...currentAttemptData.details,
-      [targetNumber]: Object.values(details)[0]
-    };
-
-    // Calcular totales solo de los números que tienen datos
-    Object.values(updatedDetails).forEach(detail => {
-      if (detail !== null) {
-        totalErrors += detail.errors || 0;
-        totalTime += detail.time || 0;
-      }
-    });
-
-    // Verificar si este es el último número del intento
-    const isLastNumber = numberInAttempt === 9;
-    let isComplete = numberOrder.every(num => {
-      const detail = updatedDetails[num];
-      return detail && detail.resultado !== null;
-    });
-
-    const updateData = {
-      [section]: {
-        ...currentData[section],
-        currentAttempt: updatedCurrentAttempt,
-        currentNumberInAttempt: currentData[section].currentNumberInAttempt + 1,
-        attempts: {
-          ...currentData[section].attempts,
-          [`attempt_${updatedCurrentAttempt}`]: {
-            details: updatedDetails,
-            timestamp: currentAttemptData.timestamp,
-            totalErrors: totalErrors,
-            totalTime: totalTime,
-            completed: isComplete
-          }
-        }
-      }
-    };
-
-    // Actualizar el documento
-    await playerRef.set(updateData, { merge: true });
-
-    res.status(200).json({ 
-      success: true, 
-      message: 'Datos guardados exitosamente'
-    });
-  } catch (error) {
-    console.error('Error al guardar datos:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error al guardar los datos'
-    });
-  }
-});
-*/
-
-/*
-app.put('/api/game-details', async (req, res) => {
-  const { playerName, details, section } = req.body;
-  if (!playerName || !details || !section) {
-    return res.status(400).json({ error: 'Faltan datos requeridos' });
-  }
-  try {
-    const playerRef = db.collection('gameDetails').doc(playerName);
-    
-    // Obtener el documento actual
-    const doc = await playerRef.get();
-    let currentData = doc.exists ? doc.data() : {};
-    
-    // Inicializar la estructura si no existe
-    if (!currentData[section]) {
-      currentData[section] = {
-        attempts: {},
-        currentAttempt: 0,
-        currentNumberInAttempt: 0
-      };
-    }
-
-    // Obtener el intento actual y el número actual
-    const currentAttempt = Math.floor(currentData[section].currentNumberInAttempt / 10);
-    const numberInAttempt = currentData[section].currentNumberInAttempt % 10;
-
-    // Validación del orden de números
-    const targetNumber = Object.keys(details)[0];
-    const numberOrder = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
-    const targetNumberIndex = numberOrder.indexOf(targetNumber);
-    
-    if (targetNumberIndex > numberInAttempt) {
-      return res.status(400).json({
-        success: false,
-        error: 'No se pueden guardar números fuera de secuencia'
-      });
-    }
-
-    // Si no existe el intento actual, inicializarlo
-    if (!currentData[section].attempts[`attempt_${currentAttempt}`]) {
-      currentData[section].attempts[`attempt_${currentAttempt}`] = {
-        details: {
-          cero: null,
-          uno: null,
-          dos: null,
-          tres: null,
-          cuatro: null,
-          cinco: null,
-          seis: null,
-          siete: null,
-          ocho: null,
-          nueve: null
-        },
-        timestamp: new Date().toISOString(),
-        totalErrors: 0,
-        totalTime: 0,
-        completed: false
-      };
-    }
-
-    // Actualizar los detalles del número actual
-    const currentAttemptData = currentData[section].attempts[`attempt_${currentAttempt}`];
-    
-     // Calcular totales y actualizar datos
-     let totalErrors = 0;
-     let totalTime = 0;
-     const updatedDetails = {
-       ...currentAttemptData.details,
-       [Object.keys(details)[0]]: Object.values(details)[0]
-     };
- 
-     // Calcular totales del intento actual
-     Object.values(updatedDetails).forEach(detail => {
-       if (detail) {
-         totalErrors += detail.errors || 0;
-         totalTime += detail.time || 0;
-       }
-     });
- 
-     // Verificar si este es el último número del intento (9)
-     const isLastNumber = numberInAttempt === 9;
-     let isComplete = currentAttemptData.completed; // Mantener el valor anterior por defecto
- 
-     if (isLastNumber) {
-       // Solo verificar completed cuando es el último número
-       isComplete = numberOrder.every(num => {
-         const detail = updatedDetails[num];
-         return detail && (detail.resultado === true || detail.resultado === false);
-       });
-     }
- 
-    
-    const updateData = {
-      [section]: {
-        ...currentData[section],
-        attempts: {
-          ...currentData[section].attempts,
-          [`attempt_${currentAttempt}`]: {
-            details: updatedDetails,
-            timestamp: currentAttemptData.timestamp,
-            totalErrors: totalErrors,
-            totalTime: totalTime,
-            completed: isComplete
-          }
-        },
-        currentNumberInAttempt: currentData[section].currentNumberInAttempt + 1
-      }
-    };
-
-    // Actualizar el documento
-    await playerRef.set(updateData, { merge: true });
-
-    res.status(200).json({ 
-      success: true, 
-      message: 'Datos guardados exitosamente'
-    });
-  } catch (error) {
-    console.error('Error al guardar datos:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error al guardar los datos'
-    });
-  }
-});*/
-//SI COMETO UN ERROR LO DEMAS SE GUARDA COMO NULL
-/*
-app.put('/api/game-details', async (req, res) => {
-  const { playerName, details, section } = req.body;
-  if (!playerName || !details || !section) {
-    return res.status(400).json({ error: 'Faltan datos requeridos' });
-  }
-  
-  try {
-    const playerRef = db.collection('gameDetails').doc(playerName);
-    
-    // Obtener el documento actual
-    const doc = await playerRef.get();
-    let currentData = doc.exists ? doc.data() : {};
-    
-    // Inicializar la estructura si no existe
-    if (!currentData[section]) {
-      currentData[section] = {
-        attempts: {},
-        currentAttempt: 0,
-        currentNumberInAttempt: 0
-      };
-    }
-
-    const numberOrder = ['cero', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
-    const targetNumber = Object.keys(details)[0];
-    const targetNumberIndex = numberOrder.indexOf(targetNumber);
-    
-    // Obtener el número actual en el intento
-    let currentAttempt = currentData[section].currentAttempt;
-    let currentNumberInAttempt = currentData[section].currentNumberInAttempt;
-
-    // Si es un número menor al actual y no es el primer número, significa que se reinició
-    if (targetNumberIndex < currentNumberInAttempt && targetNumberIndex !== 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'No se pueden guardar números fuera de secuencia'
-      });
-    }
-
-    // Si es el número cero y no es el primer intento o ya habíamos avanzado,
-    // crear nuevo attempt
-    if (targetNumberIndex === 0 && (currentNumberInAttempt > 0 || Object.keys(currentData[section].attempts).length > 0)) {
-      currentAttempt++;
-      currentNumberInAttempt = 0;
-    }
-
-    // Inicializar el attempt si no existe
-    if (!currentData[section].attempts[`attempt_${currentAttempt}`]) {
-      currentData[section].attempts[`attempt_${currentAttempt}`] = {
-        details: {
-          cero: null,
-          uno: null,
-          dos: null,
-          tres: null,
-          cuatro: null,
-          cinco: null,
-          seis: null,
-          siete: null,
-          ocho: null,
-          nueve: null
-        },
-        timestamp: new Date().toISOString(),
-        totalErrors: 0,
-        totalTime: 0,
-        completed: false
-      };
-    }
-
-    // Actualizar los detalles del número actual
-    const currentAttemptData = currentData[section].attempts[`attempt_${currentAttempt}`];
-    
-    // Calcular totales y actualizar datos
-    let totalErrors = 0;
-    let totalTime = 0;
-    const updatedDetails = {
-      ...currentAttemptData.details,
-      [targetNumber]: Object.values(details)[0]
-    };
-
-    // Calcular totales del intento actual
-    Object.values(updatedDetails).forEach(detail => {
-      if (detail) {
-        totalErrors += detail.errors || 0;
-        totalTime += detail.time || 0;
-      }
-    });
-
-    // Verificar si este es el último número del intento (9)
-    const isLastNumber = targetNumberIndex === 9;
-    let isComplete = currentAttemptData.completed; // Mantener el estado anterior
-
-    if (isLastNumber) {
-      isComplete = numberOrder.every(num => {
-        const detail = updatedDetails[num];
-        return detail && (detail.resultado === true || detail.resultado === false);
-      });
-    }
-
-    const updateData = {
-      [section]: {
-        ...currentData[section],
-        attempts: {
-          ...currentData[section].attempts,
-          [`attempt_${currentAttempt}`]: {
-            details: updatedDetails,
-            timestamp: currentAttemptData.timestamp,
-            totalErrors: totalErrors,
-            totalTime: totalTime,
-            completed: isComplete
-          }
-        },
-        currentAttempt: currentAttempt,
-        currentNumberInAttempt: targetNumberIndex + 1
-      }
-    };
-
-    // Actualizar el documento
-    await playerRef.set(updateData, { merge: true });
-
-    res.status(200).json({ 
-      success: true, 
-      message: 'Datos guardados exitosamente'
-    });
-  } catch (error) {
-    console.error('Error al guardar datos:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error al guardar los datos'
-    });
   }
 });
 
@@ -1445,125 +934,6 @@ app.put('/api/game-details-colores', async (req, res) => {
   }
 });
 
-/*
-app.put('/api/game-details-animales-numeros', async (req, res) => {
-  const { playerName, details, section } = req.body;
-  
-  // Validación básica de datos requeridos
-  if (!playerName || !details || !section) {
-    return res.status(400).json({ error: 'Faltan datos requeridos' });
-  }
-  
-  try {
-    const playerRef = db.collection('gameDetailsAnimalesNumeros').doc(playerName);
-    
-    // Obtener el documento actual
-    const doc = await playerRef.get();
-    let currentData = doc.exists ? doc.data() : {};
-    
-    // Inicializar la estructura si no existe
-    if (!currentData[section]) {
-      currentData[section] = {
-        attempts: {},
-        currentAttempt: 0,
-        lastAnimalInAttempt: -1
-      };
-    }
-
-    // Definir orden de los animales y sus números
-    const animalOrder = [
-      { nombre: 'pájaro', numero: 1 },
-      { nombre: 'tortuga', numero: 2 },
-      { nombre: 'cerdo', numero: 3 },
-      { nombre: 'pato', numero: 4 },
-      { nombre: 'mariposa', numero: 5 },
-      { nombre: 'pollito', numero: 6 },
-      { nombre: 'gato', numero: 7 },
-      { nombre: 'perro', numero: 8 },
-      { nombre: 'oveja', numero: 9 }
-    ];
-    
-    // Obtener el animal actual del request
-    const targetAnimal = Object.keys(details)[0];
-    const targetAnimalIndex = animalOrder.findIndex(animal => animal.nombre === targetAnimal);
-    
-    let currentAttempt = currentData[section].currentAttempt;
-    let lastAnimalInAttempt = currentData[section].lastAnimalInAttempt;
-    
-    // Si es el primer animal y ya teníamos datos guardados, crear nuevo intento
-    if (targetAnimalIndex === 0 && lastAnimalInAttempt >= 0) {
-      currentAttempt++;
-      lastAnimalInAttempt = -1;
-    }
-
-    // Validar que no se salten animales en la secuencia
-    if (targetAnimalIndex > lastAnimalInAttempt + 1 && targetAnimalIndex !== 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'No se pueden saltar animales en la secuencia'
-      });
-    }
-
-    // Inicializar el attempt si no existe
-    if (!currentData[section].attempts[`attempt_${currentAttempt}`]) {
-      currentData[section].attempts[`attempt_${currentAttempt}`] = {
-        details: {
-          'pájaro': null,
-          'tortuga': null,
-          'cerdo': null,
-          'pato': null,
-          'mariposa': null,
-          'pollito': null,
-          'gato': null,
-          'perro': null,
-          'oveja': null
-        },
-        timestamp: new Date(),
-        totalErrors: 0,
-        totalTime: 0,
-        completed: false
-      };
-    }
-
-    // Actualizar los detalles del intento actual
-    const attemptRef = currentData[section].attempts[`attempt_${currentAttempt}`];
-    
-    // Actualizar detalles del animal actual
-    attemptRef.details[targetAnimal] = details[targetAnimal];
-    
-    // Actualizar contadores totales
-    attemptRef.totalErrors += details[targetAnimal].errors || 0;
-    attemptRef.totalTime += details[targetAnimal].time || 0;
-    
-    // Verificar si este intento está completo
-    const allAnimalsCompleted = Object.values(attemptRef.details)
-      .every(detail => detail !== null && detail.resultado === true);
-    
-    if (allAnimalsCompleted) {
-      attemptRef.completed = true;
-    }
-
-    // Actualizar el último animal en el intento
-    currentData[section].lastAnimalInAttempt = targetAnimalIndex;
-    currentData[section].currentAttempt = currentAttempt;
-
-    // Guardar los cambios
-    await playerRef.set(currentData);
-
-    res.json({
-      success: true,
-      message: 'Detalles guardados correctamente'
-    });
-
-  } catch (error) {
-    console.error('Error al guardar detalles:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al guardar los detalles del juego'
-    });
-  }
-});
-*/
 
 app.put('/api/game-details-animales-numeros', async (req, res) => {
   const { playerName, details, section } = req.body;
@@ -2199,48 +1569,129 @@ app.put('/api/game-details-cerditos', async (req, res) => {
   }
 });
 
-// Nuevo endpoint para el historial de intentos
-/*app.put('/api/game-history', async (req, res) => {
-  const { playerName, attempt, details, section } = req.body;
 
-  if (!playerName || !details || !section) {
-    return res.status(400).json({ error: 'El nombre del jugador, los detalles y la sección son obligatorios.' });
+/*
+// Endpoint para guardar tiempos configurados
+app.put('/api/tiempos/:playerName', async (req, res) => {
+  const playerName = req.params.playerName;
+  const { tiemposNivel1, tiemposNivel2, tiemposNivel3 } = req.body;
+
+  if (!playerName) {
+    return res.status(400).json({ error: 'Nombre del jugador requerido' });
   }
 
   try {
-    const playerDocId = `player_${playerName}_history`;
-    const playerRef = db.collection('gameHistory').doc(playerDocId);
-
-    // Obtener el documento actual si existe
-    const doc = await playerRef.get();
-    let existingData = {};
-
-    if (doc.exists) {
-      existingData = doc.data();
-    }
-
-    // Crear nuevo intento
-    const attemptData = {
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      details: details,
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    
+    const tiemposData = {
+      nivel1: tiemposNivel1 || {},
+      nivel2: tiemposNivel2 || {},
+      nivel3: tiemposNivel3 || {},
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
 
-    // Actualizar el historial
-    await playerRef.set({
-      playerName,
-      section,
-      attempts: admin.firestore.FieldValue.arrayUnion(attemptData)
-    }, { merge: true });
+    await tiemposRef.set(tiemposData, { merge: true });
 
-    res.status(200).json({ 
-      message: `Historial actualizado correctamente para "${section}"`
+    res.json({ 
+      success: true, 
+      message: 'Tiempos actualizados correctamente',
+      data: tiemposData
     });
+
   } catch (error) {
-    console.error('Error al guardar el historial:', error);
-    res.status(500).json({ error: 'Error al guardar el historial.' });
+    console.error('Error al guardar tiempos:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error al guardar los tiempos' 
+    });
   }
 });
-*/
+
+// Endpoint para obtener tiempos configurados
+app.get('/api/tiempos/:playerName', async (req, res) => {
+  const playerName = req.params.playerName;
+
+  if (!playerName) {
+    return res.status(400).json({ error: 'Nombre del jugador requerido' });
+  }
+
+  try {
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    const doc = await tiemposRef.get();
+
+    if (!doc.exists) {
+      return res.json({
+        success: true,
+        data: {
+          nivel1: {
+            numeros: 10,
+            vocales: 10,
+            figuras: 10,
+            animales: 10,
+            colores: 10
+          },
+          nivel2: {
+            'animales-numeros': 10,
+            'animales-vocales': 10,
+            'colores-formas': 10
+          },
+          nivel3: {
+            patitos: 10,
+            cerditos: 10
+          }
+        }
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      data: doc.data() 
+    });
+
+  } catch (error) {
+    console.error('Error al obtener tiempos:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error al obtener los tiempos' 
+    });
+  }
+});*/
+
+// Endpoints simples para tiempos en index.js
+
+app.put('/api/tiempos/:playerName', async (req, res) => {
+  const { playerName } = req.params;
+  const { tiemposNivel1, tiemposNivel2, tiemposNivel3 } = req.body;
+
+  try {
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    await tiemposRef.set({
+      nivel1: tiemposNivel1,
+      nivel2: tiemposNivel2,
+      nivel3: tiemposNivel3,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ success: false, error: 'Error al guardar tiempos' });
+  }
+});
+
+app.get('/api/tiempos/:playerName', async (req, res) => {
+  const { playerName } = req.params;
+
+  try {
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    const doc = await tiemposRef.get();
+    res.json({ success: true, data: doc.exists ? doc.data() : null });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ success: false, error: 'Error al obtener tiempos' });
+  }
+});
+
 // Iniciar el servidor
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);
