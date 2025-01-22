@@ -401,6 +401,7 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
     }, 2000);
   };
 
+  /*
   const saveDetailsToDatabase = async ({ section, details }) => {
     console.log('Datos que se enviarán al backend:', { section, details });
   
@@ -428,6 +429,57 @@ const Nivel3 = ({ player, onBack, onConfigClick }) => {
       console.error('Error al guardar detalles:', error);
     }
   };
+  */
+
+  const saveDetailsToDatabase = async ({ section, details }) => {
+    if (!player?.name || !section || !details) {
+        console.warn('Faltan datos requeridos:', { 
+            player: player?.name, 
+            section, 
+            details 
+        });
+        return;
+    }
+
+    // Determinar el endpoint basado en la sección
+    const endpoint = section === 'patitos' 
+        ? 'game-details-patitos'
+        : 'game-details-cerditos';
+
+    // Convertir el número a string en el objeto details
+    const formattedDetails = {};
+    Object.entries(details).forEach(([key, value]) => {
+        formattedDetails[key.toString()] = value;
+    });
+
+    const dataToSend = {
+        playerName: player.name,
+        section: section,
+        details: formattedDetails
+    };
+
+    console.log('Datos que se enviarán al backend:', dataToSend);
+
+    try {
+        const response = await fetch(`http://localhost:5000/api/${endpoint}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dataToSend)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.warn('Advertencia al guardar detalles:', errorData);
+            return;
+        }
+
+        console.log('Detalles guardados correctamente en la base de datos');
+    } catch (error) {
+        console.error('Error al guardar detalles:', error);
+    }
+};
 
   useEffect(() => {
     if (!animalSeleccionado || gameCompleted || showSolution) return;

@@ -241,33 +241,43 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   };
 
   const saveDetailsToDatabase = async ({ section, details }) => {
-    console.log('Datos que se enviarán al backend:', { section, details });
-  
-    try {
-      const response = await fetch('http://localhost:5000/api/game-details', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          playerName: player.name,
-          section,
-          details,
-        }),
-      });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.warn('Advertencia al guardar detalles:', errorData);
+    if (!player?.name || !section || !details) {
+        console.warn('Faltan datos requeridos:', { 
+            player: player?.name, 
+            section, 
+            details 
+        });
         return;
-      }
-  
-      console.log('Detalles guardados correctamente en la base de datos');
-    } catch (error) {
-      console.error('Error al guardar detalles:', error);
     }
-  };  
 
+    const dataToSend = {
+        playerName: player.name,
+        section: section,
+        details: details
+    };
+
+    console.log('Datos que se enviarán al backend:', dataToSend);
+
+    try {
+        const response = await fetch('http://localhost:5000/api/game-details-animales-numeros', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dataToSend)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.warn('Advertencia al guardar detalles:', errorData);
+            return;
+        }
+
+        console.log('Detalles guardados correctamente en la base de datos');
+    } catch (error) {
+        console.error('Error al guardar detalles:', error);
+    }
+};
   /*
   const checkAnswer = (input) => {
     if (currentPair >= pairs.length) return;

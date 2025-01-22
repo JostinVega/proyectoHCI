@@ -167,6 +167,7 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   }, []);
 
+  /*
   const saveDetailsToDatabase = async ({ section, details }) => {
     console.log('Datos que se enviarán al backend:', { section, details });
   
@@ -192,6 +193,46 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       console.log('Detalles guardados correctamente en la base de datos');
     } catch (error) {
       console.error('Error al guardar detalles:', error);
+    }
+  };
+  */
+
+  const saveDetailsToDatabase = async ({ section, details }) => {
+    if (!player?.name || !section || !details) {
+        console.warn('Faltan datos requeridos:', { 
+            player: player?.name, 
+            section, 
+            details 
+        });
+        return;
+    }
+
+    const dataToSend = {
+        playerName: player.name,
+        section: 'figuras',
+        details: details
+    };
+
+    console.log('Datos que se enviarán al backend:', dataToSend);
+
+    try {
+        const response = await fetch('http://localhost:5000/api/game-details-figuras', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dataToSend)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.warn('Advertencia al guardar detalles:', errorData);
+            return;
+        }
+
+        console.log('Detalles guardados correctamente en la base de datos');
+    } catch (error) {
+        console.error('Error al guardar detalles:', error);
     }
   };
 

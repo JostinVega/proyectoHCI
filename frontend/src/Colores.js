@@ -274,6 +274,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   }, []);
 
+  /*
   const saveDetailsToDatabase = async ({ section, details }) => {
     try {
       const response = await fetch('http://localhost:5000/api/game-details', {
@@ -299,6 +300,45 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       console.error('Error al guardar detalles:', error);
     }
   };  
+  */
+
+  const saveDetailsToDatabase = async ({ section, details }) => {
+    if (!player?.name || !section || !details) {
+        console.warn('Faltan datos requeridos:', { 
+            player: player?.name, 
+            section, 
+            details 
+        });
+        return;
+    }
+
+    const dataToSend = {
+        playerName: player.name,
+        section: 'colores',
+        details: details
+    };
+
+    console.log('Datos que se enviarán al backend:', dataToSend);
+
+    try {
+        const response = await fetch('http://localhost:5000/api/game-details-colores', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dataToSend)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Error al guardar detalles: ${JSON.stringify(errorData)}`);
+        }
+
+        console.log('Detalles guardados correctamente en la base de datos');
+    } catch (error) {
+        console.error('Error en saveDetailsToDatabase:', error.message);
+    }
+};
 
   // Función para reproducir audio de manera confiable
   const playAudio = async (audioRef) => {

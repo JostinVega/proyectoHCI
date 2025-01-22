@@ -155,6 +155,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   };
   */
 
+  /*
   const saveDetailsToDatabase = async ({ section, details }) => {
     console.log('Datos que se enviarán al backend:', { section, details });
   
@@ -182,6 +183,43 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       console.error('Error al guardar detalles:', error);
     }
   };  
+  */
+
+  const saveDetailsToDatabase = async ({ section, details }) => {
+    console.log('Datos que se enviarán al backend:', { playerName: player.name, section, details });
+  
+    // Verificar si tenemos todos los datos necesarios
+    if (!player?.name || !section || !details) {
+      console.warn('Faltan datos requeridos:', { player: player?.name, section, details });
+      return;
+    }
+  
+    try {
+      const response = await fetch('http://localhost:5000/api/game-details-numeros', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName: player.name,
+          section,
+          details,
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Error al guardar detalles: ${JSON.stringify(errorData)}`);
+      }
+  
+      const data = await response.json();
+      console.log('Respuesta del servidor:', data);
+      console.log('Detalles guardados correctamente en la base de datos');
+    } catch (error) {
+      console.error('Error en saveDetailsToDatabase:', error.message);
+      // Podemos agregar aquí un reintento si es necesario
+    }
+  };
   
   // Función para reproducir audio de manera confiable
   const playAudio = async (audioRef) => {
@@ -363,6 +401,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }, {});
   };
 
+  /*
   // Mostrar estadísticas finales con los datos ordenados
   const showFinalStats = () => {
     let totalErrors = 0;
@@ -386,7 +425,53 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
     console.log(`Aciertos totales: ${aciertos}/10`);
   };
+  */
   
+  const showFinalStats = () => {
+    let totalErrors = 0;
+    let totalTime = 0;
+    let aciertos = 0;
+    const historyDetails = {};
+  
+    // Ordenar los detalles antes de procesarlos
+    const sortedDetails = getSortedDetails(detailsByNumber);
+  
+    // Preparar los detalles para todos los números (0-9)
+    for (let i = 0; i <= 9; i++) {
+      const numberName = numberNames[i];
+      const details = sortedDetails[numberName] || { errors: null, time: null, resultado: null };
+      
+      historyDetails[numberName] = {
+        errors: details.errors,
+        time: details.time,
+        resultado: details.resultado
+      };
+  
+      if (details.errors !== null) {
+        totalErrors += details.errors;
+        totalTime += details.time;
+        if (details.resultado) aciertos++;
+      }
+    }
+  
+    // Guardar el historial completo
+    /*saveHistoryToDatabase({
+      section: 'numbers',
+      details: historyDetails
+    });*/
+  
+    // Mostrar estadísticas en consola
+    console.log('Estadísticas del intento:');
+    Object.entries(historyDetails).forEach(([key, value]) => {
+      console.log(
+        `Número: ${key} | Errores: ${value.errors} | Tiempo: ${value.time?.toFixed(2)}s | Acertó: ${value.resultado ? 'Sí' : 'No'}`
+      );
+    });
+  
+    console.log(`Errores totales: ${totalErrors}`);
+    console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
+    console.log(`Aciertos totales: ${aciertos}/10`);
+  };
   // Al montar el componente, restaurar estado de instrucciones
   useEffect(() => {
     const savedProgress = localStorage.getItem(`nivel1_numeros_progress_${player.name}`);
@@ -518,6 +603,35 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
    const handleBack = () => {
     onBack();
   };
+
+  /*
+  const saveHistoryToDatabase = async ({ section, details }) => {
+    console.log('Guardando historial:', { section, details });
+  
+    try {
+      const response = await fetch('http://localhost:5000/api/game-history', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName: player.name,
+          section,
+          details,
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('Advertencia al guardar historial:', errorData);
+        return;
+      }
+  
+      console.log('Historial guardado correctamente');
+    } catch (error) {
+      console.error('Error al guardar historial:', error);
+    }
+  };*/
 
     // Renderizado del componente
   return (
