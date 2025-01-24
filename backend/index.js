@@ -67,6 +67,37 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+// Nuevo endpoint para inicializar tiempos por defecto
+app.post('/api/init-tiempos/:playerName', async (req, res) => {
+  const { playerName } = req.params;
+  try {
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    await tiemposRef.set({
+      nivel1: {
+        numeros: 10,
+        vocales: 10,
+        figuras: 10,
+        animales: 10,
+        colores: 10
+      },
+      nivel2: {
+        'animales-numeros': 10,
+        'animales-vocales': 10,
+        'colores-formas': 10
+      },
+      nivel3: {
+        patitos: 10,
+        cerditos: 10
+      },
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    res.json({ success: true, message: 'Tiempos inicializados correctamente' });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Error al inicializar tiempos' });
+  }
+ });
+
 // Endpoint para obtener usuarios registrados en Firestore
 app.get('/api/users', async (req, res) => {
   try {
@@ -131,6 +162,7 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
+/*
 // Endpoint para guardar el progreso del jugador
 app.put('/api/progress/:name', async (req, res) => {
   const playerName = req.params.name; // Nombre del jugador
@@ -162,6 +194,39 @@ app.put('/api/progress/:name', async (req, res) => {
     console.error('Error al guardar el progreso:', error);
     res.status(500).json({ error: 'Error al guardar el progreso.' });
   }
+});
+*/
+
+app.put('/api/progress/:name', async (req, res) => {
+ const playerName = req.params.name;
+ const { progress } = req.body;
+
+ if (!progress) {
+   return res.status(400).json({ error: 'El progreso es obligatorio.' });
+ }
+
+ try {
+   const progressRef = db.collection('progress').doc(playerName);
+   const doc = await progressRef.get();
+
+   if (!doc.exists) {
+     await progressRef.set({
+       playerName,
+       progress,
+       updatedAt: admin.firestore.FieldValue.serverTimestamp()
+     });
+   } else {
+     await progressRef.update({ 
+       progress,
+       updatedAt: admin.firestore.FieldValue.serverTimestamp()  
+     });
+   }
+
+   res.status(200).json({ success: true, message: 'Progreso actualizado correctamente.' });
+ } catch (error) {
+   console.error('Error al guardar progreso:', error);
+   res.status(500).json({ success: false, error: 'Error al guardar el progreso.' });
+ }
 });
 
 /*
@@ -237,6 +302,12 @@ app.put('/api/game-details-numeros', async (req, res) => {
   }
   
   try {
+
+    // Obtener tiempo del temporizador de la colección tiempos
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    const tiemposDoc = await tiemposRef.get();
+    const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel1?.numeros || 10 : 10;
+
     const playerRef = db.collection('gameDetailsNumeros').doc(playerName);
     
     // Obtener el documento actual
@@ -248,7 +319,8 @@ app.put('/api/game-details-numeros', async (req, res) => {
       currentData[section] = {
         attempts: {},
         currentAttempt: 0,
-        lastNumberInAttempt: -1
+        lastNumberInAttempt: -1,
+        timerConfig: timerValue
       };
     }
 
@@ -350,7 +422,8 @@ app.put('/api/game-details-numeros', async (req, res) => {
       timestamp: new Date(),
       totalErrors: totalErrors,
       totalTime: totalTime,
-      completed: isComplete
+      completed: isComplete,
+      timerValue: timerValue
     };
 
     const updateData = {
@@ -385,6 +458,11 @@ app.put('/api/game-details-vocales', async (req, res) => {
   }
   
   try {
+    // Obtener tiempo del temporizador
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    const tiemposDoc = await tiemposRef.get();
+    const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel1?.vocales || 10 : 10;
+
     const playerRef = db.collection('gameDetailsVocales').doc(playerName);
     
     // Obtener el documento actual
@@ -396,7 +474,8 @@ app.put('/api/game-details-vocales', async (req, res) => {
       currentData[section] = {
         attempts: {},
         currentAttempt: 0,
-        lastVocalInAttempt: -1
+        lastVocalInAttempt: -1,
+        timerConfig: timerValue
       };
     }
 
@@ -482,7 +561,8 @@ app.put('/api/game-details-vocales', async (req, res) => {
             timestamp: new Date(),
             totalErrors: totalErrors,
             totalTime: totalTime,
-            completed: isComplete
+            completed: isComplete,
+            timerValue: timerValue
           }
         },
         currentAttempt: currentAttempt,
@@ -513,6 +593,10 @@ app.put('/api/game-details-figuras', async (req, res) => {
   }
   
   try {
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    const tiemposDoc = await tiemposRef.get();
+    const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel1?.figuras || 10 : 10;
+
     const playerRef = db.collection('gameDetailsFiguras').doc(playerName);
     
     // Obtener el documento actual
@@ -524,7 +608,8 @@ app.put('/api/game-details-figuras', async (req, res) => {
       currentData[section] = {
         attempts: {},
         currentAttempt: 0,
-        lastFigureInAttempt: -1
+        lastFigureInAttempt: -1,
+        timerConfig: timerValue
       };
     }
 
@@ -622,7 +707,8 @@ app.put('/api/game-details-figuras', async (req, res) => {
       timestamp: new Date(),
       totalErrors: totalErrors,
       totalTime: totalTime,
-      completed: isComplete
+      completed: isComplete,
+      timerValue: timerValue
     };
 
     const updateData = {
@@ -657,6 +743,11 @@ app.put('/api/game-details-animales', async (req, res) => {
   }
   
   try {
+    // Obtener tiempo del temporizador
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    const tiemposDoc = await tiemposRef.get();
+    const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel1?.animales || 10 : 10;
+
     const playerRef = db.collection('gameDetailsAnimales').doc(playerName);
     
     // Obtener el documento actual
@@ -668,7 +759,8 @@ app.put('/api/game-details-animales', async (req, res) => {
       currentData[section] = {
         attempts: {},
         currentAttempt: 0,
-        lastAnimalInAttempt: -1
+        lastAnimalInAttempt: -1,
+        timerConfig: timerValue
       };
     }
 
@@ -778,7 +870,8 @@ app.put('/api/game-details-animales', async (req, res) => {
       timestamp: new Date(),
       totalErrors: totalErrors,
       totalTime: totalTime,
-      completed: isComplete
+      completed: isComplete,
+      timerValue: timerValue
     };
 
     const updateData = {
@@ -813,6 +906,11 @@ app.put('/api/game-details-colores', async (req, res) => {
   }
   
   try {
+    // Obtener tiempo del temporizador
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    const tiemposDoc = await tiemposRef.get();
+    const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel1?.colores || 10 : 10;
+
     const playerRef = db.collection('gameDetailsColores').doc(playerName);
     
     // Obtener el documento actual
@@ -824,7 +922,8 @@ app.put('/api/game-details-colores', async (req, res) => {
       currentData[section] = {
         attempts: {},
         currentAttempt: 0,
-        lastColorInAttempt: -1  // Cambiamos a lastColorInAttempt para mejor claridad
+        lastColorInAttempt: -1,  // Cambiamos a lastColorInAttempt para mejor claridad
+        timerConfig: timerValue
       };
     }
 
@@ -910,7 +1009,8 @@ app.put('/api/game-details-colores', async (req, res) => {
             timestamp: new Date(),
             totalErrors: totalErrors,
             totalTime: totalTime,
-            completed: isComplete
+            completed: isComplete,
+            timerValue: timerValue
           }
         },
         currentAttempt: currentAttempt,
@@ -943,6 +1043,11 @@ app.put('/api/game-details-animales-numeros', async (req, res) => {
   }
   
   try {
+    // Obtener tiempo del temporizador
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    const tiemposDoc = await tiemposRef.get();
+    const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel2?.['animales-numeros'] || 10 : 10;
+
     const playerRef = db.collection('gameDetailsAnimalesNumeros').doc(playerName);
     
     // Obtener el documento actual
@@ -954,7 +1059,8 @@ app.put('/api/game-details-animales-numeros', async (req, res) => {
       currentData[section] = {
         attempts: {},
         currentAttempt: 0,
-        lastAnimalInAttempt: -1
+        lastAnimalInAttempt: -1,
+        timerConfig: timerValue
       };
     }
 
@@ -1067,7 +1173,8 @@ app.put('/api/game-details-animales-numeros', async (req, res) => {
       timestamp: new Date(),
       totalErrors: totalErrors,
       totalTime: totalTime,
-      completed: isComplete
+      completed: isComplete,
+      timerValue: timerValue
     };
 
     const updateData = {
@@ -1103,6 +1210,11 @@ app.put('/api/game-details-animales-vocales', async (req, res) => {
   }
   
   try {
+    // Obtener tiempo del temporizador
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    const tiemposDoc = await tiemposRef.get();
+    const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel2?.['animales-vocales'] || 10 : 10;
+
     const playerRef = db.collection('gameDetailsAnimalesVocales').doc(playerName);
     
     // Obtener el documento actual
@@ -1114,7 +1226,8 @@ app.put('/api/game-details-animales-vocales', async (req, res) => {
       currentData[section] = {
         attempts: {},
         currentAttempt: 0,
-        lastVocalInAttempt: -1
+        lastVocalInAttempt: -1,
+        timerConfig: timerValue
       };
     }
 
@@ -1195,7 +1308,8 @@ app.put('/api/game-details-animales-vocales', async (req, res) => {
             timestamp: new Date(),
             totalErrors: totalErrors,
             totalTime: totalTime,
-            completed: isComplete
+            completed: isComplete,
+            timerValue: timerValue
           }
         },
         currentAttempt: currentAttempt,
@@ -1226,6 +1340,11 @@ app.put('/api/game-details-colores-formas', async (req, res) => {
   }
   
   try {
+    // Obtener tiempo del temporizador
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    const tiemposDoc = await tiemposRef.get();
+    const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel2?.['colores-formas'] || 10 : 10;
+
     const playerRef = db.collection('gameDetailsColoresFormas').doc(playerName);
     
     // Obtener el documento actual
@@ -1237,7 +1356,8 @@ app.put('/api/game-details-colores-formas', async (req, res) => {
       currentData[section] = {
         attempts: {},
         currentAttempt: 0,
-        lastShapeInAttempt: -1
+        lastShapeInAttempt: -1,
+        timerConfig: timerValue
       };
     }
 
@@ -1329,7 +1449,8 @@ app.put('/api/game-details-colores-formas', async (req, res) => {
             timestamp: new Date(),
             totalErrors: totalErrors,
             totalTime: totalTime,
-            completed: isComplete
+            completed: isComplete,
+            timerValue: timerValue
           }
         },
         currentAttempt: currentAttempt,
@@ -1361,6 +1482,11 @@ app.put('/api/game-details-patitos', async (req, res) => {
   }
   
   try {
+    // Obtener tiempo del temporizador
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    const tiemposDoc = await tiemposRef.get();
+    const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel3.patitos || 10 : 10;
+
     const playerRef = db.collection('gameDetailsPatitos').doc(playerName);
     
     // Obtener el documento actual
@@ -1438,7 +1564,8 @@ app.put('/api/game-details-patitos', async (req, res) => {
             timestamp: new Date(),
             totalErrors: totalErrors,
             totalTime: totalTime,
-            completed: isComplete
+            completed: isComplete,
+            timerValue: timerValue
           }
         },
         currentAttempt: currentAttempt
@@ -1469,6 +1596,11 @@ app.put('/api/game-details-cerditos', async (req, res) => {
   }
   
   try {
+    // Obtener tiempo del temporizador
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    const tiemposDoc = await tiemposRef.get();
+    const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel3.cerditos || 10 : 10;
+
     const playerRef = db.collection('gameDetailsCerditos').doc(playerName);
     
     // Obtener el documento actual
@@ -1546,7 +1678,8 @@ app.put('/api/game-details-cerditos', async (req, res) => {
             timestamp: new Date(),
             totalErrors: totalErrors,
             totalTime: totalTime,
-            completed: isComplete
+            completed: isComplete,
+            timerValue: timerValue
           }
         },
         currentAttempt: currentAttempt
@@ -1657,7 +1790,8 @@ app.get('/api/tiempos/:playerName', async (req, res) => {
   }
 });*/
 
-// Endpoints simples para tiempos en index.js
+// Endpoints para tiempos
+
 
 app.put('/api/tiempos/:playerName', async (req, res) => {
   const { playerName } = req.params;

@@ -473,6 +473,11 @@ const KidsGameUI = () => {
         if (response.ok) {
           const data = await response.json();
           console.log(data.message);
+
+          // Inicializar tiempos
+          await fetch(`http://localhost:5000/api/init-tiempos/${formData.name.trim()}`, {
+            method: 'POST'
+          });
           
           // Asigna un color aleatorio al nuevo jugador
           const randomColor = backgroundColors[Math.floor(Math.random() * backgroundColors.length)];
