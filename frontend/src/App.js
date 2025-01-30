@@ -16,6 +16,8 @@ import ColoresFormas from './ColoresFormas';
 import Nivel3 from './Nivel3';
 import Progreso from './Progreso';
 import Tiempo from './Tiempo';
+import MensajesPrediccion from './MensajesPrediccion';
+import MensajesPrediccionNivel3 from './MensajesPrediccionNivel3';
 
 const KidsGameUI = () => {
   

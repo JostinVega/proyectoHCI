@@ -1,6 +1,32 @@
 import React, { useState, useEffect } from 'react';
+import MensajesPrediccion from './MensajesPrediccion';
 
 const Nivel2 = ({ player, onBack, onSelectPhase, onConfigClick }) => {
+
+  const [mlPredictions, setMlPredictions] = useState(null);
+
+  // Efecto para obtener las predicciones
+  useEffect(() => {
+    const fetchPredictions = async () => {
+      try {
+        const response = await fetch(`http://localhost:5000/api/predictions/${player.name}`);
+        if (!response.ok) {
+          throw new Error(`Error en la respuesta del servidor: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('Estructura completa de predicciones:', JSON.stringify(data, null, 2));
+        setMlPredictions(data);
+      } catch (err) {
+        console.error('Error al obtener predicciones:', err);
+        alert('Hubo un problema al obtener las predicciones. Intenta nuevamente.');
+      }
+    };
+
+    if (player?.name) {
+      fetchPredictions();
+    }
+  }, [player?.name]);
 
   // Estado para manejar el progreso
   const [progress, setProgress] = useState(() => {
@@ -293,6 +319,8 @@ useEffect(() => {
         {fases.map((fase) => {
           // Obtener el progreso de la fase actual
           const phaseProgress = progress.phases[fase.id];
+          const prediction = mlPredictions?.level2?.[fase.id];
+
           
           return (
             <button
@@ -308,6 +336,9 @@ useEffect(() => {
                 <div>
                   <h3 className="text-xl font-bold mb-1">{fase.nombre}</h3>
                   <p className="text-sm opacity-90">{fase.descripcion}</p>
+                  {prediction && (
+                    <MensajesPrediccion prediction={prediction} />
+                  )}
                   {phaseProgress.completed && (
                     <span className="text-sm text-green-200">Completado ✅</span>
                   )}

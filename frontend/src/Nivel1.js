@@ -1,7 +1,44 @@
 import React, { useState, useEffect } from 'react';
+import MensajesPrediccion from './MensajesPrediccion';
 
 const Nivel1 = ({ player, onBack, onSelectPhase, onConfigClick }) => {
   const [currentPhase, setCurrentPhase] = useState('menu'); // menu, numeros, vocales, figuras, animales, colores
+
+  const [mlPredictions, setMlPredictions] = useState(null);
+
+  const mapFrontToBackId = (frontendId) => {
+    return frontendId === 'numeros' ? 'numbers' : frontendId;
+  };
+
+  const mapBackToFrontId = (backendId) => {
+    return backendId === 'numbers' ? 'numeros' : backendId;
+  };
+
+  useEffect(() => {
+    const fetchPredictions = async () => {
+      try {
+        //const response = await fetch(`/api/predictions/${player.name}`);
+        const response = await fetch(`http://localhost:5000/api/predictions/${player.name}`);
+        if (!response.ok) {
+          throw new Error(`Error en la respuesta del servidor: ${response.statusText}`);
+        }
+  
+        const data = await response.json(); // Intentar parsear el JSON
+        console.log('Predicciones recibidas:', data);
+        setMlPredictions(data);
+      } catch (err) {
+        console.error('Error al obtener predicciones:', err);
+        //alert('Hubo un problema al obtener las predicciones. Intenta nuevamente.');
+      }
+    };
+  
+    if (player?.name) {
+      fetchPredictions();
+    }
+  }, [player?.name]);
+  
+  
+  
 
   // Función para reiniciar el progreso de una fase específica
   const handleResetPhase = (phaseId) => {
@@ -102,6 +139,7 @@ const Nivel1 = ({ player, onBack, onSelectPhase, onConfigClick }) => {
   updateProgressFromStorage();
 }, [player.name]);
 
+{/*
   // Método para renderizar la barra de progreso
   const renderProgressBar = () => {
     const { phases } = progress || {}; // Asegurarse de que progress exista
@@ -116,7 +154,7 @@ const Nivel1 = ({ player, onBack, onSelectPhase, onConfigClick }) => {
         </div>
       );
     }
-  
+
     return (
       <div className="bg-white bg-opacity-90 rounded-xl p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
@@ -177,6 +215,81 @@ const Nivel1 = ({ player, onBack, onSelectPhase, onConfigClick }) => {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    );
+  };
+
+  */}
+
+
+  const renderProgressBar = () => {
+    const { phases } = progress || {};
+  
+    if (!phases || typeof phases !== 'object') {
+      return <div className="bg-white bg-opacity-90 rounded-xl p-4 mb-4">
+        <h3 className="text-xl font-bold text-red-600">No hay datos disponibles.</h3>
+      </div>;
+    }
+  
+    return (
+      <div className="bg-white bg-opacity-90 rounded-xl p-4 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xl font-bold text-purple-600">Progreso</h3>
+          <span className="text-xl font-bold text-purple-600">
+            {progress.totalProgress ? progress.totalProgress.toFixed(0) : 0}%
+          </span>
+        </div>
+        
+        <div className="space-y-2">
+          {Object.entries(phases).map(([phase, data]) => {
+            const prediction = mlPredictions?.level1?.[phase];
+            
+            return (
+              <div key={phase} className="bg-gray-50 rounded-lg p-2 hover:bg-white hover:shadow-md">
+                <div className="flex justify-between items-center mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{phase === 'numeros' ? '🔢' : 
+                     phase === 'vocales' ? '📝' : 
+                     phase === 'figuras' ? '⭐' : 
+                     phase === 'animales' ? '🦁' : '🎨'}</span>
+                    <span className="text-gray-700 capitalize text-sm font-medium">{phase}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-purple-600 font-medium">
+                      {data.progress ? data.progress.toFixed(0) : 0}%
+                    </span>
+                    {/*
+                    {prediction && (
+                      <div className="mt-2 text-sm">
+                        {prediction.needs_review && (
+                          <div>
+                            <p className="text-red-500 font-bold">¡Vuelve a practicar!</p>
+                          </div>
+                        )}
+                        <p className="text-blue-600">
+                          Tiempo recomendado: {prediction.recommended_timer}s
+                        </p>
+                      </div>
+                    )}*/}
+                    {data.progress > 0 && (
+                      <button onClick={(e) => {
+                        e.stopPropagation();
+                        handleResetPhase(phase);
+                      }} className="text-red-500 hover:text-red-700 text-sm">
+                        🔄
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className={`h-2 rounded-full ${data.completed ? 'bg-gradient-to-r from-green-400 to-green-500' : 'bg-gradient-to-r from-blue-400 to-purple-500'}`} 
+                    style={{width: `${data.progress || 0}%`}}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -251,7 +364,9 @@ const Nivel1 = ({ player, onBack, onSelectPhase, onConfigClick }) => {
           {fases.map((fase) => {
             // Verifica que `phaseProgress` exista antes de acceder a sus propiedades
             const phaseProgress = progress.phases[fase.id] || { completed: false, progress: 0 };
-  
+            //const prediction = mlPredictions?.level1?.[fase.id];
+            const prediction = mlPredictions?.level1?.[mapFrontToBackId(fase.id)];
+
             return (
               <button
                 key={fase.id}
@@ -267,6 +382,18 @@ const Nivel1 = ({ player, onBack, onSelectPhase, onConfigClick }) => {
                   <div>
                     <h3 className="text-xl font-bold mb-1">{fase.nombre}</h3>
                     <p className="text-sm opacity-90">{fase.descripcion}</p>
+                    {/*{prediction && (
+                      <div className="mt-2 text-sm">
+                        {prediction.needs_review && (
+                          <p className="text-yellow-200 font-bold">¡Vuelve a practicar!</p>
+                        )}
+                        <p className="text-white">
+                          Tiempo recomendado: {prediction.recommended_timer}s
+                        </p>
+                      </div>
+                    )}*/}
+                    <MensajesPrediccion prediction={prediction} />
+
                     {phaseProgress.completed && (
                       <span className="text-sm text-green-200">Completado ✅</span>
                     )}

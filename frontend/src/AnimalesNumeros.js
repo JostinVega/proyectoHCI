@@ -21,6 +21,16 @@ import solsiete from '../src/images/numero7.png';
 import solocho from '../src/images/numero8.png';
 import solnueve from '../src/images/numero9.png';
 
+import uno from '../src/sounds/animales-numeros/1pajarito.MP3';
+import dos from '../src/sounds/animales-numeros/2tortugas.MP3';
+import tres from '../src/sounds/animales-numeros/3cerditos.MP3';
+import cuatro from '../src/sounds/animales-numeros/4patitos.MP3';
+import cinco from '../src/sounds/animales-numeros/5mariposas.MP3';
+import seis from '../src/sounds/animales-numeros/6pollitos.MP3';
+import siete from '../src/sounds/animales-numeros/7gatitos.MP3';
+import ocho from '../src/sounds/animales-numeros/8perritos.MP3';
+import nueve from '../src/sounds/animales-numeros/9ovejas.MP3';
+
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
@@ -90,6 +100,19 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     7: solsiete,
     8: solocho,
     9: solnueve
+  };
+
+  // Objeto para mapear números con sus audios
+  const numberAudios = {
+    1: uno,
+    2: dos,
+    3: tres,
+    4: cuatro,
+    5: cinco,
+    6: seis,
+    7: siete,
+    8: ocho,
+    9: nueve
   };
 
   const pairs = [
@@ -187,7 +210,8 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
   const completedAudioRef = useRef(null);
-  
+  const numberAudioRef = useRef(null);
+
   // Al inicio del componente, después de la definición de pairs
   useEffect(() => {
     if (currentPair >= pairs.length) {
@@ -377,6 +401,7 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     }
   };
 
+  /*
   // Inicializar los audios de feedback
   useEffect(() => {
     successAudioRef.current = new Audio(success);
@@ -392,6 +417,53 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
       }
     };
   }, []);
+  */
+
+  // UseEffect para inicializar los audios de feedback
+  useEffect(() => {
+    successAudioRef.current = new Audio(success);
+    encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed);
+    
+    return () => {
+      if (successAudioRef.current) {
+        successAudioRef.current.pause();
+        successAudioRef.current.currentTime = 0;
+      }
+      if (encouragementAudioRef.current) {
+        encouragementAudioRef.current.pause();
+        encouragementAudioRef.current.currentTime = 0;
+      }
+      if (completedAudioRef.current) { 
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
+  // UseEffect para reproducir el audio cuando cambia el par de animal-número
+  useEffect(() => {
+    if (!showInstructions && !gameCompleted && !showSolution) {
+      if (numberAudioRef.current) {
+        numberAudioRef.current.pause();
+        numberAudioRef.current.currentTime = 0;
+      }
+
+      if (currentPair < pairs.length) {
+        numberAudioRef.current = new Audio(numberAudios[pairs[currentPair].cantidad]);
+        numberAudioRef.current.play().catch(error => {
+          console.log("Error al reproducir el audio del número:", error);
+        });
+      }
+
+      return () => {
+        if (numberAudioRef.current) {
+          numberAudioRef.current.pause();
+          numberAudioRef.current.currentTime = 0;
+        }
+      };
+    }
+  }, [currentPair, showInstructions, gameCompleted, showSolution]);
 
   const checkAnswer = (input) => {
     if (showFeedback || showSolution || showInstructions || gameCompleted) return;
@@ -490,6 +562,13 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
         onProgressUpdate(100, true);
         showFinalStats();
 
+        // Reproducir el audio de completado
+        if (completedAudioRef.current) {
+          completedAudioRef.current.play().catch(error => {
+            console.log("Error al reproducir audio de completado:", error);
+          });
+        }
+
         setTimeout(() => {
             setGameCompleted(true);
             setShowFeedback(false);
@@ -512,89 +591,89 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   };
 
   // Temporizador
-useEffect(() => {
-  if (showInstructions || gameCompleted || showSolution) return;
+  useEffect(() => {
+    if (showInstructions || gameCompleted || showSolution) return;
 
-  // Crear el elemento de audio si no existe
-  if (!audioRef.current) {
-    audioRef.current = new Audio(time);
-    audioRef.current.loop = true;
-  }
-
-  let timeoutId;
-  const timerId = setInterval(() => {
-      setTimeLeft(time => {
-           // Manejar el audio cuando el tiempo es bajo
-           if (time <= 3 && time > 0) {
-            audioRef.current.play().catch(error => {
-                console.log("Error al reproducir el audio:", error);
-            });
-          } else if (time > 3 || time <= 0) {
-              audioRef.current.pause();
-              audioRef.current.currentTime = 0;
-          }
-          if (time <= 0) {
-              clearInterval(timerId);
-              setShowSolution(true);
-              
-              const currentAnimal = pairs[currentPair].nombre;
-              setErrorsArray(prevErrors => {
-                  const currentErrors = prevErrors[currentPair];
-                  
-                  // Guardar detalles cuando se acaba el tiempo
-                  saveDetailsToDatabase({
-                      section: 'animales-numeros',
-                      details: {
-                          [currentAnimal]: {
-                              errors: currentErrors,
-                              time: timeLeft,
-                              resultado: false
-                          }
-                      }
-                  });
-
-                  console.log(`Tiempo agotado para ${currentAnimal}:`, {
-                      errors: currentErrors,
-                      time: timeLeft,
-                      resultado: false
-                  });
-
-                  return prevErrors;
-              });
-              
-              timeoutId = setTimeout(() => {
-                  setShowSolution(false);
-                  
-                  if (currentPair < pairs.length - 1) {
-                      setCurrentPair(prev => prev + 1);
-                      //setTimeLeft(10);
-                      // Obtener el tiempo configurado
-                      const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
-                      setTimeLeft(tiempos['animales-numeros'] || 10);
-                      setStartTime(Date.now());
-                  } else {
-                      localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, pairs.length);
-                      localStorage.setItem(`nivel2_animales_numeros_completed_${player.name}`, 'true');
-                      onProgressUpdate(100, true);
-                      setGameCompleted(true);
-                  }
-              }, 2000);
-              
-              return 0;
-          }
-          return time - 1;
-      });
-  }, 1000);
-
-  return () => {
-      if (timerId) clearInterval(timerId);
-      if (timeoutId) clearTimeout(timeoutId);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+    // Crear el elemento de audio si no existe
+    if (!audioRef.current) {
+      audioRef.current = new Audio(time);
+      audioRef.current.loop = true;
     }
-  };
-}, [currentPair, showInstructions, gameCompleted, showSolution, player.name]);
+
+    let timeoutId;
+    const timerId = setInterval(() => {
+        setTimeLeft(time => {
+            // Manejar el audio cuando el tiempo es bajo
+            if (time <= 3 && time > 0) {
+              audioRef.current.play().catch(error => {
+                  console.log("Error al reproducir el audio:", error);
+              });
+            } else if (time > 3 || time <= 0) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
+            if (time <= 0) {
+                clearInterval(timerId);
+                setShowSolution(true);
+                
+                const currentAnimal = pairs[currentPair].nombre;
+                setErrorsArray(prevErrors => {
+                    const currentErrors = prevErrors[currentPair];
+                    
+                    // Guardar detalles cuando se acaba el tiempo
+                    saveDetailsToDatabase({
+                        section: 'animales-numeros',
+                        details: {
+                            [currentAnimal]: {
+                                errors: currentErrors,
+                                time: timeLeft,
+                                resultado: false
+                            }
+                        }
+                    });
+
+                    console.log(`Tiempo agotado para ${currentAnimal}:`, {
+                        errors: currentErrors,
+                        time: timeLeft,
+                        resultado: false
+                    });
+
+                    return prevErrors;
+                });
+                
+                timeoutId = setTimeout(() => {
+                    setShowSolution(false);
+                    
+                    if (currentPair < pairs.length - 1) {
+                        setCurrentPair(prev => prev + 1);
+                        //setTimeLeft(10);
+                        // Obtener el tiempo configurado
+                        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+                        setTimeLeft(tiempos['animales-numeros'] || 10);
+                        setStartTime(Date.now());
+                    } else {
+                        localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, pairs.length);
+                        localStorage.setItem(`nivel2_animales_numeros_completed_${player.name}`, 'true');
+                        onProgressUpdate(100, true);
+                        setGameCompleted(true);
+                    }
+                }, 2000);
+                
+                return 0;
+            }
+            return time - 1;
+        });
+    }, 1000);
+
+    return () => {
+        if (timerId) clearInterval(timerId);
+        if (timeoutId) clearTimeout(timeoutId);
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+      }
+    };
+  }, [currentPair, showInstructions, gameCompleted, showSolution, player.name]);
 
   const showFinalStats = () => {
     let totalErrors = 0;

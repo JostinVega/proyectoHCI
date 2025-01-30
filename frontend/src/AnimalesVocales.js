@@ -11,6 +11,12 @@ import soli from '../src/images/vocali.png';
 import solo from '../src/images/vocalo.png';
 import solu from '../src/images/vocalu.png';
 
+import vocalAbeja from '../src/sounds/animales-vocales/vocalAAbeja.MP3';
+import vocalElefante from '../src/sounds/animales-vocales/vocalEElefante.MP3';
+import vocalIguana from '../src/sounds/animales-vocales/vocalIIguana.MP3';
+import vocalOso from '../src/sounds/animales-vocales/vocalOOso.MP3';
+import vocalUnicornio from '../src/sounds/animales-vocales/vocalUUnicornio.MP3';
+
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
@@ -88,6 +94,15 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     'u': solu
   };
 
+  // Objeto para mapear animales con sus audios
+  const animalVocalAudios = {
+    'abeja': vocalAbeja,
+    'elefante': vocalElefante,
+    'iguana': vocalIguana,
+    'oso': vocalOso,
+    'unicornio': vocalUnicornio
+  };
+
   //const [currentPair, setCurrentPair] = useState(0);
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
@@ -145,6 +160,7 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
   const completedAudioRef = useRef(null);
+  const vocalAudioRef = useRef(null);
 
   // Agregar después de la definición de estados
   useEffect(() => {
@@ -272,6 +288,7 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     }
   };
 
+  /*
   // Inicializar los audios de feedback
   useEffect(() => {
     successAudioRef.current = new Audio(success);
@@ -292,6 +309,52 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
       }
     };
   }, []);
+  */
+
+  // UseEffect para inicializar los audios de feedback
+  useEffect(() => {
+    successAudioRef.current = new Audio(success);
+    encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed); 
+    return () => {
+      if (successAudioRef.current) {
+        successAudioRef.current.pause();
+        successAudioRef.current.currentTime = 0;
+      }
+      if (encouragementAudioRef.current) {
+        encouragementAudioRef.current.pause();
+        encouragementAudioRef.current.currentTime = 0;
+      }
+      if (completedAudioRef.current) {
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
+  // UseEffect para reproducir el audio cuando cambia el animal/vocal
+  useEffect(() => {
+    if (!showInstructions && !gameCompleted && !showSolution) {
+      if (vocalAudioRef.current) {
+        vocalAudioRef.current.pause();
+        vocalAudioRef.current.currentTime = 0;
+      }
+
+      if (currentPair < pairs.length) {
+        vocalAudioRef.current = new Audio(animalVocalAudios[pairs[currentPair].nombre]);
+        vocalAudioRef.current.play().catch(error => {
+          console.log("Error al reproducir el audio de la vocal:", error);
+        });
+      }
+
+      return () => {
+        if (vocalAudioRef.current) {
+          vocalAudioRef.current.pause();
+          vocalAudioRef.current.currentTime = 0;
+        }
+      };
+    }
+  }, [currentPair]);
 
   const checkAnswer = (input) => {
     if (showFeedback || showSolution || showInstructions || gameCompleted) return;

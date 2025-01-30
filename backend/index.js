@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
+const { spawn } = require('child_process');
 require('dotenv').config();
 
 // Configuración de Firebase
@@ -45,10 +46,59 @@ app.get('/', (req, res) => {
     res.send('¡Bienvenido al backend de proyectoHCI!');
 });
 
+//ML
 app.post('/api/data', (req, res) => {
     const { name } = req.body;
     res.json({ message: `Hola, ${name}. Datos recibidos correctamente.` });
 });
+
+app.get('/api/test-ml', (req, res) => {
+  const pythonPath = "C:\\Users\\USER\\anaconda3.1\\envs\\ml_env\\python.exe";
+
+  const pythonProcess = spawn(pythonPath, ["test_ml.py"]);
+
+  
+  let output = '';
+  pythonProcess.stdout.on('data', (data) => output += data);
+  pythonProcess.stderr.on('data', (data) => console.error(data.toString()));
+  pythonProcess.on('close', () => res.send(output));
+});
+
+app.get('/api/predictions/:playerName', async (req, res) => {
+  const playerName = req.params.playerName;
+
+  const pythonProcess = spawn('C:\\Users\\USER\\anaconda3.1\\envs\\ml_env\\python.exe', ['test_ml.py', playerName]);
+
+  let output = '';
+  pythonProcess.stdout.on('data', (data) => {
+    output += data.toString(); // Concatenar la salida
+  });
+
+  pythonProcess.stderr.on('data', (data) => {
+    console.error('Error en test_ml.py (stderr):', data.toString()); // Mostrar errores del script
+  });
+
+  pythonProcess.on('close', (code) => {
+    console.log('Salida del script Python:', output); // Log para inspeccionar la salida
+    console.log('Código de salida:', code); // Ver si hay errores de ejecución
+
+    try {
+      const parsedOutput = JSON.parse(output.trim()); // Intentar parsear el JSON
+      res.json(parsedOutput); // Enviar JSON al cliente
+    } catch (err) {
+      console.error('Error al parsear JSON:', err.message);
+      res.status(500).json({
+        error: 'Error procesando las predicciones',
+        details: output.trim() // Enviar salida cruda para depurar
+      });
+    }
+  });
+});
+
+
+
+
+//ML
 
 // Endpoint para guardar datos del usuario en Firestore
 app.post('/api/register', async (req, res) => {
@@ -906,23 +956,20 @@ app.put('/api/game-details-colores', async (req, res) => {
   }
   
   try {
-    // Obtener tiempo del temporizador
     const tiemposRef = db.collection('tiempos').doc(playerName);
     const tiemposDoc = await tiemposRef.get();
     const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel1?.colores || 10 : 10;
 
     const playerRef = db.collection('gameDetailsColores').doc(playerName);
     
-    // Obtener el documento actual
     const doc = await playerRef.get();
     let currentData = doc.exists ? doc.data() : {};
     
-    // Inicializar la estructura si no existe
     if (!currentData[section]) {
       currentData[section] = {
         attempts: {},
         currentAttempt: 0,
-        lastColorInAttempt: -1,  // Cambiamos a lastColorInAttempt para mejor claridad
+        lastColorInAttempt: -1,
         timerConfig: timerValue
       };
     }
@@ -933,22 +980,8 @@ app.put('/api/game-details-colores', async (req, res) => {
     
     let currentAttempt = currentData[section].currentAttempt;
     let lastColorInAttempt = currentData[section].lastColorInAttempt;
-    
-    // Si el color es celeste y ya teníamos datos guardados, crear nuevo intento
-    if (targetColorIndex === 0 && lastColorInAttempt >= 0) {
-      currentAttempt++;
-      lastColorInAttempt = -1;
-    }
 
-    // Validar que no se salte colores en la secuencia
-    if (targetColorIndex > lastColorInAttempt + 1 && targetColorIndex !== 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'No se pueden saltar colores en la secuencia'
-      });
-    }
-
-    // Inicializar el attempt si no existe
+    // Asegurarnos que el intento actual existe
     if (!currentData[section].attempts[`attempt_${currentAttempt}`]) {
       currentData[section].attempts[`attempt_${currentAttempt}`] = {
         details: {
@@ -971,16 +1004,56 @@ app.put('/api/game-details-colores', async (req, res) => {
     }
 
     const currentAttemptData = currentData[section].attempts[`attempt_${currentAttempt}`];
-    
-    // Calcular totales y actualizar datos
-    let totalErrors = 0;
-    let totalTime = 0;
+
+    // Si es un nuevo intento con celeste y el anterior está completo
+    if (targetColor === 'celeste' && lastColorInAttempt >= 0) {
+      const attemptComplete = Object.values(currentAttemptData.details).every(detail => 
+        detail && (detail.resultado === true || detail.resultado === false)
+      );
+
+      if (attemptComplete) {
+        currentAttempt++;
+        lastColorInAttempt = -1;
+        
+        // Inicializar nuevo intento
+        currentData[section].attempts[`attempt_${currentAttempt}`] = {
+          details: {
+            celeste: null,
+            verde: null,
+            rosado: null,
+            amarillo: null,
+            morado: null,
+            gris: null,
+            rojo: null,
+            marron: null,
+            anaranjado: null,
+            azul: null
+          },
+          timestamp: new Date(),
+          totalErrors: 0,
+          totalTime: 0,
+          completed: false
+        };
+      }
+    }
+
+    // Validar que no se salte colores en la secuencia
+    if (targetColorIndex > lastColorInAttempt + 1 && targetColorIndex !== 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No se pueden saltar colores en la secuencia'
+      });
+    }
+
+    // Actualizar detalles
     const updatedDetails = {
-      ...currentAttemptData.details,
+      ...currentData[section].attempts[`attempt_${currentAttempt}`].details,
       [targetColor]: Object.values(details)[0]
     };
 
-    // Calcular totales del intento actual
+    // Calcular totales
+    let totalErrors = 0;
+    let totalTime = 0;
     Object.values(updatedDetails).forEach(detail => {
       if (detail) {
         totalErrors += detail.errors || 0;
@@ -988,37 +1061,30 @@ app.put('/api/game-details-colores', async (req, res) => {
       }
     });
 
-    // Verificar si este es el último color del intento (azul)
-    const isLastColor = targetColorIndex === 9;
-    let isComplete = currentAttemptData.completed;
+    // Verificar si está completo (incluye timeout)
+    const isComplete = Object.values(updatedDetails).every(detail => 
+      detail && (detail.resultado === true || detail.resultado === false)
+    );
 
-    if (isLastColor) {
-      isComplete = colorOrder.every(color => {
-        const detail = updatedDetails[color];
-        return detail && (detail.resultado === true || detail.resultado === false);
-      });
-    }
+    // Actualizar el intento actual
+    currentData[section].attempts[`attempt_${currentAttempt}`] = {
+      details: updatedDetails,
+      timestamp: new Date(),
+      totalErrors: totalErrors,
+      totalTime: totalTime,
+      completed: isComplete,
+      timerValue: timerValue
+    };
 
     const updateData = {
       [section]: {
         ...currentData[section],
-        attempts: {
-          ...currentData[section].attempts,
-          [`attempt_${currentAttempt}`]: {
-            details: updatedDetails,
-            timestamp: new Date(),
-            totalErrors: totalErrors,
-            totalTime: totalTime,
-            completed: isComplete,
-            timerValue: timerValue
-          }
-        },
+        attempts: currentData[section].attempts,
         currentAttempt: currentAttempt,
-        lastColorInAttempt: targetColorIndex // Actualizamos al color actual
+        lastColorInAttempt: targetColorIndex
       }
     };
 
-    // Actualizar el documento
     await playerRef.set(updateData, { merge: true });
 
     res.status(200).json({ 
@@ -1210,18 +1276,14 @@ app.put('/api/game-details-animales-vocales', async (req, res) => {
   }
   
   try {
-    // Obtener tiempo del temporizador
     const tiemposRef = db.collection('tiempos').doc(playerName);
     const tiemposDoc = await tiemposRef.get();
     const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel2?.['animales-vocales'] || 10 : 10;
 
     const playerRef = db.collection('gameDetailsAnimalesVocales').doc(playerName);
-    
-    // Obtener el documento actual
     const doc = await playerRef.get();
     let currentData = doc.exists ? doc.data() : {};
     
-    // Inicializar la estructura si no existe
     if (!currentData[section]) {
       currentData[section] = {
         attempts: {},
@@ -1237,22 +1299,8 @@ app.put('/api/game-details-animales-vocales', async (req, res) => {
     
     let currentAttempt = currentData[section].currentAttempt;
     let lastVocalInAttempt = currentData[section].lastVocalInAttempt;
-    
-    // Si el animal es el primero y ya teníamos datos guardados, crear nuevo intento
-    if (targetAnimalIndex === 0 && lastVocalInAttempt >= 0) {
-      currentAttempt++;
-      lastVocalInAttempt = -1;
-    }
 
-    // Validar que no se salten animales en la secuencia
-    if (targetAnimalIndex > lastVocalInAttempt + 1 && targetAnimalIndex !== 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'No se pueden saltar animales en la secuencia'
-      });
-    }
-
-    // Inicializar el attempt si no existe
+    // Asegurarnos que el intento actual existe
     if (!currentData[section].attempts[`attempt_${currentAttempt}`]) {
       currentData[section].attempts[`attempt_${currentAttempt}`] = {
         details: {
@@ -1270,16 +1318,51 @@ app.put('/api/game-details-animales-vocales', async (req, res) => {
     }
 
     const currentAttemptData = currentData[section].attempts[`attempt_${currentAttempt}`];
-    
-    // Calcular totales y actualizar datos
-    let totalErrors = 0;
-    let totalTime = 0;
+
+    // Si es un nuevo intento con abeja y el anterior está completo
+    if (targetAnimal === 'abeja' && lastVocalInAttempt >= 0) {
+      const attemptComplete = Object.values(currentAttemptData.details).every(detail => 
+        detail && (detail.resultado === true || detail.resultado === false)
+      );
+
+      if (attemptComplete) {
+        currentAttempt++;
+        lastVocalInAttempt = -1;
+        
+        // Inicializar nuevo intento
+        currentData[section].attempts[`attempt_${currentAttempt}`] = {
+          details: {
+            abeja: null,
+            elefante: null,
+            iguana: null,
+            oso: null,
+            unicornio: null
+          },
+          timestamp: new Date(),
+          totalErrors: 0,
+          totalTime: 0,
+          completed: false
+        };
+      }
+    }
+
+    // Validar que no se salten animales en la secuencia
+    if (targetAnimalIndex > lastVocalInAttempt + 1 && targetAnimalIndex !== 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No se pueden saltar animales en la secuencia'
+      });
+    }
+
+    // Actualizar detalles
     const updatedDetails = {
-      ...currentAttemptData.details,
+      ...currentData[section].attempts[`attempt_${currentAttempt}`].details,
       [targetAnimal]: Object.values(details)[0]
     };
 
-    // Calcular totales del intento actual
+    // Calcular totales
+    let totalErrors = 0;
+    let totalTime = 0;
     Object.values(updatedDetails).forEach(detail => {
       if (detail) {
         totalErrors += detail.errors || 0;
@@ -1287,37 +1370,30 @@ app.put('/api/game-details-animales-vocales', async (req, res) => {
       }
     });
 
-    // Verificar si este es el último animal del intento (unicornio)
-    const isLastAnimal = targetAnimalIndex === 4;
-    let isComplete = currentAttemptData.completed;
+    // Verificar si está completo
+    const isComplete = Object.values(updatedDetails).every(detail => 
+      detail && (detail.resultado === true || detail.resultado === false)
+    );
 
-    if (isLastAnimal) {
-      isComplete = vocalOrder.every(animal => {
-        const detail = updatedDetails[animal];
-        return detail && (detail.resultado === true || detail.resultado === false);
-      });
-    }
+    // Actualizar el intento actual
+    currentData[section].attempts[`attempt_${currentAttempt}`] = {
+      details: updatedDetails,
+      timestamp: new Date(),
+      totalErrors: totalErrors,
+      totalTime: totalTime,
+      completed: isComplete,
+      timerValue: timerValue
+    };
 
     const updateData = {
       [section]: {
         ...currentData[section],
-        attempts: {
-          ...currentData[section].attempts,
-          [`attempt_${currentAttempt}`]: {
-            details: updatedDetails,
-            timestamp: new Date(),
-            totalErrors: totalErrors,
-            totalTime: totalTime,
-            completed: isComplete,
-            timerValue: timerValue
-          }
-        },
+        attempts: currentData[section].attempts,
         currentAttempt: currentAttempt,
         lastVocalInAttempt: targetAnimalIndex
       }
     };
 
-    // Actualizar el documento
     await playerRef.set(updateData, { merge: true });
 
     res.status(200).json({ 
@@ -1340,18 +1416,14 @@ app.put('/api/game-details-colores-formas', async (req, res) => {
   }
   
   try {
-    // Obtener tiempo del temporizador
     const tiemposRef = db.collection('tiempos').doc(playerName);
     const tiemposDoc = await tiemposRef.get();
     const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel2?.['colores-formas'] || 10 : 10;
 
     const playerRef = db.collection('gameDetailsColoresFormas').doc(playerName);
-    
-    // Obtener el documento actual
     const doc = await playerRef.get();
     let currentData = doc.exists ? doc.data() : {};
     
-    // Inicializar la estructura si no existe
     if (!currentData[section]) {
       currentData[section] = {
         attempts: {},
@@ -1376,22 +1448,8 @@ app.put('/api/game-details-colores-formas', async (req, res) => {
     
     let currentAttempt = currentData[section].currentAttempt;
     let lastShapeInAttempt = currentData[section].lastShapeInAttempt;
-    
-    // Si es la primera forma y ya teníamos datos guardados, crear nuevo intento
-    if (targetShapeIndex === 0 && lastShapeInAttempt >= 0) {
-      currentAttempt++;
-      lastShapeInAttempt = -1;
-    }
 
-    // Validar que no se salte formas en la secuencia
-    if (targetShapeIndex > lastShapeInAttempt + 1 && targetShapeIndex !== 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'No se pueden saltar formas en la secuencia'
-      });
-    }
-
-    // Inicializar el attempt si no existe
+    // Asegurarnos que el intento actual existe
     if (!currentData[section].attempts[`attempt_${currentAttempt}`]) {
       currentData[section].attempts[`attempt_${currentAttempt}`] = {
         details: {
@@ -1411,16 +1469,53 @@ app.put('/api/game-details-colores-formas', async (req, res) => {
     }
 
     const currentAttemptData = currentData[section].attempts[`attempt_${currentAttempt}`];
-    
-    // Calcular totales y actualizar datos
-    let totalErrors = 0;
-    let totalTime = 0;
+
+    // Si es un nuevo intento con circulo-verde y el anterior está completo
+    if (targetShape === 'circulo-verde' && lastShapeInAttempt >= 0) {
+      const attemptComplete = Object.values(currentAttemptData.details).every(detail => 
+        detail && (detail.resultado === true || detail.resultado === false)
+      );
+
+      if (attemptComplete) {
+        currentAttempt++;
+        lastShapeInAttempt = -1;
+        
+        // Inicializar nuevo intento
+        currentData[section].attempts[`attempt_${currentAttempt}`] = {
+          details: {
+            'circulo-verde': null,
+            'cuadrado-rosado': null,
+            'estrella-amarillo': null,
+            'triangulo-morado': null,
+            'corazon-rojo': null,
+            'rombo-anaranjado': null,
+            'luna-azul': null
+          },
+          timestamp: new Date(),
+          totalErrors: 0,
+          totalTime: 0,
+          completed: false
+        };
+      }
+    }
+
+    // Validar secuencia
+    if (targetShapeIndex > lastShapeInAttempt + 1 && targetShapeIndex !== 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No se pueden saltar formas en la secuencia'
+      });
+    }
+
+    // Actualizar detalles
     const updatedDetails = {
-      ...currentAttemptData.details,
+      ...currentData[section].attempts[`attempt_${currentAttempt}`].details,
       [targetShape]: Object.values(details)[0]
     };
 
-    // Calcular totales del intento actual
+    // Calcular totales
+    let totalErrors = 0;
+    let totalTime = 0;
     Object.values(updatedDetails).forEach(detail => {
       if (detail) {
         totalErrors += detail.errors || 0;
@@ -1428,37 +1523,30 @@ app.put('/api/game-details-colores-formas', async (req, res) => {
       }
     });
 
-    // Verificar si es la última forma del intento (luna-azul)
-    const isLastShape = targetShapeIndex === (shapeOrder.length - 1);
-    let isComplete = currentAttemptData.completed;
+    // Verificar si está completo
+    const isComplete = Object.values(updatedDetails).every(detail => 
+      detail && (detail.resultado === true || detail.resultado === false)
+    );
 
-    if (isLastShape) {
-      isComplete = shapeOrder.every(shape => {
-        const detail = updatedDetails[shape];
-        return detail && (detail.resultado === true || detail.resultado === false);
-      });
-    }
+    // Actualizar el intento actual
+    currentData[section].attempts[`attempt_${currentAttempt}`] = {
+      details: updatedDetails,
+      timestamp: new Date(),
+      totalErrors: totalErrors,
+      totalTime: totalTime,
+      completed: isComplete,
+      timerValue: timerValue
+    };
 
     const updateData = {
       [section]: {
         ...currentData[section],
-        attempts: {
-          ...currentData[section].attempts,
-          [`attempt_${currentAttempt}`]: {
-            details: updatedDetails,
-            timestamp: new Date(),
-            totalErrors: totalErrors,
-            totalTime: totalTime,
-            completed: isComplete,
-            timerValue: timerValue
-          }
-        },
+        attempts: currentData[section].attempts,
         currentAttempt: currentAttempt,
         lastShapeInAttempt: targetShapeIndex
       }
     };
 
-    // Actualizar el documento
     await playerRef.set(updateData, { merge: true });
 
     res.status(200).json({ 
@@ -1474,6 +1562,7 @@ app.put('/api/game-details-colores-formas', async (req, res) => {
   }
 });
 
+/*
 // Endpoint para patitos
 app.put('/api/game-details-patitos', async (req, res) => {
   const { playerName, details, section } = req.body;
@@ -1587,7 +1676,128 @@ app.put('/api/game-details-patitos', async (req, res) => {
     });
   }
 });
+*/
 
+app.put('/api/game-details-patitos', async (req, res) => {
+  const { playerName, details, section } = req.body;
+  if (!playerName || !details || !section) {
+    return res.status(400).json({ error: 'Faltan datos requeridos' });
+  }
+  
+  try {
+    // Obtener tiempo del temporizador
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    const tiemposDoc = await tiemposRef.get();
+    const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel3.patitos || 10 : 10;
+
+    const playerRef = db.collection('gameDetailsPatitos').doc(playerName);
+    
+    // Obtener el documento actual
+    const doc = await playerRef.get();
+    let currentData = doc.exists ? doc.data() : {};
+    
+    // Inicializar la estructura si no existe
+    if (!currentData[section]) {
+      currentData[section] = {
+        attempts: {},
+        currentAttempt: 0
+      };
+    }
+
+    let currentAttempt = currentData[section].currentAttempt;
+    
+    // Verificar si el intento actual existe y está completo
+    const currentAttemptData = currentData[section].attempts[`attempt_${currentAttempt}`];
+    if (currentAttemptData) {
+      const attemptDetails = currentAttemptData.details;
+      const isAttemptComplete = Object.keys(attemptDetails).length === 9;
+      
+      if (isAttemptComplete) {
+        // Si el intento actual está completo, incrementar para crear uno nuevo
+        currentAttempt++;
+      }
+    }
+
+    // Inicializar el nuevo attempt si no existe
+    if (!currentData[section].attempts[`attempt_${currentAttempt}`]) {
+      currentData[section].attempts[`attempt_${currentAttempt}`] = {
+        details: {},
+        timestamp: new Date(),
+        totalErrors: 0,
+        totalTime: 0,
+        completed: false
+      };
+    }
+
+    // Obtener los detalles del intento actual (que podría ser el nuevo)
+    let attemptData = currentData[section].attempts[`attempt_${currentAttempt}`];
+    
+    // Crear una copia de los detalles actuales
+    const updatedDetails = { ...attemptData.details };
+    
+    // Obtener el número del patito que se está actualizando
+    const targetNumber = Object.keys(details)[0];
+    const newDetail = details[targetNumber];
+
+    // Verificar si el número ya existe y fue respondido correctamente
+    const existingDetail = updatedDetails[targetNumber];
+    if (existingDetail && existingDetail.resultado === true) {
+      // Si el número ya fue respondido correctamente, no lo actualizamos
+      return res.status(200).json({ 
+        success: true, 
+        message: 'El número ya fue respondido correctamente'
+      });
+    }
+
+    // Actualizar solo el número específico
+    updatedDetails[targetNumber] = newDetail;
+
+    // Calcular totales
+    let totalErrors = 0;
+    let totalTime = 0;
+    Object.values(updatedDetails).forEach(detail => {
+      if (detail) {
+        totalErrors += detail.errors || 0;
+        totalTime += detail.time || 0;
+      }
+    });
+
+    // Verificar si este intento está completo
+    const isComplete = Object.keys(updatedDetails).length === 9;
+
+    const updateData = {
+      [section]: {
+        attempts: {
+          ...currentData[section].attempts,
+          [`attempt_${currentAttempt}`]: {
+            details: updatedDetails,
+            timestamp: new Date(),
+            totalErrors,
+            totalTime,
+            completed: isComplete,
+            timerValue
+          }
+        },
+        currentAttempt
+      }
+    };
+
+    // Actualizar el documento
+    await playerRef.set(updateData, { merge: true });
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Datos guardados exitosamente'
+    });
+  } catch (error) {
+    console.error('Error al guardar datos:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error al guardar los datos'
+    });
+  }
+});
+/*
 // Endpoint para cerditos
 app.put('/api/game-details-cerditos', async (req, res) => {
   const { playerName, details, section } = req.body;
@@ -1701,7 +1911,127 @@ app.put('/api/game-details-cerditos', async (req, res) => {
     });
   }
 });
+*/
 
+app.put('/api/game-details-cerditos', async (req, res) => {
+  const { playerName, details, section } = req.body;
+  if (!playerName || !details || !section) {
+    return res.status(400).json({ error: 'Faltan datos requeridos' });
+  }
+  
+  try {
+    // Obtener tiempo del temporizador
+    const tiemposRef = db.collection('tiempos').doc(playerName);
+    const tiemposDoc = await tiemposRef.get();
+    const timerValue = tiemposDoc.exists ? tiemposDoc.data()?.nivel3.cerditos || 10 : 10;
+
+    const playerRef = db.collection('gameDetailsCerditos').doc(playerName);
+    
+    // Obtener el documento actual
+    const doc = await playerRef.get();
+    let currentData = doc.exists ? doc.data() : {};
+    
+    // Inicializar la estructura si no existe
+    if (!currentData[section]) {
+      currentData[section] = {
+        attempts: {},
+        currentAttempt: 0
+      };
+    }
+
+    let currentAttempt = currentData[section].currentAttempt;
+    
+    // Verificar si el intento actual existe y está completo
+    const currentAttemptData = currentData[section].attempts[`attempt_${currentAttempt}`];
+    if (currentAttemptData) {
+      const attemptDetails = currentAttemptData.details;
+      const isAttemptComplete = Object.keys(attemptDetails).length === 9;
+      
+      if (isAttemptComplete) {
+        // Si el intento actual está completo, incrementar para crear uno nuevo
+        currentAttempt++;
+      }
+    }
+
+    // Inicializar el nuevo attempt si no existe
+    if (!currentData[section].attempts[`attempt_${currentAttempt}`]) {
+      currentData[section].attempts[`attempt_${currentAttempt}`] = {
+        details: {},
+        timestamp: new Date(),
+        totalErrors: 0,
+        totalTime: 0,
+        completed: false
+      };
+    }
+
+    // Obtener los detalles del intento actual (que podría ser el nuevo)
+    let attemptData = currentData[section].attempts[`attempt_${currentAttempt}`];
+    
+    // Crear una copia de los detalles actuales
+    const updatedDetails = { ...attemptData.details };
+    
+    // Obtener el número del cerdito que se está actualizando
+    const targetNumber = Object.keys(details)[0];
+    const newDetail = details[targetNumber];
+
+    // Verificar si el número ya existe y fue respondido correctamente
+    const existingDetail = updatedDetails[targetNumber];
+    if (existingDetail && existingDetail.resultado === true) {
+      // Si el número ya fue respondido correctamente, no lo actualizamos
+      return res.status(200).json({ 
+        success: true, 
+        message: 'El número ya fue respondido correctamente'
+      });
+    }
+
+    // Actualizar solo el número específico
+    updatedDetails[targetNumber] = newDetail;
+
+    // Calcular totales
+    let totalErrors = 0;
+    let totalTime = 0;
+    Object.values(updatedDetails).forEach(detail => {
+      if (detail) {
+        totalErrors += detail.errors || 0;
+        totalTime += detail.time || 0;
+      }
+    });
+
+    // Verificar si este intento está completo
+    const isComplete = Object.keys(updatedDetails).length === 9;
+
+    const updateData = {
+      [section]: {
+        attempts: {
+          ...currentData[section].attempts,
+          [`attempt_${currentAttempt}`]: {
+            details: updatedDetails,
+            timestamp: new Date(),
+            totalErrors,
+            totalTime,
+            completed: isComplete,
+            timerValue
+          }
+        },
+        currentAttempt
+      }
+    };
+
+    // Actualizar el documento
+    await playerRef.set(updateData, { merge: true });
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Datos guardados exitosamente'
+    });
+  } catch (error) {
+    console.error('Error al guardar datos:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error al guardar los datos'
+    });
+  }
+});
 
 /*
 // Endpoint para guardar tiempos configurados
@@ -1823,6 +2153,44 @@ app.get('/api/tiempos/:playerName', async (req, res) => {
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ success: false, error: 'Error al obtener tiempos' });
+  }
+});
+
+app.post('/api/esp32/upload', async (req, res) => {
+  try {
+    const { object_count } = req.body;
+
+    if (!object_count) {
+      return res.status(400).json({ error: 'No se recibieron datos válidos.' });
+    }
+
+    // Guardar o actualizar datos en Firestore en el documento "animalitos"
+    await db.collection('esp32').doc('animalitos').set({
+      object_count,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.json({ success: true, message: 'Datos guardados en el documento "animalitos"' });
+  } catch (error) {
+    console.error('Error al guardar datos en Firestore:', error);
+    res.status(500).json({ error: 'Error al guardar datos en Firestore.' });
+  }
+});
+
+app.get('/api/esp32/counts', async (req, res) => {
+  try {
+    const docRef = db.collection('esp32').doc('animalitos');
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      return res.status(404).json({ error: 'Documento no encontrado' });
+    }
+
+    const data = docSnap.data();
+    res.json(data.object_count); // Solo enviamos los conteos de cerditos y patitos
+  } catch (error) {
+    console.error('Error obteniendo los datos de Firestore:', error);
+    res.status(500).json({ error: 'Error al obtener datos' });
   }
 });
 

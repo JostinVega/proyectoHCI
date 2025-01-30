@@ -12,6 +12,17 @@ import colormarron from '../src/images/colormarron.png';
 import coloranaranjado from '../src/images/coloranaranjado.png';
 import colorazul from '../src/images/colorazul.png';
 
+import audioCeleste from '../src/sounds/colores/celeste.MP3';
+import audioVerde from '../src/sounds/colores/verde.MP3';
+import audioRosado from '../src/sounds/colores/rosado.MP3';
+import audioAmarillo from '../src/sounds/colores/amarillo.MP3';
+import audioMorado from '../src/sounds/colores/morado.MP3';
+import audioGris from '../src/sounds/colores/gris.MP3';
+import audioRojo from '../src/sounds/colores/rojo.MP3';
+import audioMarron from '../src/sounds/colores/marron.MP3';
+import audioAnaranjado from '../src/sounds/colores/anaranjado.MP3';
+import audioAzul from '../src/sounds/colores/azul.MP3';
+
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
@@ -43,6 +54,20 @@ const solutionImages = {
   'marron': colormarron,
   'anaranjado': coloranaranjado,
   'azul': colorazul
+};
+
+// Objeto para mapear colores con sus audios
+const colorAudios = {
+  'celeste': audioCeleste,
+  'verde': audioVerde,
+  'rosado': audioRosado,
+  'amarillo': audioAmarillo,
+  'morado': audioMorado,
+  'gris': audioGris,
+  'rojo': audioRojo,
+  'marron': audioMarron,
+  'anaranjado': audioAnaranjado,
+  'azul': audioAzul
 };
 
 const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
@@ -90,6 +115,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
   const completedAudioRef = useRef(null);
+  const colorAudioRef = useRef(null);
 
   // Mensajes de éxito y ánimo
   const successMessages = [
@@ -354,6 +380,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   };
 
+  /*
   // Inicializar los audios de feedback
   useEffect(() => {
     successAudioRef.current = new Audio(success);
@@ -374,6 +401,64 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }
     };
   }, []);
+  */
+
+  // UseEffect para inicializar los audios de feedback
+useEffect(() => {
+  successAudioRef.current = new Audio(success);
+  encouragementAudioRef.current = new Audio(encouragement);
+  completedAudioRef.current = new Audio(completed);
+  
+  return () => {
+    if (successAudioRef.current) {
+      successAudioRef.current.pause();
+      successAudioRef.current.currentTime = 0;
+    }
+    if (encouragementAudioRef.current) {
+      encouragementAudioRef.current.pause();
+      encouragementAudioRef.current.currentTime = 0;
+    }
+    if (completedAudioRef.current) { 
+      completedAudioRef.current.pause();
+      completedAudioRef.current.currentTime = 0;
+    }
+  };
+}, []);
+
+// UseEffect para el audio del color actual
+useEffect(() => {
+  if (!showInstructions && !gameCompleted && !showSolution && !isAnimating) {
+    if (colorAudioRef.current) {
+      colorAudioRef.current.pause();
+      colorAudioRef.current.currentTime = 0;
+    }
+
+    // Crear un nuevo audio para el color actual
+    colorAudioRef.current = new Audio(colorAudios[colores[currentColor]]);
+
+    // Función para reproducir el audio
+    const playAudioSequence = () => {
+      colorAudioRef.current.addEventListener('ended', () => {
+        console.log("Audio de color completado");
+      });
+
+      colorAudioRef.current.play().catch(error => {
+        console.log("Error al reproducir el audio del color:", error);
+      });
+    };
+
+    // Iniciar la secuencia después de un pequeño delay
+    const timeoutId = setTimeout(playAudioSequence, 300);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (colorAudioRef.current) {
+        colorAudioRef.current.pause();
+        colorAudioRef.current.currentTime = 0;
+      }
+    };
+  }
+}, [currentColor]);
 
   const checkAnswer = (input) => {
     if (showFeedback || showSolution || showInstructions || gameCompleted || isAnimating) return;

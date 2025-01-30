@@ -6,6 +6,14 @@ import figuraestrella from '../src/images/figuraestrella.png';
 import figuracorazon from '../src/images/figuracorazon.png';
 import figuraluna from '../src/images/figuraluna.png';
 
+import audioCirculo from '../src/sounds/figuras/circulo.MP3';
+import audioCorazon from '../src/sounds/figuras/corazon.MP3';
+import audioCuadrado from '../src/sounds/figuras/cuadrado.MP3';
+import audioEstrella from '../src/sounds/figuras/estrella.MP3';
+import audioLuna from '../src/sounds/figuras/luna.MP3';
+import audioRombo from '../src/sounds/figuras/rombo.MP3';
+import audioTriangulo from '../src/sounds/figuras/triangulo.MP3';
+
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
@@ -72,6 +80,17 @@ const solutionImages = {
   'luna': figuraluna
 };
 
+// Objeto para mapear figuras con sus audios
+const figuraAudios = {
+  'circulo': audioCirculo,
+  'corazon': audioCorazon,
+  'cuadrado': audioCuadrado,
+  'estrella': audioEstrella,
+  'luna': audioLuna,
+  'rombo': audioRombo,
+  'triangulo': audioTriangulo
+};
+
 const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const formas = ['circulo', 'cuadrado', 'triangulo', 'rombo', 'estrella', 'corazon', 'luna'];
   //const [currentForma, setCurrentForma] = useState(0);
@@ -123,6 +142,7 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
   const completedAudioRef = useRef(null);
+  const figuraAudioRef = useRef(null);
 
   // Mensajes de felicitación aleatorios
   const successMessages = [
@@ -250,6 +270,7 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   };
 
+  /*
   // Inicializar los audios de feedback
   useEffect(() => {
     successAudioRef.current = new Audio(success);
@@ -270,6 +291,55 @@ const Formas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }
     };
   }, []);
+  */
+
+  // UseEffect para inicializar los audios de feedback
+  useEffect(() => {
+    successAudioRef.current = new Audio(success);
+    encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed);
+    
+    return () => {
+      if (successAudioRef.current) {
+        successAudioRef.current.pause();
+        successAudioRef.current.currentTime = 0;
+      }
+      if (encouragementAudioRef.current) {
+        encouragementAudioRef.current.pause();
+        encouragementAudioRef.current.currentTime = 0;
+      }
+      if (completedAudioRef.current) {
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
+  // UseEffect para reproducir el audio cuando cambia la figura
+  useEffect(() => {
+    if (!showInstructions && !gameCompleted && !showSolution) {
+      // Crear nuevo audio para la figura actual
+      if (figuraAudioRef.current) {
+        figuraAudioRef.current.pause();
+        figuraAudioRef.current.currentTime = 0;
+      }
+
+      figuraAudioRef.current = new Audio(figuraAudios[formas[currentForma]]);
+      
+      // Reproducir el audio
+      figuraAudioRef.current.play().catch(error => {
+        console.log("Error al reproducir el audio de la figura:", error);
+      });
+    }
+    
+    // Limpiar el audio cuando se desmonta o cambia la figura
+    return () => {
+      if (figuraAudioRef.current) {
+        figuraAudioRef.current.pause();
+        figuraAudioRef.current.currentTime = 0;
+      }
+    };
+  }, [currentForma]);
 
   const checkAnswer = (input) => {
     if (showFeedback || showSolution || showInstructions || gameCompleted) return;

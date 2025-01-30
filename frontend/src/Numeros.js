@@ -22,6 +22,17 @@ import numero7 from '../src/images/numero7.png';
 import numero8 from '../src/images/numero8.png';
 import numero9 from '../src/images/numero9.png';
 
+import cero from '../src/sounds/numeros/cero.MP3';
+import uno from '../src/sounds/numeros/uno.MP3';
+import dos from '../src/sounds/numeros/dos.MP3';
+import tres from '../src/sounds/numeros/tres.MP3';
+import cuatro from '../src/sounds/numeros/cuatro.MP3';
+import cinco from '../src/sounds/numeros/cinco.MP3';
+import seis from '../src/sounds/numeros/seis.MP3';
+import siete from '../src/sounds/numeros/siete.MP3';
+import ocho from '../src/sounds/numeros/ocho.MP3';
+import nueve from '../src/sounds/numeros/nueve.MP3';
+
 // Audio para el temporizador
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
@@ -54,6 +65,20 @@ const solutionImages = {
   7: numero7,
   8: numero8,
   9: numero9
+};
+
+// Objeto para mapear números con sus audios correspondientes
+const numberAudios = {
+  0: cero,
+  1: uno,
+  2: dos,
+  3: tres,
+  4: cuatro,
+  5: cinco,
+  6: seis,
+  7: siete,
+  8: ocho,
+  9: nueve
 };
 
 // Componente principal del juego
@@ -95,6 +120,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
   const completedAudioRef = useRef(null);
+  const numberAudioRef = useRef(null);
 
   // Mensajes de felicitación
   const successMessages = [
@@ -113,6 +139,7 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     "¡Vamos a intentarlo una vez más! 🎈"
   ];
 
+  /*
    // Inicializar los audios de feedback
    useEffect(() => {
     successAudioRef.current = new Audio(success);
@@ -128,6 +155,39 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }
     };
   }, []);
+  */
+
+  // Inicializar los audios de feedback
+  useEffect(() => {
+    successAudioRef.current = new Audio(success);
+    encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed);
+    // Inicializar el audio del número actual
+    numberAudioRef.current = new Audio(numberAudios[currentNumber]);
+    
+    return () => {
+      [successAudioRef, encouragementAudioRef, completedAudioRef, numberAudioRef].forEach(ref => {
+        if (ref.current) {
+          ref.current.pause();
+          ref.current.currentTime = 0;
+        }
+      });
+    };
+  }, [currentNumber]); // Agregar currentNumber como dependencia
+
+   // Modificar el efecto que maneja el cambio de número
+   useEffect(() => {
+    if (!showInstructions && !gameCompleted && !showSolution) {
+      // Reproducir el audio del número actual
+      if (numberAudioRef.current) {
+        numberAudioRef.current.play().catch(error => {
+          console.log("Error al reproducir el audio del número:", error);
+        });
+      }
+    }
+  }, [currentNumber, showInstructions, gameCompleted, showSolution]);
+
+
 
   // Configuración de los animales que acompañan cada número
   const animalesConfig = {

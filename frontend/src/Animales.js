@@ -31,6 +31,21 @@ import animiguana from '../src/images/iguana.png';
 import animoso from '../src/images/oso.png';
 import animunicornio from '../src/images/unicornio.png';
 
+import audioPajaro from '../src/sounds/animales/pajaro.MP3';
+import audioTortuga from '../src/sounds/animales/tortuga.MP3';
+import audioCerdo from '../src/sounds/animales/cerdo.MP3';
+import audioPato from '../src/sounds/animales/pato.MP3';
+import audioMariposa from '../src/sounds/animales/mariposa.MP3';
+import audioPollito from '../src/sounds/animales/pollito.MP3';
+import audioGato from '../src/sounds/animales/gato.MP3';
+import audioPerro from '../src/sounds/animales/perro.MP3';
+import audioOveja from '../src/sounds/animales/oveja.MP3';
+import audioAbeja from '../src/sounds/animales/abeja.MP3';
+import audioElefante from '../src/sounds/animales/elefante.MP3';
+import audioIguana from '../src/sounds/animales/iguana.MP3';
+import audioOso from '../src/sounds/animales/oso.MP3';
+import audioUnicornio from '../src/sounds/animales/unicornio.MP3';
+
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
@@ -147,6 +162,24 @@ const solutionImages = {
   'unicornio': animunicornio
 };
 
+// Objeto para mapear animales con sus audios
+const animalAudios = {
+  'pajaro': audioPajaro,
+  'tortuga': audioTortuga,
+  'cerdo': audioCerdo,
+  'pato': audioPato,
+  'mariposa': audioMariposa,
+  'pollito': audioPollito,
+  'gato': audioGato,
+  'perro': audioPerro,
+  'oveja': audioOveja,
+  'abeja': audioAbeja,
+  'elefante': audioElefante,
+  'iguana': audioIguana,
+  'oso': audioOso,
+  'unicornio': audioUnicornio
+};
+
 const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   // Lista de animales que se mostrarán en el juego
   const animales = ['pajaro', 'tortuga', 'cerdo', 'pato', 'mariposa', 'pollito', 'gato', 'perro', 'oveja', 'abeja', 'elefante', 'iguana', 'oso', 'unicornio'];
@@ -191,6 +224,7 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
   const completedAudioRef = useRef(null);
+  const animalAudioRef = useRef(null);
 
   // Mensajes de éxito para respuestas correctas
   const successMessages = [
@@ -318,6 +352,7 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   };
 
+  /*
   // Inicializar los audios de feedback
   useEffect(() => {
     successAudioRef.current = new Audio(success);
@@ -338,6 +373,54 @@ const Animales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }
     };
   }, []);
+  */
+
+  // UseEffect para inicializar los audios de feedback
+  useEffect(() => {
+    successAudioRef.current = new Audio(success);
+    encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed);
+    
+    return () => {
+      if (successAudioRef.current) {
+        successAudioRef.current.pause();
+        successAudioRef.current.currentTime = 0;
+      }
+      if (encouragementAudioRef.current) {
+        encouragementAudioRef.current.pause();
+        encouragementAudioRef.current.currentTime = 0;
+      }
+      if (completedAudioRef.current) {
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
+  // UseEffect para reproducir el audio cuando cambia el animal
+  useEffect(() => {
+    if (!showInstructions && !gameCompleted && !showSolution) {
+      // Limpiar cualquier audio anterior
+      if (animalAudioRef.current) {
+        animalAudioRef.current.pause();
+        animalAudioRef.current.currentTime = 0;
+      }
+
+      // Crear y reproducir el nuevo audio
+      animalAudioRef.current = new Audio(animalAudios[animales[currentAnimal]]);
+      animalAudioRef.current.play().catch(error => {
+        console.log("Error al reproducir el audio del animal:", error);
+      });
+    }
+    
+    // Limpiar el audio cuando se desmonta o cambia el animal
+    return () => {
+      if (animalAudioRef.current) {
+        animalAudioRef.current.pause();
+        animalAudioRef.current.currentTime = 0;
+      }
+    };
+  }, [currentAnimal]);
 
   const checkAnswer = (input) => {
     if (showFeedback || showSolution || showInstructions || gameCompleted) return;

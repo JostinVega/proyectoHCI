@@ -14,6 +14,13 @@ import vocali from '../src/images/vocali.png';
 import vocalo from '../src/images/vocalo.png';
 import vocalu from '../src/images/vocalu.png';
 
+// Importaciones de audios de vocales
+import vocalA from '../src/sounds/vocales/vocalA.MP3';
+import vocalE from '../src/sounds/vocales/vocalE.MP3';
+import vocalI from '../src/sounds/vocales/vocalI.MP3';
+import vocalO from '../src/sounds/vocales/vocalO.MP3';
+import vocalU from '../src/sounds/vocales/vocalU.MP3';
+
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
@@ -26,6 +33,15 @@ const solutionImages = {
   'i': vocali,
   'o': vocalo,
   'u': vocalu
+};
+
+// Objeto para mapear vocales con sus audios correspondientes
+const vocalAudios = {
+  'a': vocalA,
+  'e': vocalE,
+  'i': vocalI,
+  'o': vocalO,
+  'u': vocalU
 };
 
 const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
@@ -74,6 +90,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
   const completedAudioRef = useRef(null);
+  const vocalAudioRef = useRef(null);
 
   // Configuración de cada vocal con su imagen y nombre
   const vocalesConfig = {
@@ -213,6 +230,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   };
 
+  /*
    // Inicializar los audios de feedback
    useEffect(() => {
     successAudioRef.current = new Audio(success);
@@ -233,8 +251,55 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }
     };
   }, []);
-  
+  */
 
+
+// UseEffect para inicializar los audios de feedback
+useEffect(() => {
+  successAudioRef.current = new Audio(success);
+  encouragementAudioRef.current = new Audio(encouragement);
+  completedAudioRef.current = new Audio(completed);
+  
+  return () => {
+    if (successAudioRef.current) {
+      successAudioRef.current.pause();
+      successAudioRef.current.currentTime = 0;
+    }
+    if (encouragementAudioRef.current) {
+      encouragementAudioRef.current.pause();
+      encouragementAudioRef.current.currentTime = 0;
+    }
+    if (completedAudioRef.current) {
+      completedAudioRef.current.pause();
+      completedAudioRef.current.currentTime = 0;
+    }
+  };
+}, []);
+
+// UseEffect para reproducir el audio de instrucción de la vocal
+useEffect(() => {
+  if (!showInstructions && !gameCompleted && !showSolution) {
+    // Reproducir el audio de la vocal actual
+    if (vocalAudioRef.current) {
+      vocalAudioRef.current.pause();
+      vocalAudioRef.current.currentTime = 0;
+    }
+
+    // Crear nuevo audio para la vocal actual
+    vocalAudioRef.current = new Audio(vocalAudios[vocales[currentVocal]]);
+    vocalAudioRef.current.play().catch(error => {
+      console.log("Error al reproducir el audio:", error);
+    });
+
+    // Limpiar cuando el componente se desmonte o cambien las condiciones
+    return () => {
+      if (vocalAudioRef.current) {
+        vocalAudioRef.current.pause();
+        vocalAudioRef.current.currentTime = 0;
+      }
+    };
+  }
+}, [currentVocal, showInstructions, gameCompleted, showSolution]);
   
   // Verificar respuesta del usuario
   const checkAnswer = (input) => {

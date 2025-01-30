@@ -8,6 +8,14 @@ import solverde from '../src/images/colorverde.png';
 import solrosado from '../src/images/colorrosado.png';
 import solanaranjado from '../src/images/coloranaranjado.png';
 
+import audioVerde from '../src/sounds/colores-formas/colorCirculo.MP3';
+import audioRosado from '../src/sounds/colores-formas/colorCuadrado.MP3';
+import audioAmarillo from '../src/sounds/colores-formas/colorEstrella.MP3';
+import audioMorado from '../src/sounds/colores-formas/colorTriangulo.MP3';
+import audioRojo from '../src/sounds/colores-formas/colorCorazon.MP3';
+import audioAnaranjado from '../src/sounds/colores-formas/colorRombo.MP3';
+import audioAzul from '../src/sounds/colores-formas/colorLuna.MP3';
+
 import time from '../src/sounds/time.mp3';
 import success from '../src/sounds/success.mp3';
 import encouragement from '../src/sounds/encouragement.mp3';
@@ -24,6 +32,17 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     'verde': solverde,
     'rosado': solrosado,
     'anaranjado': solanaranjado
+  };
+
+  // Objeto para mapear colores con sus audios
+  const colorFormasAudios = {
+    'verde': audioVerde,
+    'rosado': audioRosado,
+    'amarillo': audioAmarillo,
+    'morado': audioMorado,
+    'rojo': audioRojo,
+    'anaranjado': audioAnaranjado,
+    'azul': audioAzul
   };
 
   // Datos de los pares color-forma
@@ -118,6 +137,7 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
   const completedAudioRef = useRef(null);
+  const colorFormAudioRef = useRef(null);
 
    // SVG Components con animaciones más divertidas y amigables para niños
    const shapes = {
@@ -343,6 +363,7 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   };
 
+  /*
   // Inicializar los audios de feedback
   useEffect(() => {
     successAudioRef.current = new Audio(success);
@@ -363,6 +384,52 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       }
     };
   }, []);
+  */
+
+  // UseEffect para inicializar los audios de feedback
+  useEffect(() => {
+    successAudioRef.current = new Audio(success);
+    encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed); 
+    return () => {
+      if (successAudioRef.current) {
+        successAudioRef.current.pause();
+        successAudioRef.current.currentTime = 0;
+      }
+      if (encouragementAudioRef.current) {
+        encouragementAudioRef.current.pause();
+        encouragementAudioRef.current.currentTime = 0;
+      }
+      if (completedAudioRef.current) {
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
+  // UseEffect para reproducir el audio cuando cambia el par de color-forma
+  useEffect(() => {
+    if (!showInstructions && !gameCompleted && !showSolution) {
+      if (colorFormAudioRef.current) {
+        colorFormAudioRef.current.pause();
+        colorFormAudioRef.current.currentTime = 0;
+      }
+
+      if (currentPair < pairs.length) {
+        colorFormAudioRef.current = new Audio(colorFormasAudios[pairs[currentPair].color]);
+        colorFormAudioRef.current.play().catch(error => {
+          console.log("Error al reproducir el audio del color:", error);
+        });
+      }
+
+      return () => {
+        if (colorFormAudioRef.current) {
+          colorFormAudioRef.current.pause();
+          colorFormAudioRef.current.currentTime = 0;
+        }
+      };
+    }
+  }, [currentPair]);
 
   const checkAnswer = (input) => {
     if (showFeedback || showSolution || showInstructions || gameCompleted) return;
