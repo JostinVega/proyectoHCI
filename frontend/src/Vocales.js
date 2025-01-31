@@ -78,7 +78,7 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   // Función para obtener el UID desde el servidor
   const fetchLastCardID = async () => {
     try {
-      const response = await fetch('http://192.168.200.8:3001/data'); // Asegúrate de que esta URL sea correcta
+      const response = await fetch('http://localhost:3001/data'); // Asegúrate de que esta URL sea correcta
       if (response.ok) {
         const data = await response.json();
         console.log('Datos recibidos:', data);
