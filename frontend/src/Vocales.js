@@ -47,8 +47,9 @@ const vocalAudios = {
 const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   // Lista de vocales
   const vocales = ['a', 'e', 'i', 'o', 'u'];
-  
+
   // Estados para manejar el progreso y las interacciones del usuario
+  const [lastCardID, setLastCardID] = useState(null); // ESP32 Estado para almacenar el último UID leído
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -65,6 +66,143 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     return savedProgress ? parseInt(savedProgress) : 0;
   });
 
+  /*ESP32 Inicio codigos*/
+  const uidToVocalMap = {
+    '79:40:ed:98': 'a',
+    '89:ba:3c:98': 'e',
+    '19:d5:41:98': 'i',
+    'b9:6d:55:99': 'o',
+    '3:52:92:16': 'u'
+  };
+
+  // Función para obtener el UID desde el servidor
+  const fetchLastCardID = async () => {
+    try {
+      const response = await fetch('http://192.168.200.8:3001/data'); // Asegúrate de que esta URL sea correcta
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Datos recibidos:', data);
+        setLastCardID(data.cardID); // Actualiza el estado con el UID recibido
+      } else {
+        console.error('Error al obtener el UID:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error al obtener el UID:', error);
+    }
+  };
+
+  // Polling para obtener el UID cada 2 segundos
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchLastCardID(); // Llama a la función cada 2 segundos
+    }, 2000);
+
+    return () => clearInterval(intervalId); // Limpia el intervalo al desmontar el componente
+  }, []);
+
+  // Verifica el UID leído
+  useEffect(() => {
+    if (lastCardID) {
+      console.log('Último UID recibido:', lastCardID); // Imprime el UID recibido
+      checkAnswer(lastCardID); // Verifica la respuesta con el UID leído
+    }
+  }, [lastCardID]);
+
+  const checkAnswer = (input) => {
+    if (showFeedback || showSolution || showInstructions || gameCompleted) return;
+
+    const expectedVocal = uidToVocalMap[input]; // Obtiene la vocal esperada del UID
+    const isRight = expectedVocal !== undefined && expectedVocal === vocales[currentVocal];
+    setIsCorrect(isRight);
+
+    if (isRight) {
+      setUserInput(expectedVocal);
+      playAudio(successAudioRef);
+    } else {
+      setUserInput(input);
+      playAudio(encouragementAudioRef);
+    }
+
+    setFeedbackMessage(
+      isRight
+        ? successMessages[Math.floor(Math.random() * successMessages.length)]
+        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+    );
+
+    setShowFeedback(true);
+
+    const endTime = Date.now();
+    const responseTime = Math.min((endTime - startTime) / 1000, 10);
+    const currentVocalName = vocales[currentVocal];
+
+    if (!isRight) {
+      setDetailsByNumber((prevDetails) => {
+        const updatedDetails = { ...prevDetails };
+        if (!updatedDetails[currentVocalName]) {
+          updatedDetails[currentVocalName] = { errors: 0, time: 0, resultado: false };
+        }
+        updatedDetails[currentVocalName].errors += 1;
+        updatedDetails[currentVocalName].resultado = false;
+
+        saveDetailsToDatabase({ section: 'vocales', details: { [currentVocalName]: updatedDetails[currentVocalName] } });
+        console.log('Detalles actualizados para', currentVocalName, ':', updatedDetails[currentVocalName]);
+
+        return updatedDetails;
+      });
+
+      setTimeout(() => {
+        setShowFeedback(false);
+        setUserInput('');
+      }, 1000);
+
+      return;
+    }
+
+    const progress = ((currentVocal + 1) / vocales.length) * 100;
+    localStorage.setItem(`nivel1_vocales_progress_${player.name}`, currentVocal + 1);
+    onProgressUpdate(progress, false);
+
+    setDetailsByNumber((prevDetails) => {
+      const updatedDetails = { ...prevDetails };
+      if (!updatedDetails[currentVocalName]) {
+        updatedDetails[currentVocalName] = { errors: 0, time: 0, resultado: true };
+      }
+      updatedDetails[currentVocalName].time = responseTime;
+      updatedDetails[currentVocalName].resultado = true;
+
+      saveDetailsToDatabase({ section: 'vocales', details: { [currentVocalName]: updatedDetails[currentVocalName] } });
+      console.log('Detalles actualizados para', currentVocalName, ':', updatedDetails[currentVocalName]);
+      return updatedDetails;
+    });
+
+    if (currentVocal >= 4) {
+      localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5');
+      onProgressUpdate(100, true);
+
+      if (completedAudioRef.current) {
+        completedAudioRef.current.play().catch(error => console.log("Error al reproducir audio de completado:", error));
+      }
+
+      showFinalStats();
+
+      setTimeout(() => {
+        setGameCompleted(true);
+        setShowFeedback(false);
+      }, 2000);
+    } else {
+      setTimeout(() => {
+        setCurrentVocal(prev => prev + 1);
+        setShowFeedback(false);
+        setUserInput('');
+        setStartTime(Date.now());
+        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+        setTimeLeft(tiempos.vocales || 10);
+      }, 2000);
+    }
+  };
+
+  /*ESP32 Fin codigos*/
+
   // Recuperar el estado de instrucciones
   const [showInstructions, setShowInstructions] = useState(() => {
     const savedInstructions = localStorage.getItem(`nivel1_vocales_instructions_${player.name}`);
@@ -78,14 +216,14 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
     return tiempos.vocales || 10; // 10 es el valor por defecto si no hay tiempo configurado
   });
-  
+
   const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
 
   // Mostrar solución después de agotar el tiempo
   const [showSolution, setShowSolution] = useState(false);
 
   const [feedbackMessage, setFeedbackMessage] = useState('');
-  
+
   const audioRef = useRef(null);
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
@@ -121,11 +259,11 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   // Manejar la entrada del teclado
   const handleKeyPress = (e) => {
     if (showInstructions) return;
-    
+
     // Solo permitir vocales
     if (!/[aeiou]/i.test(e.key)) return;
     //if (!/^[a-zA-Z]$/.test(e.key)) return;
-    
+
     setUserInput(e.key.toLowerCase());
     checkAnswer(e.key.toLowerCase());
   };
@@ -134,12 +272,12 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   useEffect(() => {
     const savedProgress = localStorage.getItem(`nivel1_vocales_progress_${player.name}`);
     const savedInstructions = localStorage.getItem(`nivel1_vocales_instructions_${player.name}`);
-    
+
     if (savedProgress === '5') {
       setGameCompleted(true);
       onProgressUpdate(100, true);
     }
-    
+
     if (savedInstructions) {
       setShowInstructions(false);
     }
@@ -176,45 +314,45 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
   */
 
- 
+
   const saveDetailsToDatabase = async ({ section, details }) => {
     if (!player?.name || !section || !details) {
-        console.warn('Faltan datos requeridos:', { 
-            player: player?.name, 
-            section, 
-            details 
-        });
-        return;
+      console.warn('Faltan datos requeridos:', {
+        player: player?.name,
+        section,
+        details
+      });
+      return;
     }
 
     const dataToSend = {
-        playerName: player.name,
-        section: section,
-        details: details
+      playerName: player.name,
+      section: section,
+      details: details
     };
 
     console.log('Datos que se enviarán al backend:', dataToSend);
 
     try {
-        const response = await fetch('http://localhost:5000/api/game-details-vocales', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(dataToSend)
-        });
+      const response = await fetch('http://localhost:5000/api/game-details-vocales', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend)
+      });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.warn('Advertencia al guardar detalles:', errorData);
-            return;
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('Advertencia al guardar detalles:', errorData);
+        return;
+      }
 
-        console.log('Detalles guardados correctamente en la base de datos');
+      console.log('Detalles guardados correctamente en la base de datos');
     } catch (error) {
-        console.error('Error al guardar detalles:', error);
+      console.error('Error al guardar detalles:', error);
     }
-};
+  };
 
   // Función para reproducir audio de manera confiable
   const playAudio = async (audioRef) => {
@@ -254,180 +392,180 @@ const Vocales = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   */
 
 
-// UseEffect para inicializar los audios de feedback
-useEffect(() => {
-  successAudioRef.current = new Audio(success);
-  encouragementAudioRef.current = new Audio(encouragement);
-  completedAudioRef.current = new Audio(completed);
-  
-  return () => {
-    if (successAudioRef.current) {
-      successAudioRef.current.pause();
-      successAudioRef.current.currentTime = 0;
-    }
-    if (encouragementAudioRef.current) {
-      encouragementAudioRef.current.pause();
-      encouragementAudioRef.current.currentTime = 0;
-    }
-    if (completedAudioRef.current) {
-      completedAudioRef.current.pause();
-      completedAudioRef.current.currentTime = 0;
-    }
-  };
-}, []);
+  // UseEffect para inicializar los audios de feedback
+  useEffect(() => {
+    successAudioRef.current = new Audio(success);
+    encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed);
 
-// UseEffect para reproducir el audio de instrucción de la vocal
-useEffect(() => {
-  if (!showInstructions && !gameCompleted && !showSolution) {
-    // Reproducir el audio de la vocal actual
-    if (vocalAudioRef.current) {
-      vocalAudioRef.current.pause();
-      vocalAudioRef.current.currentTime = 0;
-    }
-
-    // Crear nuevo audio para la vocal actual
-    vocalAudioRef.current = new Audio(vocalAudios[vocales[currentVocal]]);
-    vocalAudioRef.current.play().catch(error => {
-      console.log("Error al reproducir el audio:", error);
-    });
-
-    // Limpiar cuando el componente se desmonte o cambien las condiciones
     return () => {
+      if (successAudioRef.current) {
+        successAudioRef.current.pause();
+        successAudioRef.current.currentTime = 0;
+      }
+      if (encouragementAudioRef.current) {
+        encouragementAudioRef.current.pause();
+        encouragementAudioRef.current.currentTime = 0;
+      }
+      if (completedAudioRef.current) {
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
+  // UseEffect para reproducir el audio de instrucción de la vocal
+  useEffect(() => {
+    if (!showInstructions && !gameCompleted && !showSolution) {
+      // Reproducir el audio de la vocal actual
       if (vocalAudioRef.current) {
         vocalAudioRef.current.pause();
         vocalAudioRef.current.currentTime = 0;
       }
-    };
-  }
-}, [currentVocal, showInstructions, gameCompleted, showSolution]);
-  
-  // Verificar respuesta del usuario
-  const checkAnswer = (input) => {
-    if (showFeedback || showSolution || showInstructions || gameCompleted) return;
 
-    const isRight = input === vocales[currentVocal];
-    setIsCorrect(isRight);
+      // Crear nuevo audio para la vocal actual
+      vocalAudioRef.current = new Audio(vocalAudios[vocales[currentVocal]]);
+      vocalAudioRef.current.play().catch(error => {
+        console.log("Error al reproducir el audio:", error);
+      });
 
-    // Reproducir el audio correspondiente
-    if (isRight) {
-      playAudio(successAudioRef);
-    } else {
-      playAudio(encouragementAudioRef);
-    }
-
-    // Selecciona el mensaje una sola vez
-    setFeedbackMessage(
-      isRight
-        ? successMessages[Math.floor(Math.random() * successMessages.length)]
-        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
-    );
-
-    setShowFeedback(true);
-
-    const endTime = Date.now();
-    const responseTime = Math.min((endTime - startTime) / 1000, 10);
-    const currentVocalName = vocales[currentVocal];
-
-    if (!isRight) {
-        setDetailsByNumber((prevDetails) => {
-            const updatedDetails = { ...prevDetails };
-            
-            if (!updatedDetails[currentVocalName]) {
-                updatedDetails[currentVocalName] = { 
-                    errors: 0, 
-                    time: 0, 
-                    resultado: false 
-                };
-            }
-            
-            updatedDetails[currentVocalName] = {
-                ...updatedDetails[currentVocalName],
-                errors: updatedDetails[currentVocalName].errors + 1,
-                resultado: false
-            };
-
-            
-            // Guardar detalles en el backend
-            saveDetailsToDatabase({
-              section: "vocales",
-              details: { [currentVocalName]: updatedDetails[currentVocalName] }  // Pasar los detalles directamente
-            });
-                      
-            return updatedDetails;
-        });
-
-        setTimeout(() => {
-            setShowFeedback(false);
-            setUserInput('');
-        }, 1000);
-        return;
-    }
-
-    const progress = ((currentVocal + 1) / vocales.length) * 100;
-    localStorage.setItem(`nivel1_vocales_progress_${player.name}`, currentVocal + 1);
-    onProgressUpdate(progress, false);
-
-    setDetailsByNumber((prevDetails) => {
-        const updatedDetails = { ...prevDetails };
-
-        if (!updatedDetails[currentVocalName]) {
-            updatedDetails[currentVocalName] = { 
-                errors: 0, 
-                time: 0, 
-                resultado: true 
-            };
+      // Limpiar cuando el componente se desmonte o cambien las condiciones
+      return () => {
+        if (vocalAudioRef.current) {
+          vocalAudioRef.current.pause();
+          vocalAudioRef.current.currentTime = 0;
         }
+      };
+    }
+  }, [currentVocal, showInstructions, gameCompleted, showSolution]);
 
-        updatedDetails[currentVocalName] = {
-            ...updatedDetails[currentVocalName],
-            time: responseTime,
-            resultado: true
-        };
+  // // Verificar respuesta del usuario
+  // const checkAnswer = (input) => {
+  //   if (showFeedback || showSolution || showInstructions || gameCompleted) return;
 
-        // Guardar y mostrar en consola
-        saveDetailsToDatabase({
-          section: "vocales",
-          details: { [currentVocalName]: updatedDetails[currentVocalName] }  // Pasar los detalles directamente
-        });
+  //   const isRight = input === vocales[currentVocal];
+  //   setIsCorrect(isRight);
 
-        return updatedDetails;
-    });
+  //   // Reproducir el audio correspondiente
+  //   if (isRight) {
+  //     playAudio(successAudioRef);
+  //   } else {
+  //     playAudio(encouragementAudioRef);
+  //   }
 
-    if (currentVocal >= 4) {
-      localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5');
-      onProgressUpdate(100, true);
-      
-      // Reproducir sonido de completado
-      if (completedAudioRef.current) {
-        completedAudioRef.current.play().catch(error => {
-          console.log("Error al reproducir audio de completado:", error);
-        });
-      }
-    
-      showFinalStats();
-      setTimeout(() => {
-        setGameCompleted(true);
-        setShowFeedback(false);
-      }, 2000);
-    } else {
-        setTimeout(() => {
-            setCurrentVocal(prev => prev + 1);
-            setShowFeedback(false);
-            setUserInput('');
-            setStartTime(Date.now());
-            //setTimeLeft(10);
-            // Obtener el tiempo configurado
-            const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
-            setTimeLeft(tiempos.vocales || 10);
-        }, 2000);
-      }
-  };
+  //   // Selecciona el mensaje una sola vez
+  //   setFeedbackMessage(
+  //     isRight
+  //       ? successMessages[Math.floor(Math.random() * successMessages.length)]
+  //       : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+  //   );
 
-  
+  //   setShowFeedback(true);
+
+  //   const endTime = Date.now();
+  //   const responseTime = Math.min((endTime - startTime) / 1000, 10);
+  //   const currentVocalName = vocales[currentVocal];
+
+  //   if (!isRight) {
+  //     setDetailsByNumber((prevDetails) => {
+  //       const updatedDetails = { ...prevDetails };
+
+  //       if (!updatedDetails[currentVocalName]) {
+  //         updatedDetails[currentVocalName] = {
+  //           errors: 0,
+  //           time: 0,
+  //           resultado: false
+  //         };
+  //       }
+
+  //       updatedDetails[currentVocalName] = {
+  //         ...updatedDetails[currentVocalName],
+  //         errors: updatedDetails[currentVocalName].errors + 1,
+  //         resultado: false
+  //       };
+
+
+  //       // Guardar detalles en el backend
+  //       saveDetailsToDatabase({
+  //         section: "vocales",
+  //         details: { [currentVocalName]: updatedDetails[currentVocalName] }  // Pasar los detalles directamente
+  //       });
+
+  //       return updatedDetails;
+  //     });
+
+  //     setTimeout(() => {
+  //       setShowFeedback(false);
+  //       setUserInput('');
+  //     }, 1000);
+  //     return;
+  //   }
+
+  //   const progress = ((currentVocal + 1) / vocales.length) * 100;
+  //   localStorage.setItem(`nivel1_vocales_progress_${player.name}`, currentVocal + 1);
+  //   onProgressUpdate(progress, false);
+
+  //   setDetailsByNumber((prevDetails) => {
+  //     const updatedDetails = { ...prevDetails };
+
+  //     if (!updatedDetails[currentVocalName]) {
+  //       updatedDetails[currentVocalName] = {
+  //         errors: 0,
+  //         time: 0,
+  //         resultado: true
+  //       };
+  //     }
+
+  //     updatedDetails[currentVocalName] = {
+  //       ...updatedDetails[currentVocalName],
+  //       time: responseTime,
+  //       resultado: true
+  //     };
+
+  //     // Guardar y mostrar en consola
+  //     saveDetailsToDatabase({
+  //       section: "vocales",
+  //       details: { [currentVocalName]: updatedDetails[currentVocalName] }  // Pasar los detalles directamente
+  //     });
+
+  //     return updatedDetails;
+  //   });
+
+  //   if (currentVocal >= 4) {
+  //     localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5');
+  //     onProgressUpdate(100, true);
+
+  //     // Reproducir sonido de completado
+  //     if (completedAudioRef.current) {
+  //       completedAudioRef.current.play().catch(error => {
+  //         console.log("Error al reproducir audio de completado:", error);
+  //       });
+  //     }
+
+  //     showFinalStats();
+  //     setTimeout(() => {
+  //       setGameCompleted(true);
+  //       setShowFeedback(false);
+  //     }, 2000);
+  //   } else {
+  //     setTimeout(() => {
+  //       setCurrentVocal(prev => prev + 1);
+  //       setShowFeedback(false);
+  //       setUserInput('');
+  //       setStartTime(Date.now());
+  //       //setTimeLeft(10);
+  //       // Obtener el tiempo configurado
+  //       const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+  //       setTimeLeft(tiempos.vocales || 10);
+  //     }, 2000);
+  //   }
+  // };
+
+
   const showFinalStats = () => {
     let totalErrors = 0;
     let totalTime = 0;
-  
+
     errorsArray.forEach((errors, index) => {
       const time = responseTimes[index] || 0; // Tiempo de respuesta para la vocal
       totalErrors += errors;
@@ -436,11 +574,11 @@ useEffect(() => {
         `Vocal: ${vocales[index]} | Errores: ${errors} | Tiempo de respuesta: ${time.toFixed(2)}s`
       );
     });
-  
+
     console.log(`Errores totales: ${totalErrors}`);
     console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
-  };  
-  
+  };
+
   // Configurar el event listener del teclado
   useEffect(() => {
     window.addEventListener('keypress', handleKeyPress);
@@ -460,76 +598,76 @@ useEffect(() => {
 
     let timeoutId;
     const timerId = setInterval(() => {
-        setTimeLeft(time => {
+      setTimeLeft(time => {
 
-            // Manejar el audio cuando el tiempo es bajo
-            if (time <= 3 && time > 0) {
-              audioRef.current.play().catch(error => {
-                  console.log("Error al reproducir el audio:", error);
-              });
-            } else if (time > 3 || time <= 0) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
-            }
-            if (time <= 0) {
-                clearInterval(timerId);
-                setShowSolution(true);
-                
-                const currentVocalName = vocales[currentVocal];
-                setDetailsByNumber((prevDetails) => {
-                    const updatedDetails = { ...prevDetails };
-                    
-                    if (!updatedDetails[currentVocalName]) {
-                        updatedDetails[currentVocalName] = { 
-                            errors: 0, 
-                            time: timeLeft, 
-                            resultado: false 
-                        };
-                    }
-                    
-                    updatedDetails[currentVocalName] = {
-                        ...updatedDetails[currentVocalName],
-                        time: timeLeft,
-                        resultado: false
-                    };
+        // Manejar el audio cuando el tiempo es bajo
+        if (time <= 3 && time > 0) {
+          audioRef.current.play().catch(error => {
+            console.log("Error al reproducir el audio:", error);
+          });
+        } else if (time > 3 || time <= 0) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        }
+        if (time <= 0) {
+          clearInterval(timerId);
+          setShowSolution(true);
 
-                    // Guardar y mostrar en consola
-                    saveDetailsToDatabase({
-                      section: 'vocales',
-                      details: { [currentVocalName]: updatedDetails[currentVocalName] }
-                    });
-                    return updatedDetails;
-                });
-                
-                timeoutId = setTimeout(() => {
-                    setShowSolution(false);
-                    
-                    if (currentVocal < 4) {
-                        setCurrentVocal(prev => prev + 1);
-                        //setTimeLeft(10);
-                        // Obtener el tiempo configurado
-                        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
-                        setTimeLeft(tiempos.vocales || 10);
-                        setStartTime(Date.now());
-                    } else {
-                        localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5');
-                        onProgressUpdate(100, true);
-                        setGameCompleted(true);
-                    }
-                }, 2000);
-                
-                return 0;
+          const currentVocalName = vocales[currentVocal];
+          setDetailsByNumber((prevDetails) => {
+            const updatedDetails = { ...prevDetails };
+
+            if (!updatedDetails[currentVocalName]) {
+              updatedDetails[currentVocalName] = {
+                errors: 0,
+                time: timeLeft,
+                resultado: false
+              };
             }
-            return time - 1;
-        });
+
+            updatedDetails[currentVocalName] = {
+              ...updatedDetails[currentVocalName],
+              time: timeLeft,
+              resultado: false
+            };
+
+            // Guardar y mostrar en consola
+            saveDetailsToDatabase({
+              section: 'vocales',
+              details: { [currentVocalName]: updatedDetails[currentVocalName] }
+            });
+            return updatedDetails;
+          });
+
+          timeoutId = setTimeout(() => {
+            setShowSolution(false);
+
+            if (currentVocal < 4) {
+              setCurrentVocal(prev => prev + 1);
+              //setTimeLeft(10);
+              // Obtener el tiempo configurado
+              const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+              setTimeLeft(tiempos.vocales || 10);
+              setStartTime(Date.now());
+            } else {
+              localStorage.setItem(`nivel1_vocales_progress_${player.name}`, '5');
+              onProgressUpdate(100, true);
+              setGameCompleted(true);
+            }
+          }, 2000);
+
+          return 0;
+        }
+        return time - 1;
+      });
     }, 1000);
 
     return () => {
-        if (timerId) clearInterval(timerId);
-        if (timeoutId) clearTimeout(timeoutId);
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
+      if (timerId) clearInterval(timerId);
+      if (timeoutId) clearTimeout(timeoutId);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
       }
     };
   }, [currentVocal, showInstructions, gameCompleted, showSolution, player.name]);
@@ -558,8 +696,8 @@ useEffect(() => {
           >
             ← Volver
           </button>
-          
-          <div 
+
+          <div
             className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-all duration-300"
             onClick={onConfigClick}
           >
@@ -587,35 +725,33 @@ useEffect(() => {
                     <div className="relative">
                       {i < 4 && (
                         <div className={`absolute top-1/2 left-[60%] right-0 h-2 rounded-full
-                                    ${i < currentVocal 
-                                      ? 'bg-gradient-to-r from-green-400 to-green-500' 
-                                      : 'bg-gray-200'}`}>
+                                    ${i < currentVocal
+                            ? 'bg-gradient-to-r from-green-400 to-green-500'
+                            : 'bg-gray-200'}`}>
                         </div>
                       )}
-                      
+
                       <div className={`relative z-10 flex flex-col items-center transform 
-                                  transition-all duration-500 ${
-                                    i === currentVocal ? 'scale-110' : 'hover:scale-105'
-                                  }`}>
+                                  transition-all duration-500 ${i === currentVocal ? 'scale-110' : 'hover:scale-105'
+                        }`}>
                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center
                                     shadow-lg transition-all duration-300 border-4
                                     ${i === currentVocal
-                                      ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 border-yellow-200 animate-pulse'
-                                      : i < currentVocal
-                                      ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-200'
-                                      : 'bg-white border-gray-100'
-                                    }`}>
-                          <span className={`text-2xl font-bold uppercase ${
-                            i === currentVocal
-                              ? 'text-yellow-900'
-                              : i < currentVocal
+                            ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 border-yellow-200 animate-pulse'
+                            : i < currentVocal
+                              ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-200'
+                              : 'bg-white border-gray-100'
+                          }`}>
+                          <span className={`text-2xl font-bold uppercase ${i === currentVocal
+                            ? 'text-yellow-900'
+                            : i < currentVocal
                               ? 'text-white'
                               : 'text-gray-400'
-                          }`}>
+                            }`}>
                             {vocal}
                           </span>
                         </div>
-                        
+
                         {i === currentVocal && (
                           <div className="absolute -bottom-6">
                             <span className="text-yellow-500 text-2xl animate-bounce">⭐</span>
@@ -649,7 +785,7 @@ useEffect(() => {
                     <div className="absolute inset-0 overflow-hidden">
                       <div className="w-full h-full animate-shimmer 
                                   bg-gradient-to-r from-transparent via-white to-transparent"
-                          style={{ backgroundSize: '200% 100%' }}>
+                        style={{ backgroundSize: '200% 100%' }}>
                       </div>
                     </div>
                   </div>
@@ -658,7 +794,7 @@ useEffect(() => {
             </div>
           </div>
         )}
-        
+
 
         {showInstructions ? (
           // Pantalla de instrucciones
@@ -701,18 +837,18 @@ useEffect(() => {
             <h2 className="text-4xl font-bold text-purple-600 mb-8">
               Encuentra la vocal:
             </h2>
-      
+
             {/* Contenedor principal de la vocal y el animal */}
             <div className="flex flex-col items-center justify-center gap-4">
               {/* Vocal - ahora más grande y en la parte superior */}
               <div className="text-[200px] font-bold text-blue-500 animate-bounce leading-none uppercase">
                 {vocales[currentVocal]}
               </div>
-              
+
               {/* Animal correspondiente - ahora más pequeño y debajo */}
               {vocalesConfig[vocales[currentVocal]] && (
                 <div className="flex justify-center mt-4">
-                  <img 
+                  <img
                     src={vocalesConfig[vocales[currentVocal]].imagen}
                     alt={vocalesConfig[vocales[currentVocal]].nombre}
                     className="w-48 h-48 object-contain"
@@ -747,73 +883,72 @@ useEffect(() => {
 
             {/* Mostrar solución cuando se acaba el tiempo */}
             {showSolution && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                    <div className="bg-white rounded-xl p-6 shadow-2xl transform transition-all">
-                        <h3 className="text-2xl font-bold text-purple-600 mb-4">
-                            ¡Se acabó el tiempo!
-                        </h3>
-                        <p className="text-xl text-gray-600 mb-4">
-                            La respuesta correcta era:
-                        </p>
-                        <img 
-                            src={solutionImages[vocales[currentVocal]]}
-                            alt={`Solución: vocal ${vocales[currentVocal]}`}
-                            className="w-96 h-96 object-contain mx-auto mb-4"
-                        />
-                    </div>
+              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                <div className="bg-white rounded-xl p-6 shadow-2xl transform transition-all">
+                  <h3 className="text-2xl font-bold text-purple-600 mb-4">
+                    ¡Se acabó el tiempo!
+                  </h3>
+                  <p className="text-xl text-gray-600 mb-4">
+                    La respuesta correcta era:
+                  </p>
+                  <img
+                    src={solutionImages[vocales[currentVocal]]}
+                    alt={`Solución: vocal ${vocales[currentVocal]}`}
+                    className="w-96 h-96 object-contain mx-auto mb-4"
+                  />
                 </div>
+              </div>
             )}
 
             {/* Temporizador */}
             {!showInstructions && !gameCompleted && (
-                <div className="absolute bottom-8 right-8">
-                    <div className={`relative group transform transition-all duration-300 ${
-                        timeLeft <= 3 ? 'scale-110' : 'hover:scale-105'
-                    }`}>
-                        <div className={`w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-lg
+              <div className="absolute bottom-8 right-8">
+                <div className={`relative group transform transition-all duration-300 ${timeLeft <= 3 ? 'scale-110' : 'hover:scale-105'
+                  }`}>
+                  <div className={`w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-lg
                                     relative overflow-hidden ${timeLeft <= 3 ? 'animate-pulse' : ''}`}>
-                            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                <circle
-                                    cx="50"
-                                    cy="50"
-                                    r="45"
-                                    fill="none"
-                                    stroke={timeLeft <= 3 ? '#FEE2E2' : '#E0E7FF'}
-                                    strokeWidth="8"
-                                    className="opacity-30"
-                                />
-                                <circle
-                                    cx="50"
-                                    cy="50"
-                                    r="45"
-                                    fill="none"
-                                    stroke={timeLeft <= 3 ? '#EF4444' : '#3B82F6'}
-                                    strokeWidth="8"
-                                    strokeLinecap="round"
-                                    strokeDasharray={`${2 * Math.PI * 45}`}
-                                    //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
-                                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/(tiempos?.vocales || 10))}
-                                    className="transition-all duration-1000"
-                                />
-                            </svg>
+                    <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        fill="none"
+                        stroke={timeLeft <= 3 ? '#FEE2E2' : '#E0E7FF'}
+                        strokeWidth="8"
+                        className="opacity-30"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        fill="none"
+                        stroke={timeLeft <= 3 ? '#EF4444' : '#3B82F6'}
+                        strokeWidth="8"
+                        strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 45}`}
+                        //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                        strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft / (tiempos?.vocales || 10))}
+                        className="transition-all duration-1000"
+                      />
+                    </svg>
 
-                            <div className={`relative z-10 text-4xl font-bold 
+                    <div className={`relative z-10 text-4xl font-bold 
                                         ${timeLeft <= 3 ? 'text-red-500' : 'text-blue-500'}`}>
-                                {timeLeft}
-                            </div>
-
-                            {timeLeft <= 3 && (
-                                <>
-                                    <div className="absolute inset-0 rounded-full bg-red-500 opacity-20 animate-ping"></div>
-                                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full 
-                                                flex items-center justify-center animate-bounce shadow-lg">
-                                        <span className="text-white text-xs">⚠️</span>
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                      {timeLeft}
                     </div>
+
+                    {timeLeft <= 3 && (
+                      <>
+                        <div className="absolute inset-0 rounded-full bg-red-500 opacity-20 animate-ping"></div>
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full 
+                                                flex items-center justify-center animate-bounce shadow-lg">
+                          <span className="text-white text-xs">⚠️</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
+              </div>
             )}
 
             {/* Indicador visual de entrada */}
