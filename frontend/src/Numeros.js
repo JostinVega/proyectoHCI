@@ -103,20 +103,23 @@ const Numeros = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
   /*ESP32 Inicio codigos*/
   const uidToNumberMap = {
-    '93:88:88:16': 0,
-    '93:88:88:17': 1,
-    '93:88:88:18': 2,
-    '93:88:88:19': 3,
-    '93:88:88:20': 4,
-    '93:88:88:21': 5,
-    '93:88:88:22': 6
+    'f9:be:33:98': 0,
+    '93:88:88:16': 1,
+    '79:d4:24:98': 2,
+    '43:e:98:16': 3,
+    '13:59:99:16': 4,
+    '23:3f:87:16': 5,
+    '13:7d:85:16': 6,
+    '93:1:88:16': 7,
+    'f3:38:89:16': 8,
+    'a9:ce:34:9b': 9
     // Agrega más relaciones aquí si es necesario
   };
 
   // Función para obtener el UID desde el servidor
   const fetchLastCardID = async () => {
     try {
-      const response = await fetch('http://172.29.48.13:3001/data'); // Asegúrate de que esta URL sea correcta
+      const response = await fetch('http://192.168.200.8:3001/data'); // Asegúrate de que esta URL sea correcta
       if (response.ok) {
         const data = await response.json();
         console.log('Datos recibidos:', data);
