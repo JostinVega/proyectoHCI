@@ -117,13 +117,13 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   const [responseTimes, setResponseTimes] = useState([]); // Array para almacenar los tiempos de respuesta
 
 
-   /*ESP32 Inicio codigos*/
-   const uidToVocalMap = {
-    '93:88:88:16': 'a', // UID para abeja
-    '79:d4:24:98': 'e', // UID para elefante
-    '43:e:98:16': 'i', // UID para iguana
-    '13:59:99:16': 'o', // UID para oso
-    '23:3f:87:16': 'u'  // UID para unicornio
+  /*ESP32 Inicio codigos*/
+  const uidToVocalMap = {
+    '79:40:ed:98': 'a', // UID para abeja
+    '89:ba:3c:98': 'e', // UID para elefante
+    '19:d5:41:98': 'i', // UID para iguana
+    'b9:6d:55:99': 'o', // UID para oso
+    '3:52:92:16': 'u'  // UID para unicornio
   };
 
   const fetchLastCardID = async () => {
@@ -157,11 +157,13 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   }, [lastCardID]);
 
   const checkAnswer = (input) => {
+    // Verificar si se debe mostrar feedback o si el juego ha terminado
     if (showFeedback || showSolution || showInstructions || gameCompleted) return;
 
     // Obtener la vocal esperada a partir del UID
     const expectedVocal = uidToVocalMap[input] !== undefined ? uidToVocalMap[input] : input;
 
+    // Verificar si la respuesta es correcta
     const isRight = expectedVocal === pairs[currentPair].vocal;
     setIsCorrect(isRight);
 
@@ -172,7 +174,7 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
       playAudio(encouragementAudioRef);
     }
 
-    // Selecciona el mensaje una sola vez
+    // Seleccionar un mensaje de feedback aleatorio
     setFeedbackMessage(
       isRight
         ? successMessages[Math.floor(Math.random() * successMessages.length)]
@@ -181,11 +183,13 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
 
     setShowFeedback(true);
 
+    // Calcular el tiempo de respuesta
     const endTime = Date.now();
     const responseTime = Math.min((endTime - startTime) / 1000, 10);
     const currentAnimal = pairs[currentPair].nombre;
 
     if (!isRight) {
+      // Manejar respuesta incorrecta
       setErrorsArray(prevErrors => {
         const updatedErrors = [...prevErrors];
         updatedErrors[currentPair] += 1;
@@ -212,11 +216,12 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
 
       setTimeout(() => {
         setShowFeedback(false);
-        setUserInput('');
+            setUserInput('');
       }, 1000);
       return;
     }
 
+    // Manejar respuesta correcta
     setErrorsArray(prevErrors => {
       const currentErrors = prevErrors[currentPair];
 
@@ -240,6 +245,7 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
       return prevErrors;
     });
 
+    // Verificar si se ha completado el juego
     if (currentPair === pairs.length - 1) {
       localStorage.setItem(`nivel2_animales_vocales_completed_${player.name}`, 'true');
       localStorage.setItem(`nivel2_animales_vocales_progress_${player.name}`, pairs.length);
@@ -259,13 +265,14 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
         setShowFeedback(false);
       }, 2000);
     } else {
+      // Avanzar al siguiente par
       localStorage.setItem(`nivel2_animales_vocales_progress_${player.name}`, currentPair + 1);
       onProgressUpdate(((currentPair + 1) / pairs.length) * 100, false);
 
       setTimeout(() => {
         setCurrentPair(prev => prev + 1);
         setShowFeedback(false);
-        setUserInput('');
+            setUserInput('');
         setStartTime(Date.now());
         // Obtener el tiempo configurado
         const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
@@ -276,11 +283,12 @@ const AnimalesVocales = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
 
   /*ESP32 Fin codigos*/
 
+
+
   const [currentPair, setCurrentPair] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel2_animales_vocales_progress_${player.name}`);
     const completedStatus = localStorage.getItem(`nivel2_animales_vocales_completed_${player.name}`);
 
-   
 
     // Si está completado, forzar el último par y comunicar 100%
     if (completedStatus === 'true') {

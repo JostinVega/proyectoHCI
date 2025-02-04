@@ -83,7 +83,7 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       inicial: 'a'
     }
   ];
-  
+
   //const [currentPair, setCurrentPair] = useState(0);
   const [lastCardID, setLastCardID] = useState(null); // ESP32 Estado para almacenar el último UID leído
   const [userInput, setUserInput] = useState('');
@@ -93,180 +93,181 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [errorsArray, setErrorsArray] = useState(new Array(pairs.length).fill(0)); // Errores por forma
   const [responseTimes, setResponseTimes] = useState([]); // Tiempos de respuesta por forma
   const [startTime, setStartTime] = useState(Date.now()); // Tiempo de inicio de la pregunta actual
-  
-  
+
+
   /*ESP32 Inicio codigos*/
 
   const uidToColorMap = {
-    '93:88:88:16': 'rojo', // UID para color rojo
-    '79:d4:24:98': 'amarillo', // UID para color amarillo
-    '43:e:98:16': 'verde', // UID para color verde
+    '89:89:34:9b': 'rojo', // UID para color rojo
+    'f3:9c:82:16': 'amarillo', // UID para color amarillo
+    '53:88:80:16': 'verde', // UID para color verde
     '13:59:99:16': 'azul', // UID para color azul
-    '23:3f:87:16': 'morado', // UID para color morado
-    '12:34:56:78': 'rosado', // UID para color rosado
-    '87:65:43:21': 'anaranjado' // UID para color anaranjado
-};
+    '93:fb:85:16': 'morado', // UID para color morado
+    '83:54:92:16': 'rosado', // UID para color rosado
+    'f9:e2:e7:98': 'anaranjado' // UID para color anaranjado
+  };
 
-const fetchLastCardID = async () => {
-  try {
+  const fetchLastCardID = async () => {
+    try {
       const response = await fetch('http://localhost:3001/data'); // Asegúrate de que esta URL sea correcta
       if (response.ok) {
-          const data = await response.json();
-          console.log('Datos recibidos:', data);
-          setLastCardID(data.cardID); // Actualiza el estado con el UID recibido
+        const data = await response.json();
+        console.log('Datos recibidos:', data);
+        setLastCardID(data.cardID); // Actualiza el estado con el UID recibido
       } else {
-          console.error('Error al obtener el UID:', response.status, response.statusText);
+        console.error('Error al obtener el UID:', response.status, response.statusText);
       }
-  } catch (error) {
+    } catch (error) {
       console.error('Error al obtener el UID:', error);
-  }
-};
+    }
+  };
 
-useEffect(() => {
-  const intervalId = setInterval(() => {
+  useEffect(() => {
+    const intervalId = setInterval(() => {
       fetchLastCardID(); // Llama a la función cada 2 segundos
-  }, 2000);
+    }, 2000);
 
-  return () => clearInterval(intervalId); // Limpia el intervalo al desmontar el componente
-}, []);
+    return () => clearInterval(intervalId); // Limpia el intervalo al desmontar el componente
+  }, []);
 
-useEffect(() => {
-  if (lastCardID) {
+  useEffect(() => {
+    if (lastCardID) {
       console.log('Último UID recibido:', lastCardID); // Imprime el UID recibido
       checkAnswer(lastCardID); // Verifica la respuesta con el UID leído
-  }
-}, [lastCardID]);
+    }
+  }, [lastCardID]);
 
-const checkAnswer = (input) => {
-  if (showFeedback || showSolution || showInstructions || gameCompleted) return;
+  const checkAnswer = (input) => {
+    if (showFeedback || showSolution || showInstructions || gameCompleted) return;
 
-  // Obtener el color esperado a partir del UID
-  const expectedColor = uidToColorMap[input] !== undefined ? uidToColorMap[input] : input;
+    // Obtener el color esperado a partir del UID
+    const expectedColor = uidToColorMap[input] !== undefined ? uidToColorMap[input] : input;
 
-  const isRight = expectedColor === pairs[currentPair].color;
-  setIsCorrect(isRight);
+    const isRight = expectedColor === pairs[currentPair].color;
+    setIsCorrect(isRight);
 
-  // Reproducir el audio correspondiente
-  if (isRight) {
+    // Reproducir el audio correspondiente
+    if (isRight) {
       playAudio(successAudioRef);
-  } else {
+    } else {
       playAudio(encouragementAudioRef);
-  }
+    }
 
-  // Selecciona el mensaje una sola vez
-  setFeedbackMessage(
+    // Selecciona el mensaje una sola vez
+    setFeedbackMessage(
       isRight
-          ? successMessages[Math.floor(Math.random() * successMessages.length)]
-          : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
-  );
+        ? successMessages[Math.floor(Math.random() * successMessages.length)]
+        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+    );
 
-  setShowFeedback(true);
+    setShowFeedback(true);
 
-  const endTime = Date.now();
-  const responseTime = Math.min((endTime - startTime) / 1000, 10);
-  const currentShape = pairs[currentPair].forma;
+    const endTime = Date.now();
+    const responseTime = Math.min((endTime - startTime) / 1000, 10);
+    const currentShape = pairs[currentPair].forma;
 
-  if (!isRight) {
+    if (!isRight) {
       setErrorsArray(prevErrors => {
-          const updatedErrors = [...prevErrors];
-          updatedErrors[currentPair] += 1;
+        const updatedErrors = [...prevErrors];
+        updatedErrors[currentPair] += 1;
 
-          saveDetailsToDatabase({
-              section: 'colores-formas',
-              details: {
-                  [currentShape]: {
-                      errors: updatedErrors[currentPair],
-                      time: responseTime,
-                      resultado: false
-                  }
-              }
-          });
-
-          console.log(`Intento incorrecto para ${currentShape}:`, {
+        saveDetailsToDatabase({
+          section: 'colores-formas',
+          details: {
+            [currentShape]: {
               errors: updatedErrors[currentPair],
               time: responseTime,
               resultado: false
-          });
+            }
+          }
+        });
 
-          return updatedErrors;
+        console.log(`Intento incorrecto para ${currentShape}:`, {
+          errors: updatedErrors[currentPair],
+          time: responseTime,
+          resultado: false
+        });
+
+        return updatedErrors;
       });
 
       setTimeout(() => {
-          setShowFeedback(false);
-          setUserInput('');
+        setShowFeedback(false);
+        setUserInput('');
       }, 1000);
       return;
-  }
+    }
 
-  setErrorsArray(prevErrors => {
+    setErrorsArray(prevErrors => {
       const currentErrors = prevErrors[currentPair];
 
       saveDetailsToDatabase({
-          section: 'colores-formas',
-          details: {
-              [currentShape]: {
-                  errors: currentErrors,
-                  time: responseTime,
-                  resultado: true
-              }
+        section: 'colores-formas',
+        details: {
+          [currentShape]: {
+            errors: currentErrors,
+            time: responseTime,
+            resultado: true
           }
+        }
       });
 
       console.log(`Intento correcto para ${currentShape}:`, {
-          errors: currentErrors,
-          time: responseTime,
-          resultado: true
+        errors: currentErrors,
+        time: responseTime,
+        resultado: true
       });
 
       return prevErrors;
-  });
+    });
 
-  if (currentPair === pairs.length - 1) {
+    if (currentPair === pairs.length - 1) {
       localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
       localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
       onProgressUpdate(100, true);
 
       // Reproducir sonido de completado
       if (completedAudioRef.current) {
-          completedAudioRef.current.play().catch(error => {
-              console.log("Error al reproducir audio de completado:", error);
-          });
+        completedAudioRef.current.play().catch(error => {
+          console.log("Error al reproducir audio de completado:", error);
+        });
       }
 
       showFinalStats();
 
       setTimeout(() => {
-          setGameCompleted(true);
-          setShowFeedback(false);
+        setGameCompleted(true);
+        setShowFeedback(false);
       }, 2000);
-  } else {
+    } else {
       localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, currentPair + 1);
       onProgressUpdate(((currentPair + 1) / pairs.length) * 100, false);
 
       setTimeout(() => {
-          setCurrentPair(prev => prev + 1);
-          setShowFeedback(false);
-          setUserInput('');
-          setStartTime(Date.now());
-          // Obtener el tiempo configurado
-          const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
-          setTimeLeft(tiempos['colores-formas'] || 10);
+        setCurrentPair(prev => prev + 1);
+        setShowFeedback(false);
+        setUserInput('');
+        setStartTime(Date.now());
+        // Obtener el tiempo configurado
+        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+        setTimeLeft(tiempos['colores-formas'] || 10);
       }, 2000);
-  }
-};
+    }
+  };
 
-
+  /*ESP32 Fin codigos*/
+  
   const [currentPair, setCurrentPair] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel2_colores_formas_progress_${player.name}`);
     const completedStatus = localStorage.getItem(`nivel2_colores_formas_completed_${player.name}`);
-    
+
     // Si está completado, forzar 100%
     if (completedStatus === 'true') {
       onProgressUpdate(100, true);
       setGameCompleted(true);
       return pairs.length - 1;
     }
-    
+
     // Si hay progreso guardado
     if (savedProgress) {
       const progress = parseInt(savedProgress);
@@ -274,7 +275,7 @@ const checkAnswer = (input) => {
       onProgressUpdate(currentProgress, false);
       return progress < pairs.length ? progress : 0;
     }
-    
+
     return 0;
   });
 
@@ -303,100 +304,100 @@ const checkAnswer = (input) => {
   const completedAudioRef = useRef(null);
   const colorFormAudioRef = useRef(null);
 
-   // SVG Components con animaciones más divertidas y amigables para niños
-   const shapes = {
+  // SVG Components con animaciones más divertidas y amigables para niños
+  const shapes = {
     circulo: () => (
-      <svg 
-        viewBox="0 0 100 100" 
+      <svg
+        viewBox="0 0 100 100"
         className="w-64 h-64 shape-circle"
       >
-        <circle 
-          cx="50" 
-          cy="50" 
-          r="45" 
-          fill="#10B981" 
-          className="origin-center" 
+        <circle
+          cx="50"
+          cy="50"
+          r="45"
+          fill="#10B981"
+          className="origin-center"
         />
       </svg>
     ),
     cuadrado: () => (
-      <svg 
-        viewBox="0 0 100 100" 
+      <svg
+        viewBox="0 0 100 100"
         className="w-64 h-64 shape-square"
       >
-        <rect 
-          x="10" 
-          y="10" 
-          width="80" 
-          height="80" 
-          fill="#EC4899" 
-          className="origin-center" 
+        <rect
+          x="10"
+          y="10"
+          width="80"
+          height="80"
+          fill="#EC4899"
+          className="origin-center"
         />
       </svg>
     ),
     estrella: () => (
-      <svg 
-        viewBox="0 0 100 100" 
+      <svg
+        viewBox="0 0 100 100"
         className="w-64 h-64 shape-star"
       >
-        <polygon 
+        <polygon
           points="50,5 61.8,38.2 95.1,38.2 69.4,61.8 80.3,95 50,75.4 19.7,95 30.6,61.8 4.9,38.2 38.2,38.2"
-          fill="#F59E0B" 
-          className="origin-center" 
+          fill="#F59E0B"
+          className="origin-center"
         />
       </svg>
     ),
     triangulo: () => (
-      <svg 
-        viewBox="0 0 100 100" 
+      <svg
+        viewBox="0 0 100 100"
         className="w-64 h-64 shape-triangle"
       >
-        <polygon 
-          points="50,10 10,90 90,90" 
-          fill="#8B5CF6" 
-          className="origin-center" 
+        <polygon
+          points="50,10 10,90 90,90"
+          fill="#8B5CF6"
+          className="origin-center"
         />
       </svg>
     ),
     corazon: () => (
-      <svg 
-        viewBox="0 0 100 100" 
+      <svg
+        viewBox="0 0 100 100"
         className="w-64 h-64 shape-heart"
       >
-        <path 
+        <path
           d="M50,30 C30,20 10,40 30,60 C50,80 50,80 50,80 C50,80 50,80 70,60 C90,40 70,20 50,30"
-          fill="#EF4444" 
-          className="origin-center" 
+          fill="#EF4444"
+          className="origin-center"
         />
       </svg>
     ),
     rombo: () => (
-      <svg 
-        viewBox="0 0 100 100" 
+      <svg
+        viewBox="0 0 100 100"
         className="w-64 h-64 shape-diamond"
       >
-        <polygon 
-          points="50,10 90,50 50,90 10,50" 
-          fill="#F97316" 
-          className="origin-center" 
+        <polygon
+          points="50,10 90,50 50,90 10,50"
+          fill="#F97316"
+          className="origin-center"
         />
       </svg>
     ),
     luna: () => (
-      <svg 
-        viewBox="0 0 100 100" 
+      <svg
+        viewBox="0 0 100 100"
         className="w-64 h-64 shape-moon"
       >
-        <path 
+        <path
           d="M60,10 C35,10 20,30 20,50 C20,70 35,90 60,90 C45,75 45,25 60,10 Z"
-          fill="#3B82F6" 
-          className="origin-center" 
+          fill="#3B82F6"
+          className="origin-center"
         />
       </svg>
     )
   };
 
-  
+
 
   // Mensajes de felicitación y ánimo
   const successMessages = [
@@ -417,10 +418,10 @@ const checkAnswer = (input) => {
   // Manejar la entrada del teclado
   const handleKeyPress = (e) => {
     if (showInstructions) return;
-    
+
     const key = e.key.toLowerCase();
     if (!/[a-z]/.test(key)) return;
-    
+
     setUserInput(key);
     checkAnswer(key);
   };
@@ -512,7 +513,7 @@ const checkAnswer = (input) => {
     }
   }; 
   */
- 
+
   // Función para reproducir audio de manera confiable
   const playAudio = async (audioRef) => {
     try {
@@ -554,7 +555,7 @@ const checkAnswer = (input) => {
   useEffect(() => {
     successAudioRef.current = new Audio(success);
     encouragementAudioRef.current = new Audio(encouragement);
-    completedAudioRef.current = new Audio(completed); 
+    completedAudioRef.current = new Audio(completed);
     return () => {
       if (successAudioRef.current) {
         successAudioRef.current.pause();
@@ -614,7 +615,7 @@ const checkAnswer = (input) => {
   //       ? successMessages[Math.floor(Math.random() * successMessages.length)]
   //       : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
   //   );
-    
+
   //   setShowFeedback(true);
 
   //   const endTime = Date.now();
@@ -655,7 +656,7 @@ const checkAnswer = (input) => {
 
   //   setErrorsArray(prevErrors => {
   //       const currentErrors = prevErrors[currentPair];
-        
+
   //       saveDetailsToDatabase({
   //           section: 'colores-formas',
   //           details: {
@@ -710,7 +711,7 @@ const checkAnswer = (input) => {
   //       }, 2000);
   //   }
   // };
-  
+
   /*
   // Guardar detalles en el backend
   const saveDetailsToDatabase = async ({ section, details }) => {
@@ -744,40 +745,40 @@ const checkAnswer = (input) => {
 
   const saveDetailsToDatabase = async ({ section, details }) => {
     if (!player?.name || !section || !details) {
-        console.warn('Faltan datos requeridos:', { 
-            player: player?.name, 
-            section, 
-            details 
-        });
-        return;
+      console.warn('Faltan datos requeridos:', {
+        player: player?.name,
+        section,
+        details
+      });
+      return;
     }
 
     const dataToSend = {
-        playerName: player.name,
-        section: section,
-        details: details
+      playerName: player.name,
+      section: section,
+      details: details
     };
 
     console.log('Datos que se enviarán al backend:', dataToSend);
 
     try {
-        const response = await fetch('http://localhost:5000/api/game-details-colores-formas', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(dataToSend)
-        });
+      const response = await fetch('http://localhost:5000/api/game-details-colores-formas', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend)
+      });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.warn('Advertencia al guardar detalles:', errorData);
-            return;
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('Advertencia al guardar detalles:', errorData);
+        return;
+      }
 
-        console.log('Detalles guardados correctamente en la base de datos');
+      console.log('Detalles guardados correctamente en la base de datos');
     } catch (error) {
-        console.error('Error al guardar detalles:', error);
+      console.error('Error al guardar detalles:', error);
     }
   };
 
@@ -792,76 +793,76 @@ const checkAnswer = (input) => {
 
     let timeoutId;
     const timerId = setInterval(() => {
-        setTimeLeft(time => {
+      setTimeLeft(time => {
 
-            // Manejar el audio cuando el tiempo es bajo
-            if (time <= 3 && time > 0) {
-              audioRef.current.play().catch(error => {
-                  console.log("Error al reproducir el audio:", error);
-              });
-            } else if (time > 3 || time <= 0) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
+        // Manejar el audio cuando el tiempo es bajo
+        if (time <= 3 && time > 0) {
+          audioRef.current.play().catch(error => {
+            console.log("Error al reproducir el audio:", error);
+          });
+        } else if (time > 3 || time <= 0) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        }
+        if (time <= 0) {
+          clearInterval(timerId);
+          setShowSolution(true);
+
+          const currentFormaColor = `${pairs[currentPair].forma}-${pairs[currentPair].color}`;
+          setErrorsArray(prevErrors => {
+            const currentErrors = prevErrors[currentPair];
+
+            saveDetailsToDatabase({
+              section: 'colores-formas',
+              details: {
+                [currentFormaColor]: {
+                  errors: currentErrors,
+                  time: timeLeft,
+                  resultado: false
+                }
+              }
+            });
+
+            console.log(`Tiempo agotado para ${currentFormaColor}:`, {
+              errors: currentErrors,
+              time: timeLeft,
+              resultado: false
+            });
+
+            return prevErrors;
+          });
+
+          timeoutId = setTimeout(() => {
+            setShowSolution(false);
+
+            if (currentPair < pairs.length - 1) {
+              setCurrentPair(prev => prev + 1);
+              //setTimeLeft(10);
+              // Obtener el tiempo configurado
+              const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+              setTimeLeft(tiempos['animales-vocales'] || 10);
+              setStartTime(Date.now());
+            } else {
+              localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
+              localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
+              onProgressUpdate(100, true);
+              setGameCompleted(true);
             }
-            if (time <= 0) {
-                clearInterval(timerId);
-                setShowSolution(true);
-                
-                const currentFormaColor = `${pairs[currentPair].forma}-${pairs[currentPair].color}`;
-                setErrorsArray(prevErrors => {
-                    const currentErrors = prevErrors[currentPair];
-                    
-                    saveDetailsToDatabase({
-                        section: 'colores-formas',
-                        details: {
-                            [currentFormaColor]: {
-                                errors: currentErrors,
-                                time: timeLeft,
-                                resultado: false
-                            }
-                        }
-                    });
+          }, 2000);
 
-                    console.log(`Tiempo agotado para ${currentFormaColor}:`, {
-                        errors: currentErrors,
-                        time: timeLeft,
-                        resultado: false
-                    });
-
-                    return prevErrors;
-                });
-                
-                timeoutId = setTimeout(() => {
-                    setShowSolution(false);
-                    
-                    if (currentPair < pairs.length - 1) {
-                        setCurrentPair(prev => prev + 1);
-                        //setTimeLeft(10);
-                        // Obtener el tiempo configurado
-                        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
-                        setTimeLeft(tiempos['animales-vocales'] || 10);
-                        setStartTime(Date.now());
-                    } else {
-                        localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
-                        localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
-                        onProgressUpdate(100, true);
-                        setGameCompleted(true);
-                    }
-                }, 2000);
-                
-                return 0;
-            }
-            return time - 1;
-        });
+          return 0;
+        }
+        return time - 1;
+      });
     }, 1000);
 
     return () => {
-        if (timerId) clearInterval(timerId);
-        if (timeoutId) clearTimeout(timeoutId);
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-        }
+      if (timerId) clearInterval(timerId);
+      if (timeoutId) clearTimeout(timeoutId);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
     };
   }, [currentPair, showInstructions, gameCompleted, showSolution, player.name]);
 
@@ -869,24 +870,24 @@ const checkAnswer = (input) => {
   const showFinalStats = () => {
     let totalErrors = 0;
     let totalTime = 0;
-  
+
     errorsArray.forEach((errors, index) => {
       totalErrors += errors;
       console.log(
         `Forma: ${pairs[index].forma} (${pairs[index].color}) | Errores: ${errors}`
       );
     });
-  
+
     responseTimes.forEach((time, index) => {
       totalTime += time;
       console.log(
         `Forma: ${pairs[index].forma} (${pairs[index].color}) | Tiempo de respuesta: ${(time / 1000).toFixed(2)}s`
       );
     });
-  
+
     console.log(`Errores totales: ${totalErrors}`);
     console.log(`Tiempo total de respuesta: ${(totalTime / 1000).toFixed(2)}s`);
-  };  
+  };
 
   // Event listener para el teclado
   useEffect(() => {
@@ -903,7 +904,7 @@ const checkAnswer = (input) => {
   const handleBack = () => {
     // Verificar si está completado
     const isCompleted = localStorage.getItem(`nivel2_colores_formas_completed_${player.name}`) === 'true';
-    
+
     if (isCompleted || gameCompleted) {
       // Si está completado, mantener el estado y forzar 100%
       localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
@@ -915,7 +916,7 @@ const checkAnswer = (input) => {
       const progress = ((currentPair) / pairs.length) * 100;
       onProgressUpdate(progress, false);
     }
-    
+
     onBack();
   };
 
@@ -992,8 +993,8 @@ const checkAnswer = (input) => {
             >
               ← Volver
             </button>
-            
-            <div 
+
+            <div
               className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-all duration-300"
               onClick={onConfigClick}
             >
@@ -1005,169 +1006,167 @@ const checkAnswer = (input) => {
           </div>
 
           {!showInstructions && !gameCompleted && (
-          <div className="mb-12">
+            <div className="mb-12">
               <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6 shadow-lg relative">
-                  {/* Título del nivel */}
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 
+                {/* Título del nivel */}
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 
                               bg-gradient-to-r from-purple-500 to-pink-500 text-white 
                               px-6 py-2 rounded-full shadow-lg">
-                      <span className="text-lg font-bold">Colores y Formas</span>
-                  </div>
+                  <span className="text-lg font-bold">Colores y Formas</span>
+                </div>
 
-                  {/* Fases */}
-                  <div className="flex justify-between items-center gap-3 mt-4 flex-wrap">
-                      {pairs.map((pair, i) => (
-                          <div key={i} className="flex-1 min-w-[3rem] max-w-[4rem] mb-4">
-                              <div className="relative">
-                                  {i < pairs.length - 1 && (
-                                      <div className={`absolute top-1/2 left-[60%] right-0 h-2 rounded-full
-                                                  ${i < currentPair 
-                                                      ? 'bg-gradient-to-r from-green-400 to-green-500' 
-                                                      : 'bg-gray-200'}`}>
-                                      </div>
-                                  )}
-                                  
-                                  <div className={`relative z-10 flex flex-col items-center transform 
-                                              transition-all duration-500 ${
-                                                  i === currentPair ? 'scale-110' : 'hover:scale-105'
-                                              }`}>
-                                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center
+                {/* Fases */}
+                <div className="flex justify-between items-center gap-3 mt-4 flex-wrap">
+                  {pairs.map((pair, i) => (
+                    <div key={i} className="flex-1 min-w-[3rem] max-w-[4rem] mb-4">
+                      <div className="relative">
+                        {i < pairs.length - 1 && (
+                          <div className={`absolute top-1/2 left-[60%] right-0 h-2 rounded-full
+                                                  ${i < currentPair
+                              ? 'bg-gradient-to-r from-green-400 to-green-500'
+                              : 'bg-gray-200'}`}>
+                          </div>
+                        )}
+
+                        <div className={`relative z-10 flex flex-col items-center transform 
+                                              transition-all duration-500 ${i === currentPair ? 'scale-110' : 'hover:scale-105'
+                          }`}>
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center
                                                   shadow-lg transition-all duration-300 border-4
                                                   ${i === currentPair
-                                                      ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 border-yellow-200 animate-pulse'
-                                                      : i < currentPair
-                                                      ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-200'
-                                                      : 'bg-white border-gray-100'
-                                                  }`}>
-                                          <div className="w-full h-full flex items-center justify-center">
-                                              {React.cloneElement(shapes[pair.forma](), {
-                                                  className: 'w-6 h-6',
-                                                  children: React.Children.map(shapes[pair.forma]().props.children, child =>
-                                                      React.cloneElement(child, {
-                                                          fill: i === currentPair
-                                                              ? '#9333EA'
-                                                              : i < currentPair
-                                                              ? '#FFFFFF'
-                                                              : '#6B7280'
-                                                      })
-                                                  )
-                                              })}
-                                          </div>
-                                      </div>
-                                      
-                                      {i === currentPair && (
-                                          <div className="absolute -bottom-6">
-                                              <span className="text-yellow-500 text-2xl animate-bounce">⭐</span>
-                                          </div>
-                                      )}
-                                  </div>
-                              </div>
+                              ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 border-yellow-200 animate-pulse'
+                              : i < currentPair
+                                ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-200'
+                                : 'bg-white border-gray-100'
+                            }`}>
+                            <div className="w-full h-full flex items-center justify-center">
+                              {React.cloneElement(shapes[pair.forma](), {
+                                className: 'w-6 h-6',
+                                children: React.Children.map(shapes[pair.forma]().props.children, child =>
+                                  React.cloneElement(child, {
+                                    fill: i === currentPair
+                                      ? '#9333EA'
+                                      : i < currentPair
+                                        ? '#FFFFFF'
+                                        : '#6B7280'
+                                  })
+                                )
+                              })}
+                            </div>
                           </div>
-                      ))}
-                  </div>
 
-                  {/* Barra de progreso */}
-                  <div className="mt-12">
-                      <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-semibold text-purple-700">
-                              Tu Progreso
-                          </span>
-                          <div className="flex items-center gap-2">
-                              <div className="px-3 py-1 bg-purple-500 text-white rounded-full text-sm font-bold">
-                                  {(currentPair / (pairs.length - 1) * 100).toFixed(0)}%
-                              </div>
-                          </div>
+                          {i === currentPair && (
+                            <div className="absolute -bottom-6">
+                              <span className="text-yellow-500 text-2xl animate-bounce">⭐</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="h-6 bg-gray-100 rounded-full overflow-hidden shadow-inner p-1">
-                          <div
-                              className="h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500 
+                    </div>
+                  ))}
+                </div>
+
+                {/* Barra de progreso */}
+                <div className="mt-12">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-semibold text-purple-700">
+                      Tu Progreso
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <div className="px-3 py-1 bg-purple-500 text-white rounded-full text-sm font-bold">
+                        {(currentPair / (pairs.length - 1) * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                  </div>
+                  <div className="h-6 bg-gray-100 rounded-full overflow-hidden shadow-inner p-1">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500 
                                       transition-all duration-1000 relative"
-                              style={{ width: `${(currentPair / (pairs.length - 1)) * 100}%` }}
-                          >
-                              <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
-                              <div className="absolute inset-0 overflow-hidden">
-                                  <div className="w-full h-full animate-shimmer 
+                      style={{ width: `${(currentPair / (pairs.length - 1)) * 100}%` }}
+                    >
+                      <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
+                      <div className="absolute inset-0 overflow-hidden">
+                        <div className="w-full h-full animate-shimmer 
                                             bg-gradient-to-r from-transparent via-white to-transparent"
-                                        style={{ backgroundSize: '200% 100%' }}>
-                                  </div>
-                              </div>
-                          </div>
+                          style={{ backgroundSize: '200% 100%' }}>
+                        </div>
                       </div>
+                    </div>
                   </div>
+                </div>
               </div>
-          </div>
-      )}
+            </div>
+          )}
 
-      {/* Mostrar solución cuando se acaba el tiempo */}
-      {showSolution && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          {/* Mostrar solución cuando se acaba el tiempo */}
+          {showSolution && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
               <div className="bg-white rounded-xl p-6 shadow-2xl transform transition-all">
-                  <h3 className="text-2xl font-bold text-purple-600 mb-4">
-                      ¡Se acabó el tiempo!
-                  </h3>
-                  <p className="text-xl text-gray-600 mb-4">
-                      La respuesta correcta era:
-                  </p>
-                  <img 
-                      src={solutionImages[pairs[currentPair].color]}
-                      alt={`Solución: color ${pairs[currentPair].color}`}
-                      className="w-96 h-96 object-contain mx-auto mb-4"
-                  />
+                <h3 className="text-2xl font-bold text-purple-600 mb-4">
+                  ¡Se acabó el tiempo!
+                </h3>
+                <p className="text-xl text-gray-600 mb-4">
+                  La respuesta correcta era:
+                </p>
+                <img
+                  src={solutionImages[pairs[currentPair].color]}
+                  alt={`Solución: color ${pairs[currentPair].color}`}
+                  className="w-96 h-96 object-contain mx-auto mb-4"
+                />
               </div>
-          </div>
-      )}
+            </div>
+          )}
 
-      {/* Temporizador */}
-      {!showInstructions && !gameCompleted && (
-          <div className="absolute bottom-8 right-8">
-              <div className={`relative group transform transition-all duration-300 ${
-                  timeLeft <= 3 ? 'scale-110' : 'hover:scale-105'
-              }`}>
-                  <div className={`w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-lg
+          {/* Temporizador */}
+          {!showInstructions && !gameCompleted && (
+            <div className="absolute bottom-8 right-8">
+              <div className={`relative group transform transition-all duration-300 ${timeLeft <= 3 ? 'scale-110' : 'hover:scale-105'
+                }`}>
+                <div className={`w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-lg
                               relative overflow-hidden ${timeLeft <= 3 ? 'animate-pulse' : ''}`}>
-                      <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-                          <circle
-                              cx="50"
-                              cy="50"
-                              r="45"
-                              fill="none"
-                              stroke={timeLeft <= 3 ? '#FEE2E2' : '#E0E7FF'}
-                              strokeWidth="8"
-                              className="opacity-30"
-                          />
-                          <circle
-                              cx="50"
-                              cy="50"
-                              r="45"
-                              fill="none"
-                              stroke={timeLeft <= 3 ? '#EF4444' : '#3B82F6'}
-                              strokeWidth="8"
-                              strokeLinecap="round"
-                              strokeDasharray={`${2 * Math.PI * 45}`}
-                              //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
-                              strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/(tiempos?.['colores-formas'] || 10))}
-                              className="transition-all duration-1000"
-                          />
-                      </svg>
+                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="45"
+                      fill="none"
+                      stroke={timeLeft <= 3 ? '#FEE2E2' : '#E0E7FF'}
+                      strokeWidth="8"
+                      className="opacity-30"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="45"
+                      fill="none"
+                      stroke={timeLeft <= 3 ? '#EF4444' : '#3B82F6'}
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 45}`}
+                      //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                      strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft / (tiempos?.['colores-formas'] || 10))}
+                      className="transition-all duration-1000"
+                    />
+                  </svg>
 
-                      <div className={`relative z-10 text-4xl font-bold 
+                  <div className={`relative z-10 text-4xl font-bold 
                                   ${timeLeft <= 3 ? 'text-red-500' : 'text-blue-500'}`}>
-                          {timeLeft}
-                      </div>
-
-                      {timeLeft <= 3 && (
-                          <>
-                              <div className="absolute inset-0 rounded-full bg-red-500 opacity-20 animate-ping"></div>
-                              <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full 
-                                          flex items-center justify-center animate-bounce shadow-lg">
-                                  <span className="text-white text-xs">⚠️</span>
-                              </div>
-                          </>
-                      )}
+                    {timeLeft}
                   </div>
+
+                  {timeLeft <= 3 && (
+                    <>
+                      <div className="absolute inset-0 rounded-full bg-red-500 opacity-20 animate-ping"></div>
+                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full 
+                                          flex items-center justify-center animate-bounce shadow-lg">
+                        <span className="text-white text-xs">⚠️</span>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-          </div>
-      )}
+            </div>
+          )}
 
           {showInstructions ? (
             <div className="text-center space-y-6">
@@ -1197,13 +1196,13 @@ const checkAnswer = (input) => {
               <button
                 className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8
                      rounded-full transform hover:scale-105 transition-all duration-300 shadow-lg"
-                     onClick={() => {
-                      // Asegurar que se guarda como completado
-                      localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
-                      localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
-                      onProgressUpdate(100, true);
-                      onBack();
-                    }}
+                onClick={() => {
+                  // Asegurar que se guarda como completado
+                  localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
+                  localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
+                  onProgressUpdate(100, true);
+                  onBack();
+                }}
               >
                 Volver al menú
               </button>
@@ -1213,14 +1212,14 @@ const checkAnswer = (input) => {
               <h2 className="text-4xl font-bold text-purple-600 mb-8">
                 ¿De qué color es este {pairs[currentPair].forma}?
               </h2>
-              
+
               <div className="flex justify-center items-center mb-8">
                 <CurrentShape />
               </div>
 
               <div className="mt-8">
                 <div className="text-2xl text-gray-600 mb-4">
-                Inserta la tarjeta que coincide con el color de la figura mostrada en pantalla.
+                  Inserta la tarjeta que coincide con el color de la figura mostrada en pantalla.
                 </div>
                 <div className="text-4xl font-bold text-purple-600">
                   Tu respuesta: <span className="text-6xl uppercase">{userInput}</span>
