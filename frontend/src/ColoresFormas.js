@@ -85,6 +85,7 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   ];
   
   //const [currentPair, setCurrentPair] = useState(0);
+  const [lastCardID, setLastCardID] = useState(null); // ESP32 Estado para almacenar el último UID leído
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -92,6 +93,169 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   const [errorsArray, setErrorsArray] = useState(new Array(pairs.length).fill(0)); // Errores por forma
   const [responseTimes, setResponseTimes] = useState([]); // Tiempos de respuesta por forma
   const [startTime, setStartTime] = useState(Date.now()); // Tiempo de inicio de la pregunta actual
+  
+  
+  /*ESP32 Inicio codigos*/
+
+  const uidToColorMap = {
+    '93:88:88:16': 'rojo', // UID para color rojo
+    '79:d4:24:98': 'amarillo', // UID para color amarillo
+    '43:e:98:16': 'verde', // UID para color verde
+    '13:59:99:16': 'azul', // UID para color azul
+    '23:3f:87:16': 'morado', // UID para color morado
+    '12:34:56:78': 'rosado', // UID para color rosado
+    '87:65:43:21': 'anaranjado' // UID para color anaranjado
+};
+
+const fetchLastCardID = async () => {
+  try {
+      const response = await fetch('http://localhost:3001/data'); // Asegúrate de que esta URL sea correcta
+      if (response.ok) {
+          const data = await response.json();
+          console.log('Datos recibidos:', data);
+          setLastCardID(data.cardID); // Actualiza el estado con el UID recibido
+      } else {
+          console.error('Error al obtener el UID:', response.status, response.statusText);
+      }
+  } catch (error) {
+      console.error('Error al obtener el UID:', error);
+  }
+};
+
+useEffect(() => {
+  const intervalId = setInterval(() => {
+      fetchLastCardID(); // Llama a la función cada 2 segundos
+  }, 2000);
+
+  return () => clearInterval(intervalId); // Limpia el intervalo al desmontar el componente
+}, []);
+
+useEffect(() => {
+  if (lastCardID) {
+      console.log('Último UID recibido:', lastCardID); // Imprime el UID recibido
+      checkAnswer(lastCardID); // Verifica la respuesta con el UID leído
+  }
+}, [lastCardID]);
+
+const checkAnswer = (input) => {
+  if (showFeedback || showSolution || showInstructions || gameCompleted) return;
+
+  // Obtener el color esperado a partir del UID
+  const expectedColor = uidToColorMap[input] !== undefined ? uidToColorMap[input] : input;
+
+  const isRight = expectedColor === pairs[currentPair].color;
+  setIsCorrect(isRight);
+
+  // Reproducir el audio correspondiente
+  if (isRight) {
+      playAudio(successAudioRef);
+  } else {
+      playAudio(encouragementAudioRef);
+  }
+
+  // Selecciona el mensaje una sola vez
+  setFeedbackMessage(
+      isRight
+          ? successMessages[Math.floor(Math.random() * successMessages.length)]
+          : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+  );
+
+  setShowFeedback(true);
+
+  const endTime = Date.now();
+  const responseTime = Math.min((endTime - startTime) / 1000, 10);
+  const currentShape = pairs[currentPair].forma;
+
+  if (!isRight) {
+      setErrorsArray(prevErrors => {
+          const updatedErrors = [...prevErrors];
+          updatedErrors[currentPair] += 1;
+
+          saveDetailsToDatabase({
+              section: 'colores-formas',
+              details: {
+                  [currentShape]: {
+                      errors: updatedErrors[currentPair],
+                      time: responseTime,
+                      resultado: false
+                  }
+              }
+          });
+
+          console.log(`Intento incorrecto para ${currentShape}:`, {
+              errors: updatedErrors[currentPair],
+              time: responseTime,
+              resultado: false
+          });
+
+          return updatedErrors;
+      });
+
+      setTimeout(() => {
+          setShowFeedback(false);
+          setUserInput('');
+      }, 1000);
+      return;
+  }
+
+  setErrorsArray(prevErrors => {
+      const currentErrors = prevErrors[currentPair];
+
+      saveDetailsToDatabase({
+          section: 'colores-formas',
+          details: {
+              [currentShape]: {
+                  errors: currentErrors,
+                  time: responseTime,
+                  resultado: true
+              }
+          }
+      });
+
+      console.log(`Intento correcto para ${currentShape}:`, {
+          errors: currentErrors,
+          time: responseTime,
+          resultado: true
+      });
+
+      return prevErrors;
+  });
+
+  if (currentPair === pairs.length - 1) {
+      localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
+      localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
+      onProgressUpdate(100, true);
+
+      // Reproducir sonido de completado
+      if (completedAudioRef.current) {
+          completedAudioRef.current.play().catch(error => {
+              console.log("Error al reproducir audio de completado:", error);
+          });
+      }
+
+      showFinalStats();
+
+      setTimeout(() => {
+          setGameCompleted(true);
+          setShowFeedback(false);
+      }, 2000);
+  } else {
+      localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, currentPair + 1);
+      onProgressUpdate(((currentPair + 1) / pairs.length) * 100, false);
+
+      setTimeout(() => {
+          setCurrentPair(prev => prev + 1);
+          setShowFeedback(false);
+          setUserInput('');
+          setStartTime(Date.now());
+          // Obtener el tiempo configurado
+          const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+          setTimeLeft(tiempos['colores-formas'] || 10);
+      }, 2000);
+  }
+};
+
+
   const [currentPair, setCurrentPair] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel2_colores_formas_progress_${player.name}`);
     const completedStatus = localStorage.getItem(`nivel2_colores_formas_completed_${player.name}`);
@@ -431,121 +595,121 @@ const ColoresFormas = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     }
   }, [currentPair]);
 
-  const checkAnswer = (input) => {
-    if (showFeedback || showSolution || showInstructions || gameCompleted) return;
+  // const checkAnswer = (input) => {
+  //   if (showFeedback || showSolution || showInstructions || gameCompleted) return;
 
-    const isRight = input === pairs[currentPair].inicial;
-    setIsCorrect(isRight);
+  //   const isRight = input === pairs[currentPair].inicial;
+  //   setIsCorrect(isRight);
 
-    // Reproducir el audio correspondiente
-    if (isRight) {
-      playAudio(successAudioRef);
-    } else {
-      playAudio(encouragementAudioRef);
-    }
+  //   // Reproducir el audio correspondiente
+  //   if (isRight) {
+  //     playAudio(successAudioRef);
+  //   } else {
+  //     playAudio(encouragementAudioRef);
+  //   }
 
-    // Selecciona el mensaje una sola vez
-    setFeedbackMessage(
-      isRight
-        ? successMessages[Math.floor(Math.random() * successMessages.length)]
-        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
-    );
+  //   // Selecciona el mensaje una sola vez
+  //   setFeedbackMessage(
+  //     isRight
+  //       ? successMessages[Math.floor(Math.random() * successMessages.length)]
+  //       : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+  //   );
     
-    setShowFeedback(true);
+  //   setShowFeedback(true);
 
-    const endTime = Date.now();
-    const responseTime = Math.min((endTime - startTime) / 1000, 10);
-    const currentFormaColor = `${pairs[currentPair].forma}-${pairs[currentPair].color}`;
+  //   const endTime = Date.now();
+  //   const responseTime = Math.min((endTime - startTime) / 1000, 10);
+  //   const currentFormaColor = `${pairs[currentPair].forma}-${pairs[currentPair].color}`;
 
-    if (!isRight) {
-        setErrorsArray(prevErrors => {
-            const updatedErrors = [...prevErrors];
-            updatedErrors[currentPair] += 1;
+  //   if (!isRight) {
+  //       setErrorsArray(prevErrors => {
+  //           const updatedErrors = [...prevErrors];
+  //           updatedErrors[currentPair] += 1;
 
-            saveDetailsToDatabase({
-                section: 'colores-formas',
-                details: {
-                    [currentFormaColor]: {
-                        errors: updatedErrors[currentPair],
-                        time: responseTime,
-                        resultado: false
-                    }
-                }
-            });
+  //           saveDetailsToDatabase({
+  //               section: 'colores-formas',
+  //               details: {
+  //                   [currentFormaColor]: {
+  //                       errors: updatedErrors[currentPair],
+  //                       time: responseTime,
+  //                       resultado: false
+  //                   }
+  //               }
+  //           });
 
-            console.log(`Intento incorrecto para ${currentFormaColor}:`, {
-                errors: updatedErrors[currentPair],
-                time: responseTime,
-                resultado: false
-            });
+  //           console.log(`Intento incorrecto para ${currentFormaColor}:`, {
+  //               errors: updatedErrors[currentPair],
+  //               time: responseTime,
+  //               resultado: false
+  //           });
 
-            return updatedErrors;
-        });
+  //           return updatedErrors;
+  //       });
 
-        setTimeout(() => {
-            setShowFeedback(false);
-            setUserInput('');
-        }, 1000);
-        return;
-    }
+  //       setTimeout(() => {
+  //           setShowFeedback(false);
+  //           setUserInput('');
+  //       }, 1000);
+  //       return;
+  //   }
 
-    setErrorsArray(prevErrors => {
-        const currentErrors = prevErrors[currentPair];
+  //   setErrorsArray(prevErrors => {
+  //       const currentErrors = prevErrors[currentPair];
         
-        saveDetailsToDatabase({
-            section: 'colores-formas',
-            details: {
-                [currentFormaColor]: {
-                    errors: currentErrors,
-                    time: responseTime,
-                    resultado: true
-                }
-            }
-        });
+  //       saveDetailsToDatabase({
+  //           section: 'colores-formas',
+  //           details: {
+  //               [currentFormaColor]: {
+  //                   errors: currentErrors,
+  //                   time: responseTime,
+  //                   resultado: true
+  //               }
+  //           }
+  //       });
 
-        console.log(`Intento correcto para ${currentFormaColor}:`, {
-            errors: currentErrors,
-            time: responseTime,
-            resultado: true
-        });
+  //       console.log(`Intento correcto para ${currentFormaColor}:`, {
+  //           errors: currentErrors,
+  //           time: responseTime,
+  //           resultado: true
+  //       });
 
-        return prevErrors;
-    });
+  //       return prevErrors;
+  //   });
 
-    if (currentPair === pairs.length - 1) {
-        localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
-        localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
-        onProgressUpdate(100, true);
+  //   if (currentPair === pairs.length - 1) {
+  //       localStorage.setItem(`nivel2_colores_formas_completed_${player.name}`, 'true');
+  //       localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, pairs.length);
+  //       onProgressUpdate(100, true);
 
-        // Reproducir sonido de completado
-        if (completedAudioRef.current) {
-          completedAudioRef.current.play().catch(error => {
-            console.log("Error al reproducir audio de completado:", error);
-          });
-        }
+  //       // Reproducir sonido de completado
+  //       if (completedAudioRef.current) {
+  //         completedAudioRef.current.play().catch(error => {
+  //           console.log("Error al reproducir audio de completado:", error);
+  //         });
+  //       }
 
-        showFinalStats();
+  //       showFinalStats();
 
-        setTimeout(() => {
-            setGameCompleted(true);
-            setShowFeedback(false);
-        }, 2000);
-    } else {
-        localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, currentPair + 1);
-        onProgressUpdate(((currentPair + 1) / pairs.length) * 100, false);
+  //       setTimeout(() => {
+  //           setGameCompleted(true);
+  //           setShowFeedback(false);
+  //       }, 2000);
+  //   } else {
+  //       localStorage.setItem(`nivel2_colores_formas_progress_${player.name}`, currentPair + 1);
+  //       onProgressUpdate(((currentPair + 1) / pairs.length) * 100, false);
 
-        setTimeout(() => {
-            setCurrentPair(prev => prev + 1);
-            setShowFeedback(false);
-            setUserInput('');
-            setStartTime(Date.now());
-            //setTimeLeft(10);
-            // Obtener el tiempo configurado
-            const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
-            setTimeLeft(tiempos['colores-formas'] || 10);
-        }, 2000);
-    }
-  };
+  //       setTimeout(() => {
+  //           setCurrentPair(prev => prev + 1);
+  //           setShowFeedback(false);
+  //           setUserInput('');
+  //           setStartTime(Date.now());
+  //           //setTimeLeft(10);
+  //           // Obtener el tiempo configurado
+  //           const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+  //           setTimeLeft(tiempos['colores-formas'] || 10);
+  //       }, 2000);
+  //   }
+  // };
   
   /*
   // Guardar detalles en el backend

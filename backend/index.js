@@ -53,7 +53,7 @@ app.post('/api/data', (req, res) => {
 });
 
 app.get('/api/test-ml', (req, res) => {
-  const pythonPath = "C:\\Users\\USER\\anaconda3.1\\envs\\ml_env\\python.exe";
+  const pythonPath = "C:\\Users\\DELL\\anaconda3\\envs\\ml_env\\python.exe";
 
   const pythonProcess = spawn(pythonPath, ["test_ml.py"]);
 
@@ -67,7 +67,7 @@ app.get('/api/test-ml', (req, res) => {
 app.get('/api/predictions/:playerName', async (req, res) => {
   const playerName = req.params.playerName;
 
-  const pythonProcess = spawn('C:\\Users\\USER\\anaconda3.1\\envs\\ml_env\\python.exe', ['test_ml.py', playerName]);
+  const pythonProcess = spawn('C:\\Users\\DELL\\anaconda3\\envs\\ml_env\\python.exe', ['test_ml.py', playerName]);
 
   let output = '';
   pythonProcess.stdout.on('data', (data) => {
