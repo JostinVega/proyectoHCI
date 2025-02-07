@@ -7,13 +7,7 @@ require('dotenv').config();
 
 // Configuración de Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyB7StOzgmXT6M0bz7LoMbb1rr088NtjgXs",
-  authDomain: "proyectohci-344bf.firebaseapp.com",
-  projectId: "proyectohci-344bf",
-  storageBucket: "proyectohci-344bf.firebasestorage.app",
-  messagingSenderId: "864558651164",
-  appId: "1:864558651164:web:deb475ae3c09b6237b0cd9",
-  measurementId: "G-D4HTBZ58WJ"
+  
 };
 
 /// Inicializar Firebase
