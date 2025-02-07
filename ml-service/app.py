@@ -1,3 +1,5 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import firebase_admin
 from firebase_admin import credentials, firestore
 import pandas as pd
@@ -5,14 +7,28 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-import sys
-import json
+import os
+
+app = Flask(__name__)
+CORS(app)
 
 # Inicialización de Firebase
 try:
     db = firestore.client()
 except:
-    cred = credentials.Certificate("proyectohci-344bf-firebase-adminsdk-mhkbe-8191397737.json")
+    cred_dict = {
+        "type": os.environ.get("FIREBASE_TYPE"),
+        "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
+        "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
+        "private_key": os.environ.get("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
+        "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
+        "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
+        "auth_uri": os.environ.get("FIREBASE_AUTH_URI"),
+        "token_uri": os.environ.get("FIREBASE_TOKEN_URI"),
+        "auth_provider_x509_cert_url": os.environ.get("FIREBASE_AUTH_PROVIDER_CERT_URL"),
+        "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_CERT_URL")
+    }
+    cred = credentials.Certificate(cred_dict)
     firebase_admin.initialize_app(cred)
     db = firestore.client()
 
@@ -36,7 +52,6 @@ def get_user_data(user_id):
 
 def process_attempts(data):
     records = []
-    # Mapa para categorías de nivel 2
     collection_to_category = {
         "gameDetailsAnimalesNumeros": "animales-numeros",
         "gameDetailsAnimalesVocales": "animales-vocales",
@@ -192,19 +207,20 @@ def get_predictions(user_id, processed_data):
 
     return predictions
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(json.dumps({"error": "User ID required"}))
-        sys.exit(1)
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy"})
 
-    user_id = sys.argv[1]
+@app.route('/predict/<user_id>', methods=['GET'])
+def predict(user_id):
     try:
         collections_data = get_user_data(user_id)
         processed_data = process_attempts(collections_data)
         predictions = get_predictions(user_id, processed_data)
-
-        # Solo imprime el JSON puro
-        print(json.dumps(predictions))
+        return jsonify(predictions)
     except Exception as e:
-        print(f"Error: {str(e)}", file=sys.stderr)
-        sys.exit(1)
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)

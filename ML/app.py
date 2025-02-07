@@ -1,3 +1,4 @@
+from flask import Flask, request, jsonify
 import firebase_admin
 from firebase_admin import credentials, firestore
 import pandas as pd
@@ -5,14 +6,14 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-import sys
-import json
+
+app = Flask(__name__)
 
 # Inicialización de Firebase
 try:
     db = firestore.client()
 except:
-    cred = credentials.Certificate("proyectohci-344bf-firebase-adminsdk-mhkbe-8191397737.json")
+    cred = credentials.Certificate("proyectohci-344bf-firebase-adminsdk-mhkbe-232cd82041.json")
     firebase_admin.initialize_app(cred)
     db = firestore.client()
 
@@ -36,7 +37,6 @@ def get_user_data(user_id):
 
 def process_attempts(data):
     records = []
-    # Mapa para categorías de nivel 2
     collection_to_category = {
         "gameDetailsAnimalesNumeros": "animales-numeros",
         "gameDetailsAnimalesVocales": "animales-vocales",
@@ -79,13 +79,7 @@ class GameML:
 
     def train_timer_model(self, data):
         X = data[['errors', 'time', 'result']]
-        
-        # Calculamos el tiempo recomendado basado en el rendimiento
-        baseline_time = 10
-        performance_factor = (data['errors'] * 1.5 + data['time'] * 0.5) / 2
-        y = baseline_time + performance_factor
-        y = np.clip(y, 5, 15)
-        
+        y = np.clip((data['errors'] * 1.5 + data['time'] * 0.5) / 2 + 10, 5, 15)
         X_scaled = self.scaler.fit_transform(X)
         self.timer_model.fit(X_scaled, y)
 
@@ -96,29 +90,26 @@ class GameML:
         self.review_model.fit(X_scaled, y)
 
     def predict_timer(self, data):
-        X = data[['errors', 'time', 'result']]
-        X_scaled = self.scaler.transform(X)
-        predictions = self.timer_model.predict(X_scaled)
-        return np.clip(predictions, 5, 15)
+        X_scaled = self.scaler.transform(data[['errors', 'time', 'result']])
+        return np.clip(self.timer_model.predict(X_scaled), 5, 15)
 
     def predict_review(self, data):
-        X = data[['errors', 'time', 'result']]
-        X_scaled = self.scaler.transform(X)
+        X_scaled = self.scaler.transform(data[['errors', 'time', 'result']])
         return self.review_model.predict(X_scaled)
 
 def get_predictions(user_id, processed_data):
     game_ml = GameML()
     user_data = processed_data[processed_data['user_id'] == user_id].copy()
-    
+
     # Añadir columna needs_review
     user_data['needs_review'] = (user_data['errors'] > 2) | (user_data['time'] > 6)
-    
+
     # Split data para entrenamiento
     train_data, predict_data = train_test_split(user_data, test_size=0.3, random_state=42)
-    
+
     game_ml.train_timer_model(train_data)
     game_ml.train_review_model(train_data)
-    
+
     predict_data = predict_data.drop(columns=['needs_review'])
     predictions = {'level1': {}, 'level2': {}, 'level3': {}}
 
@@ -192,19 +183,21 @@ def get_predictions(user_id, processed_data):
 
     return predictions
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(json.dumps({"error": "User ID required"}))
-        sys.exit(1)
-
-    user_id = sys.argv[1]
+@app.route('/api/predictions/<user_id>', methods=['GET'])
+def predict(user_id):
     try:
         collections_data = get_user_data(user_id)
         processed_data = process_attempts(collections_data)
-        predictions = get_predictions(user_id, processed_data)
+        
+        if processed_data.empty:
+            return jsonify({"error": "No data found for user."}), 404
 
-        # Solo imprime el JSON puro
-        print(json.dumps(predictions))
+        predictions = get_predictions(user_id, processed_data)
+        
+        return jsonify(predictions)
+    
     except Exception as e:
-        print(f"Error: {str(e)}", file=sys.stderr)
-        sys.exit(1)
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)

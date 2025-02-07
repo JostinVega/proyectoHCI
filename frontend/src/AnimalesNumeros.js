@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import API_URL from './config.js';
 
 import pajarito from '../src/images/pajarito.png';
 import tortuga from '../src/images/tortuga.png';
@@ -164,6 +165,8 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   ];
 
   //const [currentPair, setCurrentPair] = useState(0);
+  const [lastCardID, setLastCardID] = useState(null); // ESP32 Estado para almacenar el último UID leído
+  const [animalStats, setAnimalStats] = useState({});
   const [userInput, setUserInput] = useState('');  // Cambiado de userAnswer
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -178,14 +181,281 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   const [currentPair, setCurrentPair] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel2_animales_numeros_progress_${player.name}`);
     const isCompleted = localStorage.getItem(`nivel2_animales_numeros_completed_${player.name}`);
-    
+
     if (isCompleted === 'true') {
       return pairs.length - 1; // Retorna el último índice si está completado
     }
-    
+
     const progress = savedProgress ? parseInt(savedProgress) : 0;
     return progress >= 0 && progress < pairs.length ? progress : 0;
   });
+
+
+  /*ESP32 Inicio codigos*/
+  const uidToNumberMap = {
+    '93:88:88:16': 1,
+    '79:d4:24:98': 2,
+    '43:e:98:16': 3,
+    '13:59:99:16': 4,
+    '23:3f:87:16': 5,
+    '13:7d:85:16': 6,
+    '93:1:88:16': 7,
+    'f3:38:89:16': 8,
+    'a9:ce:34:9b': 9
+};
+
+  const uidToAnimalMap  = { ////////////////
+    '93:88:88:16': 'pajaro',
+    '79:d4:24:98': 'tortuga',
+    '43:e:98:16': 'cerdo',
+    '13:59:99:16': 'pato',
+    '23:3f:87:16': 'mariposa',
+    '13:7d:85:16': 'pollito',
+    '93:1:88:16': 'gato',
+    'f3:38:89:16': 'perro',
+    'a9:ce:34:9b': 'oveja'
+  };
+
+  // Función para obtener el UID desde el servidor
+  const fetchLastCardID = async () => {
+    try {
+      const response = await fetch(API_URL); // Asegúrate de que esta URL sea correcta
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Datos recibidos:', data);
+        setLastCardID(data.cardID); // Actualiza el estado con el UID recibido
+      } else {
+        console.error('Error al obtener el UID:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error al obtener el UID:', error);
+    }
+  };
+
+  // Polling para obtener el UID cada 2 segundos
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchLastCardID(); // Llama a la función cada 2 segundos
+    }, 2000);
+
+    return () => clearInterval(intervalId); // Limpia el intervalo al desmontar el componente
+  }, []);
+
+  // Verifica el UID leído
+  useEffect(() => {
+    if (lastCardID) {
+      console.log('Último UID recibido:', lastCardID); // Imprime el UID recibido
+      checkAnswer(lastCardID); // Verifica la respuesta con el UID leído
+    }
+  }, [lastCardID]);
+
+  // const checkAnswer = (input) => {
+  //   if (showFeedback || showSolution || showInstructions || gameCompleted) return;
+  //   if (currentPair >= pairs.length) return;
+
+  //   const isRight = parseInt(input) === pairs[currentPair].cantidad;
+  //   setIsCorrect(isRight);
+
+  //   if (isRight) {
+  //     playAudio(successAudioRef);
+  //   } else {
+  //     playAudio(encouragementAudioRef);
+  //   }
+
+  //   setFeedbackMessage(
+  //     isRight
+  //       ? successMessages[Math.floor(Math.random() * successMessages.length)]
+  //       : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+  //   );
+
+  //   setShowFeedback(true);
+
+  //   const endTime = Date.now();
+  //   const responseTime = Math.min((endTime - startTime) / 1000, 10);
+  //   const currentAnimal = pairs[currentPair].nombre;
+
+  //   if (!isRight) {
+  //     setAnimalStats((prevStats) => {
+  //       const updatedStats = { ...prevStats };
+  //       if (!updatedStats[currentAnimal]) {
+  //         updatedStats[currentAnimal] = { errors: 0, time: 0, resultado: false };
+  //       }
+  //       updatedStats[currentAnimal].errors += 1;
+  //       updatedStats[currentAnimal].resultado = false;
+
+  //       saveDetailsToDatabase({
+  //         section: 'animales-numeros',
+  //         details: { [currentAnimal]: updatedStats[currentAnimal] }
+  //       });
+
+  //       console.log(`Intento incorrecto para ${currentAnimal}:`, updatedStats[currentAnimal]);
+  //       return updatedStats;
+  //     });
+
+  //     setTimeout(() => {
+  //       setShowFeedback(false);
+  //       setUserInput('');
+  //     }, 1000);
+  //     return;
+  //   }
+
+  //   setAnimalStats((prevStats) => {
+  //     const updatedStats = { ...prevStats };
+  //     if (!updatedStats[currentAnimal]) {
+  //       updatedStats[currentAnimal] = { errors: 0, time: 0, resultado: true };
+  //     }
+  //     updatedStats[currentAnimal].time = responseTime;
+  //     updatedStats[currentAnimal].resultado = true;
+
+  //     saveDetailsToDatabase({
+  //       section: 'animales-numeros',
+  //       details: { [currentAnimal]: updatedStats[currentAnimal] }
+  //     });
+
+  //     console.log(`Intento correcto para ${currentAnimal}:`, updatedStats[currentAnimal]);
+  //     return updatedStats;
+  //   });
+
+  //   const progress = ((currentPair + 1) / pairs.length) * 100;
+
+  //   if (currentPair === pairs.length - 1) {
+  //     localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, pairs.length);
+  //     localStorage.setItem(`nivel2_animales_numeros_completed_${player.name}`, 'true');
+  //     onProgressUpdate(100, true);
+  //     showFinalStats();
+
+  //     if (completedAudioRef.current) {
+  //       completedAudioRef.current.play().catch(error => {
+  //         console.log("Error al reproducir audio de completado:", error);
+  //       });
+  //     }
+
+  //     setTimeout(() => {
+  //       setGameCompleted(true);
+  //       setShowFeedback(false);
+  //     }, 2000);
+  //   } else {
+  //     localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, currentPair + 1);
+  //     onProgressUpdate(progress, false);
+
+  //     setTimeout(() => {
+  //       setCurrentPair(prev => prev + 1);
+  //       setShowFeedback(false);
+  //       setUserInput('');
+  //       setStartTime(Date.now());
+  //       const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+  //       setTimeLeft(tiempos['animales-numeros'] || 10);
+  //     }, 2000);
+  //   }
+  // };
+
+  const checkAnswer = (input) => {
+    if (showFeedback || showSolution || showInstructions || gameCompleted) return;
+    if (currentPair >= pairs.length) return;
+
+    const expectedNumber = uidToNumberMap[input] !== undefined ? uidToNumberMap[input] : parseInt(input);
+    const expectedAnimal = uidToAnimalMap[input] !== undefined ? uidToAnimalMap[input] : pairs[currentPair].nombre;
+
+    const isRight = expectedNumber === pairs[currentPair].cantidad;
+    setIsCorrect(isRight);
+
+    if (isRight) {
+      playAudio(successAudioRef);
+    } else {
+      playAudio(encouragementAudioRef);
+    }
+
+    setFeedbackMessage(
+      isRight
+        ? successMessages[Math.floor(Math.random() * successMessages.length)]
+        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+    );
+
+    setShowFeedback(true);
+
+    const endTime = Date.now();
+    const responseTime = Math.min((endTime - startTime) / 1000, 10);
+    const currentAnimal = expectedAnimal;
+
+    if (!isRight) {
+      setAnimalStats((prevStats) => {
+        const updatedStats = { ...prevStats };
+        if (!updatedStats[currentAnimal]) {
+          updatedStats[currentAnimal] = { errors: 0, time: 0, resultado: false };
+        }
+        updatedStats[currentAnimal].errors += 1;
+        updatedStats[currentAnimal].resultado = false;
+
+        saveDetailsToDatabase({
+          section: 'animales-numeros',
+          details: { [currentAnimal]: updatedStats[currentAnimal] }
+        });
+
+        console.log(`Intento incorrecto para ${currentAnimal}:`, updatedStats[currentAnimal]);
+        return updatedStats;
+      });
+
+      setTimeout(() => {
+        setShowFeedback(false);
+        setUserInput('');
+      }, 1000);
+      return;
+    }
+
+    setAnimalStats((prevStats) => {
+      const updatedStats = { ...prevStats };
+      if (!updatedStats[currentAnimal]) {
+        updatedStats[currentAnimal] = { errors: 0, time: 0, resultado: true };
+      }
+      updatedStats[currentAnimal].time = responseTime;
+      updatedStats[currentAnimal].resultado = true;
+
+      saveDetailsToDatabase({
+        section: 'animales-numeros',
+        details: { [currentAnimal]: updatedStats[currentAnimal] }
+      });
+
+      console.log(`Intento correcto para ${currentAnimal}:`, updatedStats[currentAnimal]);
+      return updatedStats;
+    });
+
+    const progress = ((currentPair + 1) / pairs.length) * 100;
+
+    if (currentPair === pairs.length - 1) {
+      localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, pairs.length);
+      localStorage.setItem(`nivel2_animales_numeros_completed_${player.name}`, 'true');
+      onProgressUpdate(100, true);
+      showFinalStats();
+
+      if (completedAudioRef.current) {
+        completedAudioRef.current.play().catch(error => {
+          console.log("Error al reproducir audio de completado:", error);
+        });
+      }
+
+      setTimeout(() => {
+        setGameCompleted(true);
+        setShowFeedback(false);
+      }, 2000);
+    } else {
+      localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, currentPair + 1);
+      onProgressUpdate(progress, false);
+
+      setTimeout(() => {
+        setCurrentPair(prev => prev + 1);
+        setShowFeedback(false);
+        setUserInput('');
+        setStartTime(Date.now());
+        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+        setTimeLeft(tiempos['animales-numeros'] || 10);
+      }, 2000);
+    }
+  };
+
+
+
+  /*ESP32 Fin codigos*/
+
 
   // Modificar estado de instrucciones para recuperar
   const [showInstructions, setShowInstructions] = useState(() => {
@@ -203,9 +473,9 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
 
   const [showSolution, setShowSolution] = useState(false);
-  
+
   const [feedbackMessage, setFeedbackMessage] = useState('');
-  
+
   const audioRef = useRef(null);
   const successAudioRef = useRef(null);
   const encouragementAudioRef = useRef(null);
@@ -241,13 +511,13 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     const savedProgress = localStorage.getItem(`nivel2_animales_numeros_progress_${player.name}`);
     const isCompleted = localStorage.getItem(`nivel2_animales_numeros_completed_${player.name}`);
     const savedInstructions = localStorage.getItem(`nivel2_animales_numeros_instructions_${player.name}`);
-    
+
     if (isCompleted === 'true' || savedProgress === '9') {
       setGameCompleted(true);
       onProgressUpdate(100, true);
       setCurrentPair(pairs.length - 1); // Asegurarnos que currentPair esté en la última posición
     }
-    
+
     if (savedInstructions) {
       setShowInstructions(false);
     }
@@ -256,52 +526,52 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   // Manejar la entrada del teclado
   const handleKeyPress = (e) => {
     if (showInstructions) return;
-    
+
     // Solo permitir números
     if (!/[0-9]/.test(e.key)) return;
-    
+
     setUserInput(e.key);
     checkAnswer(e.key);
   };
 
   const saveDetailsToDatabase = async ({ section, details }) => {
     if (!player?.name || !section || !details) {
-        console.warn('Faltan datos requeridos:', { 
-            player: player?.name, 
-            section, 
-            details 
-        });
-        return;
+      console.warn('Faltan datos requeridos:', {
+        player: player?.name,
+        section,
+        details
+      });
+      return;
     }
 
     const dataToSend = {
-        playerName: player.name,
-        section: section,
-        details: details
+      playerName: player.name,
+      section: section,
+      details: details
     };
 
     console.log('Datos que se enviarán al backend:', dataToSend);
 
     try {
-        const response = await fetch('http://localhost:5000/api/game-details-animales-numeros', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(dataToSend)
-        });
+      const response = await fetch('http://localhost:5000/api/game-details-animales-numeros', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend)
+      });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.warn('Advertencia al guardar detalles:', errorData);
-            return;
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('Advertencia al guardar detalles:', errorData);
+        return;
+      }
 
-        console.log('Detalles guardados correctamente en la base de datos');
+      console.log('Detalles guardados correctamente en la base de datos');
     } catch (error) {
-        console.error('Error al guardar detalles:', error);
+      console.error('Error al guardar detalles:', error);
     }
-};
+  };
   /*
   const checkAnswer = (input) => {
     if (currentPair >= pairs.length) return;
@@ -424,7 +694,7 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     successAudioRef.current = new Audio(success);
     encouragementAudioRef.current = new Audio(encouragement);
     completedAudioRef.current = new Audio(completed);
-    
+
     return () => {
       if (successAudioRef.current) {
         successAudioRef.current.pause();
@@ -434,7 +704,7 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
         encouragementAudioRef.current.pause();
         encouragementAudioRef.current.currentTime = 0;
       }
-      if (completedAudioRef.current) { 
+      if (completedAudioRef.current) {
         completedAudioRef.current.pause();
         completedAudioRef.current.currentTime = 0;
       }
@@ -465,130 +735,131 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
     }
   }, [currentPair, showInstructions, gameCompleted, showSolution]);
 
-  const checkAnswer = (input) => {
-    if (showFeedback || showSolution || showInstructions || gameCompleted) return;
-    if (currentPair >= pairs.length) return;
+  //Version original
+  // const checkAnswer = (input) => {
+  //   if (showFeedback || showSolution || showInstructions || gameCompleted) return;
+  //   if (currentPair >= pairs.length) return;
 
-    const isRight = parseInt(input) === pairs[currentPair].cantidad;
-    setIsCorrect(isRight);
+  //   const isRight = parseInt(input) === pairs[currentPair].cantidad;
+  //   setIsCorrect(isRight);
 
-     // Reproducir el audio correspondiente
-     if (isRight) {
-      playAudio(successAudioRef);
-    } else {
-      playAudio(encouragementAudioRef);
-    }
+  //   // Reproducir el audio correspondiente
+  //   if (isRight) {
+  //     playAudio(successAudioRef);
+  //   } else {
+  //     playAudio(encouragementAudioRef);
+  //   }
 
-    // Selecciona el mensaje una sola vez
-    setFeedbackMessage(
-      isRight
-        ? successMessages[Math.floor(Math.random() * successMessages.length)]
-        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
-    );
+  //   // Selecciona el mensaje una sola vez
+  //   setFeedbackMessage(
+  //     isRight
+  //       ? successMessages[Math.floor(Math.random() * successMessages.length)]
+  //       : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+  //   );
 
-    setShowFeedback(true);
+  //   setShowFeedback(true);
 
-    const endTime = Date.now();
-    const responseTime = Math.min((endTime - startTime) / 1000, 10);
-    const currentAnimal = pairs[currentPair].nombre;
+  //   const endTime = Date.now();
+  //   const responseTime = Math.min((endTime - startTime) / 1000, 10);
+  //   const currentAnimal = pairs[currentPair].nombre;
 
-    if (!isRight) {
-        // Actualizar estado para respuesta incorrecta
-        setErrorsArray(prevErrors => {
-            const updatedErrors = [...prevErrors];
-            updatedErrors[currentPair] += 1;
+  //   if (!isRight) {
+  //     // Actualizar estado para respuesta incorrecta
+  //     setErrorsArray(prevErrors => {
+  //       const updatedErrors = [...prevErrors];
+  //       updatedErrors[currentPair] += 1;
 
-            // Guardar en backend con errores acumulados
-            saveDetailsToDatabase({
-                section: 'animales-numeros',
-                details: {
-                    [currentAnimal]: {
-                        errors: updatedErrors[currentPair],
-                        time: responseTime,
-                        resultado: false
-                    }
-                }
-            });
+  //       // Guardar en backend con errores acumulados
+  //       saveDetailsToDatabase({
+  //         section: 'animales-numeros',
+  //         details: {
+  //           [currentAnimal]: {
+  //             errors: updatedErrors[currentPair],
+  //             time: responseTime,
+  //             resultado: false
+  //           }
+  //         }
+  //       });
 
-            // Mostrar en consola
-            console.log(`Intento incorrecto para ${currentAnimal}:`, {
-                errors: updatedErrors[currentPair],
-                time: responseTime,
-                resultado: false
-            });
+  //       // Mostrar en consola
+  //       console.log(`Intento incorrecto para ${currentAnimal}:`, {
+  //         errors: updatedErrors[currentPair],
+  //         time: responseTime,
+  //         resultado: false
+  //       });
 
-            return updatedErrors;
-        });
+  //       return updatedErrors;
+  //     });
 
-        setTimeout(() => {
-            setShowFeedback(false);
-            setUserInput('');
-        }, 1000);
-        return;
-    }
+  //     setTimeout(() => {
+  //       setShowFeedback(false);
+  //       setUserInput('');
+  //     }, 1000);
+  //     return;
+  //   }
 
-    // Para respuesta correcta
-    setErrorsArray(prevErrors => {
-        const currentErrors = prevErrors[currentPair];
-        
-        // Guardar en backend con errores acumulados
-        saveDetailsToDatabase({
-            section: 'animales-numeros',
-            details: {
-                [currentAnimal]: {
-                    errors: currentErrors,
-                    time: responseTime,
-                    resultado: true
-                }
-            }
-        });
+  //   // Para respuesta correcta
+  //   setErrorsArray(prevErrors => {
+  //     const currentErrors = prevErrors[currentPair];
 
-        // Mostrar en consola
-        console.log(`Intento correcto para ${currentAnimal}:`, {
-            errors: currentErrors,
-            time: responseTime,
-            resultado: true
-        });
+  //     // Guardar en backend con errores acumulados
+  //     saveDetailsToDatabase({
+  //       section: 'animales-numeros',
+  //       details: {
+  //         [currentAnimal]: {
+  //           errors: currentErrors,
+  //           time: responseTime,
+  //           resultado: true
+  //         }
+  //       }
+  //     });
 
-        return prevErrors; // Mantener el array de errores sin cambios
-    });
+  //     // Mostrar en consola
+  //     console.log(`Intento correcto para ${currentAnimal}:`, {
+  //       errors: currentErrors,
+  //       time: responseTime,
+  //       resultado: true
+  //     });
 
-    // Actualizar progreso
-    const progress = ((currentPair + 1) / pairs.length) * 100;
+  //     return prevErrors; // Mantener el array de errores sin cambios
+  //   });
 
-    if (currentPair === pairs.length - 1) {
-        localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, pairs.length);
-        localStorage.setItem(`nivel2_animales_numeros_completed_${player.name}`, 'true');
-        onProgressUpdate(100, true);
-        showFinalStats();
+  //   // Actualizar progreso
+  //   const progress = ((currentPair + 1) / pairs.length) * 100;
 
-        // Reproducir el audio de completado
-        if (completedAudioRef.current) {
-          completedAudioRef.current.play().catch(error => {
-            console.log("Error al reproducir audio de completado:", error);
-          });
-        }
+  //   if (currentPair === pairs.length - 1) {
+  //     localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, pairs.length);
+  //     localStorage.setItem(`nivel2_animales_numeros_completed_${player.name}`, 'true');
+  //     onProgressUpdate(100, true);
+  //     showFinalStats();
 
-        setTimeout(() => {
-            setGameCompleted(true);
-            setShowFeedback(false);
-        }, 2000);
-    } else {
-        localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, currentPair + 1);
-        onProgressUpdate(progress, false);
+  //     // Reproducir el audio de completado
+  //     if (completedAudioRef.current) {
+  //       completedAudioRef.current.play().catch(error => {
+  //         console.log("Error al reproducir audio de completado:", error);
+  //       });
+  //     }
 
-        setTimeout(() => {
-            setCurrentPair(prev => prev + 1);
-            setShowFeedback(false);
-            setUserInput('');
-            setStartTime(Date.now());
-            //setTimeLeft(10);
-            // Obtener el tiempo configurado
-            const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
-            setTimeLeft(tiempos['animales-numeros'] || 10);
-        }, 2000);
-    }
-  };
+  //     setTimeout(() => {
+  //       setGameCompleted(true);
+  //       setShowFeedback(false);
+  //     }, 2000);
+  //   } else {
+  //     localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, currentPair + 1);
+  //     onProgressUpdate(progress, false);
+
+  //     setTimeout(() => {
+  //       setCurrentPair(prev => prev + 1);
+  //       setShowFeedback(false);
+  //       setUserInput('');
+  //       setStartTime(Date.now());
+  //       //setTimeLeft(10);
+  //       // Obtener el tiempo configurado
+  //       const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+  //       setTimeLeft(tiempos['animales-numeros'] || 10);
+  //     }, 2000);
+  //   }
+  // };
 
   // Temporizador
   useEffect(() => {
@@ -602,75 +873,75 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
 
     let timeoutId;
     const timerId = setInterval(() => {
-        setTimeLeft(time => {
-            // Manejar el audio cuando el tiempo es bajo
-            if (time <= 3 && time > 0) {
-              audioRef.current.play().catch(error => {
-                  console.log("Error al reproducir el audio:", error);
-              });
-            } else if (time > 3 || time <= 0) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
-            }
-            if (time <= 0) {
-                clearInterval(timerId);
-                setShowSolution(true);
-                
-                const currentAnimal = pairs[currentPair].nombre;
-                setErrorsArray(prevErrors => {
-                    const currentErrors = prevErrors[currentPair];
-                    
-                    // Guardar detalles cuando se acaba el tiempo
-                    saveDetailsToDatabase({
-                        section: 'animales-numeros',
-                        details: {
-                            [currentAnimal]: {
-                                errors: currentErrors,
-                                time: timeLeft,
-                                resultado: false
-                            }
-                        }
-                    });
+      setTimeLeft(time => {
+        // Manejar el audio cuando el tiempo es bajo
+        if (time <= 3 && time > 0) {
+          audioRef.current.play().catch(error => {
+            console.log("Error al reproducir el audio:", error);
+          });
+        } else if (time > 3 || time <= 0) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        }
+        if (time <= 0) {
+          clearInterval(timerId);
+          setShowSolution(true);
 
-                    console.log(`Tiempo agotado para ${currentAnimal}:`, {
-                        errors: currentErrors,
-                        time: timeLeft,
-                        resultado: false
-                    });
+          const currentAnimal = pairs[currentPair].nombre;
+          setErrorsArray(prevErrors => {
+            const currentErrors = prevErrors[currentPair];
 
-                    return prevErrors;
-                });
-                
-                timeoutId = setTimeout(() => {
-                    setShowSolution(false);
-                    
-                    if (currentPair < pairs.length - 1) {
-                        setCurrentPair(prev => prev + 1);
-                        //setTimeLeft(10);
-                        // Obtener el tiempo configurado
-                        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
-                        setTimeLeft(tiempos['animales-numeros'] || 10);
-                        setStartTime(Date.now());
-                    } else {
-                        localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, pairs.length);
-                        localStorage.setItem(`nivel2_animales_numeros_completed_${player.name}`, 'true');
-                        onProgressUpdate(100, true);
-                        setGameCompleted(true);
-                    }
-                }, 2000);
-                
-                return 0;
+            // Guardar detalles cuando se acaba el tiempo
+            saveDetailsToDatabase({
+              section: 'animales-numeros',
+              details: {
+                [currentAnimal]: {
+                  errors: currentErrors,
+                  time: timeLeft,
+                  resultado: false
+                }
+              }
+            });
+
+            console.log(`Tiempo agotado para ${currentAnimal}:`, {
+              errors: currentErrors,
+              time: timeLeft,
+              resultado: false
+            });
+
+            return prevErrors;
+          });
+
+          timeoutId = setTimeout(() => {
+            setShowSolution(false);
+
+            if (currentPair < pairs.length - 1) {
+              setCurrentPair(prev => prev + 1);
+              //setTimeLeft(10);
+              // Obtener el tiempo configurado
+              const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel2_${player.name}`)) || {};
+              setTimeLeft(tiempos['animales-numeros'] || 10);
+              setStartTime(Date.now());
+            } else {
+              localStorage.setItem(`nivel2_animales_numeros_progress_${player.name}`, pairs.length);
+              localStorage.setItem(`nivel2_animales_numeros_completed_${player.name}`, 'true');
+              onProgressUpdate(100, true);
+              setGameCompleted(true);
             }
-            return time - 1;
-        });
+          }, 2000);
+
+          return 0;
+        }
+        return time - 1;
+      });
     }, 1000);
 
     return () => {
-        if (timerId) clearInterval(timerId);
-        if (timeoutId) clearTimeout(timeoutId);
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
+      if (timerId) clearInterval(timerId);
+      if (timeoutId) clearTimeout(timeoutId);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
       }
     };
   }, [currentPair, showInstructions, gameCompleted, showSolution, player.name]);
@@ -678,7 +949,7 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
   const showFinalStats = () => {
     let totalErrors = 0;
     let totalTime = 0;
-  
+
     errorsArray.forEach((errors, index) => {
       const time = responseTimes[index] || 0; // Tiempo de respuesta para el par actual
       totalErrors += errors; // Sumar los errores acumulados
@@ -687,11 +958,11 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
         `Animal: ${pairs[index].nombre} (${pairs[index].cantidad}) | Errores: ${errors} | Tiempo de respuesta: ${time.toFixed(2)}s`
       );
     });
-  
+
     console.log(`Errores totales: ${totalErrors}`);
     console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
-  };  
-  
+  };
+
   // Configurar el event listener del teclado
   useEffect(() => {
     window.addEventListener('keypress', handleKeyPress);
@@ -732,13 +1003,13 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
 
   const renderAnimales = () => {
     if (currentPair >= pairs.length) return null;
-    
+
     const animales = [];
     for (let i = 0; i < pairs[currentPair].cantidad; i++) {
       animales.push(
         <div key={i} className="animate-bounce inline-block m-2">
-          <img 
-            src={pairs[currentPair].imagen} 
+          <img
+            src={pairs[currentPair].imagen}
             alt={pairs[currentPair].nombre}
             className="w-24 h-24 object-contain"
           />
@@ -760,8 +1031,8 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
           >
             ← Volver
           </button>
-          
-          <div 
+
+          <div
             className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-all duration-300"
             onClick={onConfigClick}
           >
@@ -773,165 +1044,162 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
         </div>
 
         {!showInstructions && !gameCompleted && (
-        <div className="mb-12">
+          <div className="mb-12">
             <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6 shadow-lg relative">
-                {/* Título del nivel */}
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 
+              {/* Título del nivel */}
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 
                             bg-gradient-to-r from-purple-500 to-pink-500 text-white 
                             px-6 py-2 rounded-full shadow-lg">
-                    <span className="text-lg font-bold">Conteo de animales</span>
-                </div>
+                <span className="text-lg font-bold">Conteo de animales</span>
+              </div>
 
-                {/* Fases */}
-                <div className="flex justify-between items-center gap-3 mt-4">
-                    {pairs.map((pair, i) => (
-                        <div key={i} className="flex-1">
-                            <div className="relative">
-                                {i < pairs.length - 1 && (
-                                    <div className={`absolute top-1/2 left-[60%] right-0 h-2 rounded-full
+              {/* Fases */}
+              <div className="flex justify-between items-center gap-3 mt-4">
+                {pairs.map((pair, i) => (
+                  <div key={i} className="flex-1">
+                    <div className="relative">
+                      {i < pairs.length - 1 && (
+                        <div className={`absolute top-1/2 left-[60%] right-0 h-2 rounded-full
                                       ${i < currentPair
-                                        ? 'bg-gradient-to-r from-green-400 to-green-500' 
-                                        : 'bg-gray-200'}`}>
-                          </div>
-                                )}
-                                
-                                <div className={`relative z-10 flex flex-col items-center transform 
-                                            transition-all duration-500 ${
-                                                i === currentPair ? 'scale-110' : 'hover:scale-105'
-                                            }`}>
-                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center
+                            ? 'bg-gradient-to-r from-green-400 to-green-500'
+                            : 'bg-gray-200'}`}>
+                        </div>
+                      )}
+
+                      <div className={`relative z-10 flex flex-col items-center transform 
+                                            transition-all duration-500 ${i === currentPair ? 'scale-110' : 'hover:scale-105'
+                        }`}>
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center
                                                 shadow-lg transition-all duration-300 border-4
                                                 ${i === currentPair
-                                                    ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 border-yellow-200 animate-pulse'
-                                                    : i < currentPair
-                                                    ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-200'
-                                                    : 'bg-white border-gray-100'
-                                                }`}>
-                                        <div className={`text-2xl font-bold ${
-                                            i === currentPair
-                                                ? 'text-yellow-900'
-                                                : i < currentPair
-                                                ? 'text-white'
-                                                : 'text-gray-400'
-                                        }`}>
-                                            {pair.cantidad}
-                                        </div>
-                                    </div>
-                                    
-                                    {i === currentPair && (
-                                        <div className="absolute -bottom-6">
-                                            <span className="text-yellow-500 text-2xl animate-bounce">⭐</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                            ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 border-yellow-200 animate-pulse'
+                            : i < currentPair
+                              ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-200'
+                              : 'bg-white border-gray-100'
+                          }`}>
+                          <div className={`text-2xl font-bold ${i === currentPair
+                            ? 'text-yellow-900'
+                            : i < currentPair
+                              ? 'text-white'
+                              : 'text-gray-400'
+                            }`}>
+                            {pair.cantidad}
+                          </div>
                         </div>
-                    ))}
-                </div>
 
-                {/* Barra de progreso */}
-                <div className="mt-12">
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-semibold text-purple-700">
-                            Tu Progreso
-                        </span>
-                        <div className="flex items-center gap-2">
-                            <div className="px-3 py-1 bg-purple-500 text-white rounded-full text-sm font-bold">
-                                {(currentPair / (pairs.length - 1) * 100).toFixed(0)}%
-                            </div>
-                        </div>
+                        {i === currentPair && (
+                          <div className="absolute -bottom-6">
+                            <span className="text-yellow-500 text-2xl animate-bounce">⭐</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="h-6 bg-gray-100 rounded-full overflow-hidden shadow-inner p-1">
-                        <div
-                            className="h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500 
+                  </div>
+                ))}
+              </div>
+
+              {/* Barra de progreso */}
+              <div className="mt-12">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-semibold text-purple-700">
+                    Tu Progreso
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="px-3 py-1 bg-purple-500 text-white rounded-full text-sm font-bold">
+                      {(currentPair / (pairs.length - 1) * 100).toFixed(0)}%
+                    </div>
+                  </div>
+                </div>
+                <div className="h-6 bg-gray-100 rounded-full overflow-hidden shadow-inner p-1">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500 
                                     transition-all duration-1000 relative"
-                            style={{ width: `${(currentPair / (pairs.length - 1)) * 100}%` }}
-                        >
-                            <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
-                            <div className="absolute inset-0 overflow-hidden">
-                                <div className="w-full h-full animate-shimmer 
+                    style={{ width: `${(currentPair / (pairs.length - 1)) * 100}%` }}
+                  >
+                    <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
+                    <div className="absolute inset-0 overflow-hidden">
+                      <div className="w-full h-full animate-shimmer 
                                           bg-gradient-to-r from-transparent via-white to-transparent"
-                                      style={{ backgroundSize: '200% 100%' }}>
-                                </div>
-                            </div>
-                        </div>
+                        style={{ backgroundSize: '200% 100%' }}>
+                      </div>
                     </div>
+                  </div>
                 </div>
+              </div>
             </div>
-        </div>
-    )}
+          </div>
+        )}
 
-    {/* Mostrar solución cuando se acaba el tiempo */}
-    {showSolution && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        {/* Mostrar solución cuando se acaba el tiempo */}
+        {showSolution && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
             <div className="bg-white rounded-xl p-6 shadow-2xl transform transition-all">
-                <h3 className="text-2xl font-bold text-purple-600 mb-4">
-                    ¡Se acabó el tiempo!
-                </h3>
-                <p className="text-xl text-gray-600 mb-4">
-                    La respuesta correcta era:
-                </p>
-                <img 
-                    src={solutionImages[pairs[currentPair].cantidad]}
-                    alt={`Solución: número ${pairs[currentPair].cantidad}`}
-                    className="w-96 h-96 object-contain mx-auto mb-4"
-                />
+              <h3 className="text-2xl font-bold text-purple-600 mb-4">
+                ¡Se acabó el tiempo!
+              </h3>
+              <p className="text-xl text-gray-600 mb-4">
+                La respuesta correcta era:
+              </p>
+              <img
+                src={solutionImages[pairs[currentPair].cantidad]}
+                alt={`Solución: número ${pairs[currentPair].cantidad}`}
+                className="w-96 h-96 object-contain mx-auto mb-4"
+              />
             </div>
-        </div>
-    )}
+          </div>
+        )}
 
-    {/* Temporizador */}
-    {!showInstructions && !gameCompleted && (
-        <div className="absolute bottom-8 right-8">
-            <div className={`relative group transform transition-all duration-300 ${
-                timeLeft <= 3 ? 'scale-110' : 'hover:scale-105'
-            }`}>
-                <div className={`w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-lg
+        {/* Temporizador */}
+        {!showInstructions && !gameCompleted && (
+          <div className="absolute bottom-8 right-8">
+            <div className={`relative group transform transition-all duration-300 ${timeLeft <= 3 ? 'scale-110' : 'hover:scale-105'
+              }`}>
+              <div className={`w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-lg
                             relative overflow-hidden ${timeLeft <= 3 ? 'animate-pulse' : ''}`}>
-                    <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-                        <circle
-                            cx="50"
-                            cy="50"
-                            r="45"
-                            fill="none"
-                            stroke={timeLeft <= 3 ? '#FEE2E2' : '#E0E7FF'}
-                            strokeWidth="8"
-                            className="opacity-30"
-                        />
-                        <circle
-                            cx="50"
-                            cy="50"
-                            r="45"
-                            fill="none"
-                            stroke={timeLeft <= 3 ? '#EF4444' : '#3B82F6'}
-                            strokeWidth="8"
-                            strokeLinecap="round"
-                            strokeDasharray={`${2 * Math.PI * 45}`}
-                            //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
-                            strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/(tiempos?.['animales-numeros'] || 10))}
-                            className="transition-all duration-1000"
-                        />
-                    </svg>
+                <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke={timeLeft <= 3 ? '#FEE2E2' : '#E0E7FF'}
+                    strokeWidth="8"
+                    className="opacity-30"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke={timeLeft <= 3 ? '#EF4444' : '#3B82F6'}
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 45}`}
+                    //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft / (tiempos?.['animales-numeros'] || 10))}
+                    className="transition-all duration-1000"
+                  />
+                </svg>
 
-                    <div className={`relative z-10 text-4xl font-bold 
+                <div className={`relative z-10 text-4xl font-bold 
                                 ${timeLeft <= 3 ? 'text-red-500' : 'text-blue-500'}`}>
-                        {timeLeft}
-                    </div>
-
-                    {timeLeft <= 3 && (
-                        <>
-                            <div className="absolute inset-0 rounded-full bg-red-500 opacity-20 animate-ping"></div>
-                            <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full 
-                                        flex items-center justify-center animate-bounce shadow-lg">
-                                <span className="text-white text-xs">⚠️</span>
-                            </div>
-                        </>
-                    )}
+                  {timeLeft}
                 </div>
+
+                {timeLeft <= 3 && (
+                  <>
+                    <div className="absolute inset-0 rounded-full bg-red-500 opacity-20 animate-ping"></div>
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full 
+                                        flex items-center justify-center animate-bounce shadow-lg">
+                      <span className="text-white text-xs">⚠️</span>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-        </div>
-    )}
-            
+          </div>
+        )}
+
 
         {showInstructions ? (
           <div className="text-center space-y-6">
@@ -969,11 +1237,11 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
         ) : (
           <div className="text-center space-y-8">
             <h2 className="text-4xl font-bold text-purple-600 mb-8">
-              {currentPair < pairs.length ? 
-                `¿Cuántos ${pairs[currentPair].nombre}s hay?` : 
+              {currentPair < pairs.length ?
+                `¿Cuántos ${pairs[currentPair].nombre}s hay?` :
                 "¿Cuántos animales hay?"}
             </h2>
-            
+
             <div className="flex flex-wrap justify-center gap-4 mb-8">
               {renderAnimales()}
             </div>
@@ -1012,10 +1280,10 @@ const AnimalesNumeros = ({ player, onBack, onConfigClick, onProgressUpdate }) =>
         )}
       </div>
     </div>
-    
+
   );
 
-  
+
 };
 
 export default AnimalesNumeros;

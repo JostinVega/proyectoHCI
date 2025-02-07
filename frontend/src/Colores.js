@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import API_URL from './config.js';
 
 // Importar las imágenes de solución
 import colorceleste from '../src/images/colorceleste.png';
@@ -30,16 +31,16 @@ import completed from '../src/sounds/completed.mp3';
 
 // Mapa de colores y sus códigos hexadecimales
 const ColorMap = {
-  celeste: '#64B5F6',    
-  verde: '#4CAF50',      
-  rosado: '#FF69B4',     
-  amarillo: '#FFEB3B',   
-  morado: '#9C27B0',     
-  gris: '#9E9E9E',       
-  rojo: '#F44336',       
-  marron: '#795548',     
-  anaranjado: '#FF5722', 
-  azul: '#2196F3'        
+  celeste: '#64B5F6',
+  verde: '#4CAF50',
+  rosado: '#FF69B4',
+  amarillo: '#FFEB3B',
+  morado: '#9C27B0',
+  gris: '#9E9E9E',
+  rojo: '#F44336',
+  marron: '#795548',
+  anaranjado: '#FF5722',
+  azul: '#2196F3'
 };
 
 // Objeto para mapear colores con sus imágenes de solución
@@ -74,6 +75,7 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   // Lista de colores que se utilizarán en el juego
   const colores = ['celeste', 'verde', 'rosado', 'amarillo', 'morado', 'gris', 'rojo', 'marron', 'anaranjado', 'azul'];
   //const [currentColor, setCurrentColor] = useState(0);
+  const [lastCardID, setLastCardID] = useState(null); // ESP32 Estado para almacenar el último UID leído
   const [userInput, setUserInput] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -86,8 +88,8 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
   const [startTime, setStartTime] = useState(Date.now());
 
-   // Modificar estado inicial para recuperar progreso
-   const [currentColor, setCurrentColor] = useState(() => {
+  // Modificar estado inicial para recuperar progreso
+  const [currentColor, setCurrentColor] = useState(() => {
     const savedProgress = localStorage.getItem(`nivel1_colores_progress_${player.name}`);
     return savedProgress ? parseInt(savedProgress) : 0;
   });
@@ -104,6 +106,188 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
     const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
     return tiempos.colores || 10; // 10 es el valor por defecto si no hay tiempo configurado
   });
+
+  /*ESP32 Inicio codigos*/
+
+  const uidToColorMap = {
+    '3:52:92:16': 'celeste', // UID para color celeste 1
+    'f9:e2:e7:98': 'celeste',
+    '93:88:88:16': 'celeste',
+    '89:ba:3c:98': 'celeste',
+    '53:88:80:16': 'verde',   // UID para color verde 2
+    '19:d5:41:98': 'verde',
+    '79:d4:24:98': 'verde',
+    '83:54:92:16': 'rosado',   // UID para color rosado 3
+    '43:e:98:16': 'rosado',
+    '79:40:ed:98': 'amarillo', // UID para color amarillo 4
+    'f3:9c:82:16': 'amarillo',
+    '13:59:99:16': 'amarillo',
+    'f9:be:33:98': 'morado',   // UID para color morado 5
+    '93:fb:85:16': 'morado',
+    '23:3f:87:16': 'morado',
+    '93:1:88:16': 'gris',     // UID para color gris 6
+    '89:89:34:9b': 'rojo',     // UID para color rojo 7
+    'a9:ce:34:9b': 'rojo',
+    'f3:38:89:16': 'marron',   // UID para color marrón 8
+    'b9:6d:55:99': 'anaranjado', // UID para color anaranjado 9
+    '13:7d:85:16': 'anaranjado',
+    '79:2b:3b:98': 'anaranjado',
+    '3:52:92:16': 'azul',      // UID para color azul 10
+    'f9:e2:e7:98': 'azul',
+    '93:88:88:16': 'azul',
+    '89:ba:3c:98': 'azul',
+  };
+
+
+  const fetchLastCardID = async () => {
+    try {
+      const response = await fetch(API_URL); // Asegúrate de que esta URL sea correcta
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Datos recibidos:', data);
+        setLastCardID(data.cardID); // Actualiza el estado con el UID recibido
+      } else {
+        console.error('Error al obtener el UID:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error al obtener el UID:', error);
+    }
+  };
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchLastCardID(); // Llama a la función cada 2 segundos
+    }, 2000);
+
+    return () => clearInterval(intervalId); // Limpia el intervalo al desmontar el componente
+  }, []);
+
+  useEffect(() => {
+    if (lastCardID) {
+      console.log('Último UID recibido:', lastCardID); // Imprime el UID recibido
+      checkAnswer(lastCardID); // Verifica la respuesta con el UID leído
+    }
+  }, [lastCardID]);
+
+  const checkAnswer = (input) => {
+    if (showFeedback || showSolution || showInstructions || gameCompleted) return;
+
+    // Obtener el color esperado a partir del UID
+    const expectedColor = uidToColorMap[input] !== undefined ? uidToColorMap[input] : input;
+
+    const isRight = expectedColor === colores[currentColor];
+    setIsCorrect(isRight);
+
+    // Reproducir el audio correspondiente
+    if (isRight) {
+      playAudio(successAudioRef);
+    } else {
+      playAudio(encouragementAudioRef);
+    }
+
+    // Selecciona el mensaje una sola vez
+    setFeedbackMessage(
+      isRight
+        ? successMessages[Math.floor(Math.random() * successMessages.length)]
+        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+    );
+
+    setShowFeedback(true);
+
+    const endTime = Date.now();
+    const responseTime = Math.min((endTime - startTime) / 1000, 10);
+    const currentColorName = colores[currentColor];
+
+    if (!isRight) {
+      setErrorsArray(prevErrors => {
+        const updatedErrors = [...prevErrors];
+        updatedErrors[currentColor] += 1;
+
+        saveDetailsToDatabase({
+          section: 'colores',
+          details: {
+            [currentColorName]: {
+              errors: updatedErrors[currentColor],
+              time: responseTime,
+              resultado: false
+            }
+          }
+        });
+
+        console.log(`Intento incorrecto para color ${currentColorName}:`, {
+          errors: updatedErrors[currentColor],
+          time: responseTime,
+          resultado: false
+        });
+
+        return updatedErrors;
+      });
+
+      setTimeout(() => {
+        setShowFeedback(false);
+        setUserInput('');
+      }, 1000);
+      return;
+    }
+
+    setErrorsArray(prevErrors => {
+      const currentErrors = prevErrors[currentColor];
+
+      saveDetailsToDatabase({
+        section: 'colores',
+        details: {
+          [currentColorName]: {
+            errors: currentErrors,
+            time: responseTime,
+            resultado: true
+          }
+        }
+      });
+
+      console.log(`Intento correcto para color ${currentColorName}:`, {
+        errors: currentErrors,
+        time: responseTime,
+        resultado: true
+      });
+
+      return prevErrors;
+    });
+
+    if (currentColor === colores.length - 1) {
+      localStorage.setItem(`nivel1_colores_completed_${player.name}`, 'true');
+      localStorage.setItem(`nivel1_colores_progress_${player.name}`, colores.length);
+      onProgressUpdate(100, true);
+
+      // Reproducir sonido de completado
+      if (completedAudioRef.current) {
+        completedAudioRef.current.play().catch(error => {
+          console.log("Error al reproducir audio de completado:", error);
+        });
+      }
+
+      showFinalStats();
+
+      setTimeout(() => {
+        setGameCompleted(true);
+        setShowFeedback(false);
+      }, 2000);
+    } else {
+      localStorage.setItem(`nivel1_colores_progress_${player.name}`, currentColor + 1);
+      onProgressUpdate(((currentColor + 1) / colores.length) * 100, false);
+
+      setTimeout(() => {
+        setCurrentColor(prev => prev + 1);
+        setShowFeedback(false);
+        setUserInput('');
+        setStartTime(Date.now());
+        // Obtener el tiempo configurado
+        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+        setTimeLeft(tiempos.colores || 10);
+      }, 2000);
+    }
+  };
+  /*ESP32 Fin codigos*/
+
 
   const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
 
@@ -223,16 +407,16 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
       </div>
     );
   };
-  
+
   // Componente para mostrar colores en una animación de arcoíris
   const RainbowDisplay = () => {
     return (
       <div className="flex justify-center items-end perspective-1000">
         {colores.map((color, index) => {
           const isCurrentColor = index === currentColor;
-          
+
           return (
-            <div 
+            <div
               key={color}
               className={`
                 w-16 h-40 mx-2 rounded-t-full
@@ -289,12 +473,12 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   useEffect(() => {
     const savedProgress = localStorage.getItem(`nivel1_colores_progress_${player.name}`);
     const savedInstructions = localStorage.getItem(`nivel1_colores_instructions_${player.name}`);
-    
+
     if (savedProgress === '10') {
       setGameCompleted(true);
       onProgressUpdate(100, true);
     }
-    
+
     if (savedInstructions) {
       setShowInstructions(false);
     }
@@ -330,41 +514,41 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
 
   const saveDetailsToDatabase = async ({ section, details }) => {
     if (!player?.name || !section || !details) {
-        console.warn('Faltan datos requeridos:', { 
-            player: player?.name, 
-            section, 
-            details 
-        });
-        return;
+      console.warn('Faltan datos requeridos:', {
+        player: player?.name,
+        section,
+        details
+      });
+      return;
     }
 
     const dataToSend = {
-        playerName: player.name,
-        section: 'colores',
-        details: details
+      playerName: player.name,
+      section: 'colores',
+      details: details
     };
 
     console.log('Datos que se enviarán al backend:', dataToSend);
 
     try {
-        const response = await fetch('http://localhost:5000/api/game-details-colores', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(dataToSend)
-        });
+      const response = await fetch('http://localhost:5000/api/game-details-colores', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend)
+      });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`Error al guardar detalles: ${JSON.stringify(errorData)}`);
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Error al guardar detalles: ${JSON.stringify(errorData)}`);
+      }
 
-        console.log('Detalles guardados correctamente en la base de datos');
+      console.log('Detalles guardados correctamente en la base de datos');
     } catch (error) {
-        console.error('Error en saveDetailsToDatabase:', error.message);
+      console.error('Error en saveDetailsToDatabase:', error.message);
     }
-};
+  };
 
   // Función para reproducir audio de manera confiable
   const playAudio = async (audioRef) => {
@@ -404,188 +588,188 @@ const Colores = ({ player, onBack, onConfigClick, onProgressUpdate }) => {
   */
 
   // UseEffect para inicializar los audios de feedback
-useEffect(() => {
-  successAudioRef.current = new Audio(success);
-  encouragementAudioRef.current = new Audio(encouragement);
-  completedAudioRef.current = new Audio(completed);
-  
-  return () => {
-    if (successAudioRef.current) {
-      successAudioRef.current.pause();
-      successAudioRef.current.currentTime = 0;
-    }
-    if (encouragementAudioRef.current) {
-      encouragementAudioRef.current.pause();
-      encouragementAudioRef.current.currentTime = 0;
-    }
-    if (completedAudioRef.current) { 
-      completedAudioRef.current.pause();
-      completedAudioRef.current.currentTime = 0;
-    }
-  };
-}, []);
-
-// UseEffect para el audio del color actual
-useEffect(() => {
-  if (!showInstructions && !gameCompleted && !showSolution && !isAnimating) {
-    if (colorAudioRef.current) {
-      colorAudioRef.current.pause();
-      colorAudioRef.current.currentTime = 0;
-    }
-
-    // Crear un nuevo audio para el color actual
-    colorAudioRef.current = new Audio(colorAudios[colores[currentColor]]);
-
-    // Función para reproducir el audio
-    const playAudioSequence = () => {
-      colorAudioRef.current.addEventListener('ended', () => {
-        console.log("Audio de color completado");
-      });
-
-      colorAudioRef.current.play().catch(error => {
-        console.log("Error al reproducir el audio del color:", error);
-      });
-    };
-
-    // Iniciar la secuencia después de un pequeño delay
-    const timeoutId = setTimeout(playAudioSequence, 300);
+  useEffect(() => {
+    successAudioRef.current = new Audio(success);
+    encouragementAudioRef.current = new Audio(encouragement);
+    completedAudioRef.current = new Audio(completed);
 
     return () => {
-      clearTimeout(timeoutId);
+      if (successAudioRef.current) {
+        successAudioRef.current.pause();
+        successAudioRef.current.currentTime = 0;
+      }
+      if (encouragementAudioRef.current) {
+        encouragementAudioRef.current.pause();
+        encouragementAudioRef.current.currentTime = 0;
+      }
+      if (completedAudioRef.current) {
+        completedAudioRef.current.pause();
+        completedAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+
+  // UseEffect para el audio del color actual
+  useEffect(() => {
+    if (!showInstructions && !gameCompleted && !showSolution && !isAnimating) {
       if (colorAudioRef.current) {
         colorAudioRef.current.pause();
         colorAudioRef.current.currentTime = 0;
       }
-    };
-  }
-}, [currentColor]);
 
-  const checkAnswer = (input) => {
-    if (showFeedback || showSolution || showInstructions || gameCompleted || isAnimating) return;
+      // Crear un nuevo audio para el color actual
+      colorAudioRef.current = new Audio(colorAudios[colores[currentColor]]);
 
-    const currentColorNombre = colores[currentColor];
-    const isRight = input === currentColorNombre.charAt(0);
-    setIsCorrect(isRight);
-
-     // Reproducir el audio correspondiente
-     if (isRight) {
-      playAudio(successAudioRef);
-    } else {
-      playAudio(encouragementAudioRef);
-    }
-
-    // Selecciona el mensaje una sola vez
-    setFeedbackMessage(
-      isRight
-        ? successMessages[Math.floor(Math.random() * successMessages.length)]
-        : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
-    );
-
-    setShowFeedback(true);
-
-    
-    if (!isRight) {
-        setColorStats((prevStats) => {
-            const updatedStats = { ...prevStats };
-            
-            if (!updatedStats[currentColorNombre]) {
-                updatedStats[currentColorNombre] = { 
-                    errors: 0, 
-                    time: 0, 
-                    resultado: false 
-                };
-            }
-            
-            updatedStats[currentColorNombre] = {
-                ...updatedStats[currentColorNombre],
-                errors: updatedStats[currentColorNombre].errors + 1,
-                resultado: false
-            };
-
-            saveDetailsToDatabase({
-                section: 'colores',
-                details: { [currentColorNombre]: updatedStats[currentColorNombre] }
-            });
-
-            console.log(`Intento incorrecto para color ${currentColorNombre}:`, updatedStats[currentColorNombre]);
-
-            return updatedStats;
+      // Función para reproducir el audio
+      const playAudioSequence = () => {
+        colorAudioRef.current.addEventListener('ended', () => {
+          console.log("Audio de color completado");
         });
 
-        setTimeout(() => {
-            setShowFeedback(false);
-            setUserInput('');
-        }, 1000);
-        return;
-    }
-
-    const endTime = Date.now();
-    const responseTime = Math.min((endTime - startTime) / 1000, 10);
-
-    const progress = ((currentColor + 1) / colores.length) * 100;
-    localStorage.setItem(`nivel1_colores_progress_${player.name}`, currentColor + 1);
-    onProgressUpdate(progress, false);
-
-    setColorStats((prevStats) => {
-        const updatedStats = { ...prevStats };
-
-        if (!updatedStats[currentColorNombre]) {
-            updatedStats[currentColorNombre] = { 
-                errors: 0, 
-                time: 0, 
-                resultado: true 
-            };
-        }
-
-        updatedStats[currentColorNombre] = {
-            ...updatedStats[currentColorNombre],
-            time: responseTime,
-            resultado: true
-        };
-
-        saveDetailsToDatabase({
-            section: 'colores',
-            details: { [currentColorNombre]: updatedStats[currentColorNombre] }
+        colorAudioRef.current.play().catch(error => {
+          console.log("Error al reproducir el audio del color:", error);
         });
+      };
 
-        console.log(`Intento correcto para color ${currentColorNombre}:`, updatedStats[currentColorNombre]);
+      // Iniciar la secuencia después de un pequeño delay
+      const timeoutId = setTimeout(playAudioSequence, 300);
 
-        return updatedStats;
-    });
-
-    if (currentColor >= colores.length - 1) {
-        localStorage.setItem(`nivel1_colores_progress_${player.name}`, '10');
-        onProgressUpdate(100, true);
-
-        // Reproducir sonido de completado
-        if (completedAudioRef.current) {
-          completedAudioRef.current.play().catch(error => {
-            console.log("Error al reproducir audio de completado:", error);
-          });
+      return () => {
+        clearTimeout(timeoutId);
+        if (colorAudioRef.current) {
+          colorAudioRef.current.pause();
+          colorAudioRef.current.currentTime = 0;
         }
-
-        showFinalStats();
-        setTimeout(() => {
-            setGameCompleted(true);
-            setShowFeedback(false);
-        }, 2000);
-    } else {
-        setTimeout(() => {
-            setCurrentColor(prev => prev + 1);
-            setShowFeedback(false);
-            setUserInput('');
-            setStartTime(Date.now());
-            //setTimeLeft(10);
-            const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
-            setTimeLeft(tiempos.colores || 10);
-        }, 2000);
+      };
     }
-};
-  
+  }, [currentColor]);
+
+  // const checkAnswer = (input) => {
+  //   if (showFeedback || showSolution || showInstructions || gameCompleted || isAnimating) return;
+
+  //   const currentColorNombre = colores[currentColor];
+  //   const isRight = input === currentColorNombre.charAt(0);
+  //   setIsCorrect(isRight);
+
+  //   // Reproducir el audio correspondiente
+  //   if (isRight) {
+  //     playAudio(successAudioRef);
+  //   } else {
+  //     playAudio(encouragementAudioRef);
+  //   }
+
+  //   // Selecciona el mensaje una sola vez
+  //   setFeedbackMessage(
+  //     isRight
+  //       ? successMessages[Math.floor(Math.random() * successMessages.length)]
+  //       : encouragementMessages[Math.floor(Math.random() * encouragementMessages.length)]
+  //   );
+
+  //   setShowFeedback(true);
+
+
+  //   if (!isRight) {
+  //     setColorStats((prevStats) => {
+  //       const updatedStats = { ...prevStats };
+
+  //       if (!updatedStats[currentColorNombre]) {
+  //         updatedStats[currentColorNombre] = {
+  //           errors: 0,
+  //           time: 0,
+  //           resultado: false
+  //         };
+  //       }
+
+  //       updatedStats[currentColorNombre] = {
+  //         ...updatedStats[currentColorNombre],
+  //         errors: updatedStats[currentColorNombre].errors + 1,
+  //         resultado: false
+  //       };
+
+  //       saveDetailsToDatabase({
+  //         section: 'colores',
+  //         details: { [currentColorNombre]: updatedStats[currentColorNombre] }
+  //       });
+
+  //       console.log(`Intento incorrecto para color ${currentColorNombre}:`, updatedStats[currentColorNombre]);
+
+  //       return updatedStats;
+  //     });
+
+  //     setTimeout(() => {
+  //       setShowFeedback(false);
+  //       setUserInput('');
+  //     }, 1000);
+  //     return;
+  //   }
+
+  //   const endTime = Date.now();
+  //   const responseTime = Math.min((endTime - startTime) / 1000, 10);
+
+  //   const progress = ((currentColor + 1) / colores.length) * 100;
+  //   localStorage.setItem(`nivel1_colores_progress_${player.name}`, currentColor + 1);
+  //   onProgressUpdate(progress, false);
+
+  //   setColorStats((prevStats) => {
+  //     const updatedStats = { ...prevStats };
+
+  //     if (!updatedStats[currentColorNombre]) {
+  //       updatedStats[currentColorNombre] = {
+  //         errors: 0,
+  //         time: 0,
+  //         resultado: true
+  //       };
+  //     }
+
+  //     updatedStats[currentColorNombre] = {
+  //       ...updatedStats[currentColorNombre],
+  //       time: responseTime,
+  //       resultado: true
+  //     };
+
+  //     saveDetailsToDatabase({
+  //       section: 'colores',
+  //       details: { [currentColorNombre]: updatedStats[currentColorNombre] }
+  //     });
+
+  //     console.log(`Intento correcto para color ${currentColorNombre}:`, updatedStats[currentColorNombre]);
+
+  //     return updatedStats;
+  //   });
+
+  //   if (currentColor >= colores.length - 1) {
+  //     localStorage.setItem(`nivel1_colores_progress_${player.name}`, '10');
+  //     onProgressUpdate(100, true);
+
+  //     // Reproducir sonido de completado
+  //     if (completedAudioRef.current) {
+  //       completedAudioRef.current.play().catch(error => {
+  //         console.log("Error al reproducir audio de completado:", error);
+  //       });
+  //     }
+
+  //     showFinalStats();
+  //     setTimeout(() => {
+  //       setGameCompleted(true);
+  //       setShowFeedback(false);
+  //     }, 2000);
+  //   } else {
+  //     setTimeout(() => {
+  //       setCurrentColor(prev => prev + 1);
+  //       setShowFeedback(false);
+  //       setUserInput('');
+  //       setStartTime(Date.now());
+  //       //setTimeLeft(10);
+  //       const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+  //       setTimeLeft(tiempos.colores || 10);
+  //     }, 2000);
+  //   }
+  // };
+
   const showFinalStats = () => {
     let totalErrors = 0;
     let totalTime = 0;
-  
+
     Object.keys(colorStats).forEach((key) => {
       const { errors, time } = colorStats[key];
       totalErrors += errors;
@@ -594,11 +778,11 @@ useEffect(() => {
         `Color: ${key} | Errores: ${errors} | Tiempo de respuesta: ${time.toFixed(2)}s`
       );
     });
-  
+
     console.log(`Errores totales: ${totalErrors}`);
     console.log(`Tiempo total: ${totalTime.toFixed(2)}s`);
-  };  
-  
+  };
+
 
   useEffect(() => {
     if (!showInstructions && !gameCompleted) {
@@ -617,87 +801,87 @@ useEffect(() => {
   useEffect(() => {
     if (showInstructions || gameCompleted || showSolution || isAnimating) return;
 
-     // Crear el elemento de audio si no existe
-     if (!audioRef.current) {
+    // Crear el elemento de audio si no existe
+    if (!audioRef.current) {
       audioRef.current = new Audio(time);
       audioRef.current.loop = true;
     }
     let timeoutId;
     const timerId = setInterval(() => {
-        setTimeLeft(time => {
-            // Manejar el audio cuando el tiempo es bajo
-            if (time <= 3 && time > 0) {
-              audioRef.current.play().catch(error => {
-                  console.log("Error al reproducir el audio:", error);
-              });
-            } else if (time > 3 || time <= 0) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
-            }
-            if (time <= 0) {
-                clearInterval(timerId);
-                setShowSolution(true);
-                
-                const currentColorNombre = colores[currentColor];
-                setColorStats((prevStats) => {
-                    const updatedStats = { ...prevStats };
-                    
-                    if (!updatedStats[currentColorNombre]) {
-                        updatedStats[currentColorNombre] = { 
-                            errors: 0, 
-                            time: timeLeft, 
-                            resultado: false 
-                        };
-                    }
-                    
-                    updatedStats[currentColorNombre] = {
-                        ...updatedStats[currentColorNombre],
-                        time: timeLeft,
-                        resultado: false
-                    };
-
-                    saveDetailsToDatabase({
-                        section: 'colores',
-                        details: { [currentColorNombre]: updatedStats[currentColorNombre] }
-                    });
-
-                    console.log(`Tiempo agotado para color ${currentColorNombre}:`, updatedStats[currentColorNombre]);
-
-                    return updatedStats;
-                });
-                
-                timeoutId = setTimeout(() => {
-                    setShowSolution(false);
-                    
-                    if (currentColor < colores.length - 1) {
-                        setCurrentColor(prev => prev + 1);
-                        //setTimeLeft(10);
-                        // Obtener el tiempo configurado
-                        const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
-                        setTimeLeft(tiempos.colores || 10);
-                        setStartTime(Date.now());
-                    } else {
-                        localStorage.setItem(`nivel1_colores_progress_${player.name}`, '10');
-                        onProgressUpdate(100, true);
-                        setGameCompleted(true);
-                    }
-                }, 2000);
-                
-                return 0;
-            }
-            return time - 1;
-        });
-    }, 1000);
-
-    return () => {
-        if (timerId) clearInterval(timerId);
-        if (timeoutId) clearTimeout(timeoutId);
-        if (audioRef.current) {
+      setTimeLeft(time => {
+        // Manejar el audio cuando el tiempo es bajo
+        if (time <= 3 && time > 0) {
+          audioRef.current.play().catch(error => {
+            console.log("Error al reproducir el audio:", error);
+          });
+        } else if (time > 3 || time <= 0) {
           audioRef.current.pause();
           audioRef.current.currentTime = 0;
         }
+        if (time <= 0) {
+          clearInterval(timerId);
+          setShowSolution(true);
+
+          const currentColorNombre = colores[currentColor];
+          setColorStats((prevStats) => {
+            const updatedStats = { ...prevStats };
+
+            if (!updatedStats[currentColorNombre]) {
+              updatedStats[currentColorNombre] = {
+                errors: 0,
+                time: timeLeft,
+                resultado: false
+              };
+            }
+
+            updatedStats[currentColorNombre] = {
+              ...updatedStats[currentColorNombre],
+              time: timeLeft,
+              resultado: false
+            };
+
+            saveDetailsToDatabase({
+              section: 'colores',
+              details: { [currentColorNombre]: updatedStats[currentColorNombre] }
+            });
+
+            console.log(`Tiempo agotado para color ${currentColorNombre}:`, updatedStats[currentColorNombre]);
+
+            return updatedStats;
+          });
+
+          timeoutId = setTimeout(() => {
+            setShowSolution(false);
+
+            if (currentColor < colores.length - 1) {
+              setCurrentColor(prev => prev + 1);
+              //setTimeLeft(10);
+              // Obtener el tiempo configurado
+              const tiempos = JSON.parse(localStorage.getItem(`tiempos_nivel1_${player.name}`)) || {};
+              setTimeLeft(tiempos.colores || 10);
+              setStartTime(Date.now());
+            } else {
+              localStorage.setItem(`nivel1_colores_progress_${player.name}`, '10');
+              onProgressUpdate(100, true);
+              setGameCompleted(true);
+            }
+          }, 2000);
+
+          return 0;
+        }
+        return time - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerId) clearInterval(timerId);
+      if (timeoutId) clearTimeout(timeoutId);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
     };
-}, [currentColor, showInstructions, gameCompleted, showSolution, isAnimating, player.name]);
+  }, [currentColor, showInstructions, gameCompleted, showSolution, isAnimating, player.name]);
 
   // Método para iniciar el juego y guardar estado
   const startGame = () => {
@@ -722,8 +906,8 @@ useEffect(() => {
           >
             ← Volver
           </button>
-          
-          <div 
+
+          <div
             className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-all duration-300"
             onClick={onConfigClick}
           >
@@ -736,158 +920,156 @@ useEffect(() => {
 
         {!showInstructions && !gameCompleted && (
           <div className="mb-12">
-              <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6 shadow-lg relative">
-                  {/* Título del nivel */}
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 
+            <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6 shadow-lg relative">
+              {/* Título del nivel */}
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 
                               bg-gradient-to-r from-purple-500 to-pink-500 text-white 
                               px-6 py-2 rounded-full shadow-lg">
-                      <span className="text-lg font-bold">Colores</span>
-                  </div>
-
-                  {/* Fases */}
-                  <div className="flex justify-between items-center gap-3 mt-4">
-                      {colores.map((color, i) => (
-                          <div key={i} className="flex-1">
-                              <div className="relative">
-                                  {i < colores.length - 1 && (
-                                      <div className={`absolute top-1/2 left-[60%] right-0 h-2 rounded-full
-                                                  ${i < currentColor 
-                                                      ? 'bg-gradient-to-r from-green-400 to-green-500' 
-                                                      : 'bg-gray-200'}`}>
-                                      </div>
-                                  )}
-                                  
-                                  <div className={`relative z-10 flex flex-col items-center transform 
-                                              transition-all duration-500 ${
-                                                  i === currentColor ? 'scale-110' : 'hover:scale-105'
-                                              }`}>
-                                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center
-                                                  shadow-lg transition-all duration-300 border-4
-                                                  ${i === currentColor
-                                                      ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 border-yellow-200 animate-pulse'
-                                                      : i < currentColor
-                                                      ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-200'
-                                                      : 'bg-white border-gray-100'
-                                                  }`}>
-                                          <div
-                                              className="w-10 h-10 rounded-full"
-                                              style={{ backgroundColor: ColorMap[color] }}
-                                          />
-                                      </div>
-                                      
-                                      {i === currentColor && (
-                                          <div className="absolute -bottom-6">
-                                              <span className="text-yellow-500 text-2xl animate-bounce">⭐</span>
-                                          </div>
-                                      )}
-                                  </div>
-                              </div>
-                          </div>
-                      ))}
-                  </div>
-
-                  {/* Barra de progreso */}
-                  <div className="mt-12">
-                      <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-semibold text-purple-700">
-                              Tu Progreso
-                          </span>
-                          <div className="flex items-center gap-2">
-                              <div className="px-3 py-1 bg-purple-500 text-white rounded-full text-sm font-bold">
-                                  {(currentColor / (colores.length - 1) * 100).toFixed(0)}%
-                              </div>
-                          </div>
-                      </div>
-                      <div className="h-6 bg-gray-100 rounded-full overflow-hidden shadow-inner p-1">
-                          <div
-                              className="h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500 
-                                      transition-all duration-1000 relative"
-                              style={{ width: `${(currentColor / (colores.length - 1)) * 100}%` }}
-                          >
-                              <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
-                              <div className="absolute inset-0 overflow-hidden">
-                                  <div className="w-full h-full animate-shimmer 
-                                            bg-gradient-to-r from-transparent via-white to-transparent"
-                                        style={{ backgroundSize: '200% 100%' }}>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
+                <span className="text-lg font-bold">Colores</span>
               </div>
 
-              {/* Mostrar solución cuando se acaba el tiempo */}
-            {showSolution && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                    <div className="bg-white rounded-xl p-6 shadow-2xl transform transition-all">
-                        <h3 className="text-2xl font-bold text-purple-600 mb-4">
-                            ¡Se acabó el tiempo!
-                        </h3>
-                        <p className="text-xl text-gray-600 mb-4">
-                            La respuesta correcta era:
-                        </p>
-                        <img 
-                            src={solutionImages[colores[currentColor]]}
-                            alt={`Solución: color ${colores[currentColor]}`}
-                            className="w-96 h-96 object-contain mx-auto mb-4"
-                        />
+              {/* Fases */}
+              <div className="flex justify-between items-center gap-3 mt-4">
+                {colores.map((color, i) => (
+                  <div key={i} className="flex-1">
+                    <div className="relative">
+                      {i < colores.length - 1 && (
+                        <div className={`absolute top-1/2 left-[60%] right-0 h-2 rounded-full
+                                                  ${i < currentColor
+                            ? 'bg-gradient-to-r from-green-400 to-green-500'
+                            : 'bg-gray-200'}`}>
+                        </div>
+                      )}
+
+                      <div className={`relative z-10 flex flex-col items-center transform 
+                                              transition-all duration-500 ${i === currentColor ? 'scale-110' : 'hover:scale-105'
+                        }`}>
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center
+                                                  shadow-lg transition-all duration-300 border-4
+                                                  ${i === currentColor
+                            ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 border-yellow-200 animate-pulse'
+                            : i < currentColor
+                              ? 'bg-gradient-to-br from-green-400 to-green-600 border-green-200'
+                              : 'bg-white border-gray-100'
+                          }`}>
+                          <div
+                            className="w-10 h-10 rounded-full"
+                            style={{ backgroundColor: ColorMap[color] }}
+                          />
+                        </div>
+
+                        {i === currentColor && (
+                          <div className="absolute -bottom-6">
+                            <span className="text-yellow-500 text-2xl animate-bounce">⭐</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Barra de progreso */}
+              <div className="mt-12">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-semibold text-purple-700">
+                    Tu Progreso
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="px-3 py-1 bg-purple-500 text-white rounded-full text-sm font-bold">
+                      {(currentColor / (colores.length - 1) * 100).toFixed(0)}%
+                    </div>
+                  </div>
                 </div>
+                <div className="h-6 bg-gray-100 rounded-full overflow-hidden shadow-inner p-1">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500 
+                                      transition-all duration-1000 relative"
+                    style={{ width: `${(currentColor / (colores.length - 1)) * 100}%` }}
+                  >
+                    <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
+                    <div className="absolute inset-0 overflow-hidden">
+                      <div className="w-full h-full animate-shimmer 
+                                            bg-gradient-to-r from-transparent via-white to-transparent"
+                        style={{ backgroundSize: '200% 100%' }}>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Mostrar solución cuando se acaba el tiempo */}
+            {showSolution && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                <div className="bg-white rounded-xl p-6 shadow-2xl transform transition-all">
+                  <h3 className="text-2xl font-bold text-purple-600 mb-4">
+                    ¡Se acabó el tiempo!
+                  </h3>
+                  <p className="text-xl text-gray-600 mb-4">
+                    La respuesta correcta era:
+                  </p>
+                  <img
+                    src={solutionImages[colores[currentColor]]}
+                    alt={`Solución: color ${colores[currentColor]}`}
+                    className="w-96 h-96 object-contain mx-auto mb-4"
+                  />
+                </div>
+              </div>
             )}
 
             {/* Temporizador */}
             {!showInstructions && !gameCompleted && (
-                <div className="absolute bottom-8 right-8">
-                    <div className={`relative group transform transition-all duration-300 ${
-                        timeLeft <= 3 ? 'scale-110' : 'hover:scale-105'
-                    }`}>
-                        <div className={`w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-lg
+              <div className="absolute bottom-8 right-8">
+                <div className={`relative group transform transition-all duration-300 ${timeLeft <= 3 ? 'scale-110' : 'hover:scale-105'
+                  }`}>
+                  <div className={`w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-lg
                                     relative overflow-hidden ${timeLeft <= 3 ? 'animate-pulse' : ''}`}>
-                            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                <circle
-                                    cx="50"
-                                    cy="50"
-                                    r="45"
-                                    fill="none"
-                                    stroke={timeLeft <= 3 ? '#FEE2E2' : '#E0E7FF'}
-                                    strokeWidth="8"
-                                    className="opacity-30"
-                                />
-                                <circle
-                                    cx="50"
-                                    cy="50"
-                                    r="45"
-                                    fill="none"
-                                    stroke={timeLeft <= 3 ? '#EF4444' : '#3B82F6'}
-                                    strokeWidth="8"
-                                    strokeLinecap="round"
-                                    strokeDasharray={`${2 * Math.PI * 45}`}
-                                    //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
-                                    strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/(tiempos?.colores || 10))}
-                                    className="transition-all duration-1000"
-                                />
-                            </svg>
+                    <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        fill="none"
+                        stroke={timeLeft <= 3 ? '#FEE2E2' : '#E0E7FF'}
+                        strokeWidth="8"
+                        className="opacity-30"
+                      />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="45"
+                        fill="none"
+                        stroke={timeLeft <= 3 ? '#EF4444' : '#3B82F6'}
+                        strokeWidth="8"
+                        strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 45}`}
+                        //strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft/10)}
+                        strokeDashoffset={2 * Math.PI * 45 * (1 - timeLeft / (tiempos?.colores || 10))}
+                        className="transition-all duration-1000"
+                      />
+                    </svg>
 
-                            <div className={`relative z-10 text-4xl font-bold 
+                    <div className={`relative z-10 text-4xl font-bold 
                                         ${timeLeft <= 3 ? 'text-red-500' : 'text-blue-500'}`}>
-                                {timeLeft}
-                            </div>
-
-                            {timeLeft <= 3 && (
-                                <>
-                                    <div className="absolute inset-0 rounded-full bg-red-500 opacity-20 animate-ping"></div>
-                                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full 
-                                                flex items-center justify-center animate-bounce shadow-lg">
-                                        <span className="text-white text-xs">⚠️</span>
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                      {timeLeft}
                     </div>
+
+                    {timeLeft <= 3 && (
+                      <>
+                        <div className="absolute inset-0 rounded-full bg-red-500 opacity-20 animate-ping"></div>
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full 
+                                                flex items-center justify-center animate-bounce shadow-lg">
+                          <span className="text-white text-xs">⚠️</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
+              </div>
             )}
           </div>
-      )}
+        )}
 
         {showInstructions ? (
           <div className="text-center space-y-6">
@@ -927,12 +1109,12 @@ useEffect(() => {
             <h2 className="text-4xl font-bold text-purple-600 mb-24">
               Encuentra el color:
             </h2>
-            
+
             <div className="flex justify-center items-end mb-24 relative">
-                <RainbowDisplay />
-                {isCorrect && showFeedback && !isAnimating && (
-                    <StarBurst color={colores[currentColor]} />
-                )}
+              <RainbowDisplay />
+              {isCorrect && showFeedback && !isAnimating && (
+                <StarBurst color={colores[currentColor]} />
+              )}
             </div>
 
             <p className="text-2xl text-gray-600">
